@@ -1,0 +1,31 @@
+name: "tagged-release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  tagged-release:
+    name: "Tagged Release"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: "Extract tag name"
+        id: tag
+        uses: actions/github-script@0.2.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            return context.payload.ref.replace(/\/refs\/tags\//, '');
+      - name: "Build & test"
+        run: |
+          echo "done!"
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          title: "${{ steps.tag.outputs.result }} Release of PSWinUtil"
+          files: |
+            *
