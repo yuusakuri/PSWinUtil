@@ -25,8 +25,8 @@ Install-Module -Name PSWinUtil
 
 Download the ZIP file of a release and unpack it to one of the following locations:
 
-- Current user: `C:\Users\USERNAME\Documents\WindowsPowerShell\Modules`
-- All users: `C:\Program Files\WindowsPowerShell\Modules`
+- Current user: `C:\Users\USERNAME\Documents\WindowsPowerShell\Modules\PSWinUtil`
+- All users: `C:\Program Files\WindowsPowerShell\Modules\PSWinUtil`
 
 ## Check if the module is installed
 
