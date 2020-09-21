@@ -116,7 +116,9 @@
     'Register-WUStartup',
     'Set-WUDesktopIconSize',
     'Set-WUPointerScheme',
-    'Set-WUPS1Action'
+    'Set-WUPS1Action',
+    'Set-WUScalingBehavior',
+    'Set-WUWindowsAutoLogin'
   )
 
   # このモジュールからエクスポートするコマンドレットです。最適なパフォーマンスを得るには、ワイルドカードを使用せず、エクスポートするコマンドレットがない場合は、エントリを削除しないで空の配列を使用してください。
@@ -170,4 +172,5 @@
   # DefaultCommandPrefix = 'u'
 
 }
+
 
