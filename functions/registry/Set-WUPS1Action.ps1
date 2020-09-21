@@ -5,7 +5,7 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param (
-  [ValidateSet('Run', 'Edit')]
+  [ValidateSet('Run', 'Edit', 'Notepad')]
   [string]
   $PS1Action
 )
