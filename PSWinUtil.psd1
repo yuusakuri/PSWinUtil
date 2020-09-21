@@ -97,6 +97,7 @@
     'Disable-WUWebsiteAccessToLanguageList',
     'Disable-WUWindowsHello',
     'Disable-WUWindowsSecurityAllNotifications',
+    'Disable-WUWindowsSecurityNonCriticalNotifications',
     'Disable-WUWindowsUpdateAutoRestart',
     'Disable-WUWindowsUpdateNotifications',
     'Enable-WUAdvertisingId',
@@ -111,6 +112,7 @@
     'Enable-WUWebsiteAccessToLanguageList',
     'Enable-WUWindowsHello',
     'Enable-WUWindowsSecurityAllNotifications',
+    'Enable-WUWindowsSecurityNonCriticalNotifications',
     'Enable-WUWindowsUpdateAutoRestart',
     'Enable-WUWindowsUpdateNotifications',
     'Register-WUStartup',
@@ -172,3 +174,4 @@
   # DefaultCommandPrefix = 'u'
 
 }
+
