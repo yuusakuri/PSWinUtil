@@ -9,3 +9,8 @@
 - `Set-WUPS1Action`: Modify parameter set.
 - `Set-WUWindowsAutoLogin`: Added to set automatic login for windows.
 - `Set-WUScalingBehavior`: Added to set high DPI scaling per app.
+
+## v1.2.0
+
+- `Disable-WUWindowsSecurityNonCriticalNotifications`: Added to disable non-essential notifications for Windows Security.
+- `Enable-WUWindowsSecurityNonCriticalNotifications`: Added to enable non-essential notifications for Windows Security
