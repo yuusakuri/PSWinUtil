@@ -12,7 +12,7 @@
   RootModule        = 'PSWinUtil.psm1'
 
   # このモジュールのバージョン番号です。
-  ModuleVersion     = '1.2.0'
+  ModuleVersion     = '1.2.2'
 
   # サポートされている PSEditions
   # CompatiblePSEditions = @()
@@ -30,7 +30,7 @@
   Copyright         = '(c) 2020 yuusakuri. All rights reserved.'
 
   # このモジュールの機能の説明
-  Description       = ''
+  Description       = 'PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop.'
 
   # このモジュールに必要な Windows PowerShell エンジンの最小バージョン
   PowerShellVersion = '5.0'
