@@ -80,13 +80,27 @@ else {
 if (!$paths) {
   return
 }
-
+$scopeParamNames = @{
+  Process = 'ForProcess'
+  User    = 'ForUser'
+  Machine = 'ForComputer'
+}
 $Scope = $Scope + 'Process' | Select-Object -Unique
 foreach ($aScope in $Scope) {
   [string[]]$currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $Scope) -split ';'
   $newEnvPath = ($currentEnvPaths + $paths | Where-Object { $_ } | Select-Object -Unique) -join ';'
 
   if ($pscmdlet.ShouldProcess($newEnvPath, 'Set to the Path environment variable')) {
+    <# The following code could not be executed due to an error. So use the Carbon cmdlet instead.
     [System.Environment]::SetEnvironmentVariable('Path', $newEnvPath, $Scope)
+    Error message:
+    This script contains malicious content and has been blocked by your antivirus software. #>
+
+    $Parameters = @{
+      Name                     = 'Path'
+      Value                    = $newEnvPath
+      $scopeParamNames.$aScope = $true
+    }
+    Set-CEnvironmentVariable @Parameters
   }
 }
