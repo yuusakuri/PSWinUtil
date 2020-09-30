@@ -14,3 +14,8 @@
 
 - `Disable-WUWindowsSecurityNonCriticalNotifications`: Added to disable non-essential notifications for Windows Security.
 - `Enable-WUWindowsSecurityNonCriticalNotifications`: Added to enable non-essential notifications for Windows Security
+
+## v1.2.2
+
+- `Add-WUEnvPath`: Fixed this script not being able to run.
+- Added description to manifest.
