@@ -23,7 +23,7 @@ param (
     ValueFromPipelineByPropertyName)]
   [ValidateNotNullOrEmpty()]
   [uri]
-  $URI,
+  $Uri,
 
   # Specifies the path to the location where the items are being moved. The default is the current directory.
   [ValidateNotNullOrEmpty()]
