@@ -6,6 +6,13 @@ function Get-WURegistryHash {
   return . "$env:PSWinUtil/resources/registry/$registryFileName"
 }
 
+function Test-WUAdmin {
+  (
+    [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
+    GetCurrent()
+  ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 function Set-WURegistryFromHash {
   [CmdletBinding(SupportsShouldProcess)]
   param (
@@ -109,22 +116,36 @@ if ($installScoopDepends) {
     scoop bucket add yuusakuri https://github.com/yuusakuri/scoop-bucket.git
   } 6>&1 | Out-Null
 
-  foreach ($installScoopDepend in $installScoopDepends) {
-    scoop install $installScoopDepend.AppName
+  foreach ($aInstallDepend in $installScoopDepends) {
+    Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
+    scoop install $aInstallDepend.AppName
+    if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
+      Write-Warning ("Installation of '{0}' failed." -f $aInstallDepend.AppName)
+    }
   }
 }
+
 $chocoDepends = $chocoDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
 if ($chocoDepends) {
-  if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
-    # Install Chocolatey
-    Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-    # スクリプト実行の確認をしない
-    choco feature enable -n allowGlobalConfirmation
-    # チェックサムを無効にする
-    choco feature disable -n checksumFiles
+  if (!(Test-WUAdmin)) {
+    Write-Warning 'Unable to resolve Dependencies. Chocolatey require admin rights.'
   }
+  else {
+    if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
+      # Install Chocolatey
+      Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
+      # スクリプト実行の確認をしない
+      choco feature enable -n allowGlobalConfirmation
+      # チェックサムを無効にする
+      choco feature disable -n checksumFiles
+    }
 
-  foreach ($installChocoDepend in $installChocoDepends) {
-    scoop install $installChocoDepend.AppName -y --ignore-checksums -limitoutput
+    foreach ($aInstallDepend in $installChocoDepends) {
+      Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
+      scoop install $aInstallDepend.AppName -y --ignore-checksums -limitoutput
+      if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
+        Write-Warning ("Installation of '{0}' failed." -f $aInstallDepend.AppName)
+      }
+    }
   }
 }
