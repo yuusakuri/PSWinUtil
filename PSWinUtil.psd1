@@ -88,6 +88,7 @@
     'Disable-WUAdvertisingId',
     'Disable-WUAppLaunchTracking',
     'Disable-WUAppSuggestionsInStart',
+    'Disable-WUContentDelivery',
     'Disable-WUFileHistory',
     'Disable-WUGameDvr',
     'Disable-WULockScreen',
@@ -104,6 +105,7 @@
     'Enable-WUAdvertisingId',
     'Enable-WUAppLaunchTracking',
     'Enable-WUAppSuggestionsInStart',
+    'Enable-WUContentDelivery',
     'Enable-WUFileHistory',
     'Enable-WUGameDvr',
     'Enable-WULockScreen',
@@ -176,3 +178,6 @@
   # DefaultCommandPrefix = 'u'
 
 }
+
+
+
