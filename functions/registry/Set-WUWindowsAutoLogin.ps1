@@ -21,10 +21,12 @@ $registryHash.Username.Machine.Data = $Username
 $registryHash.Password.Machine.Data = $Password
 
 if ($Username) {
-  $registryHash.Enable.Machine.Data = $registryHash.Enable.Machine.Data.Enable
+  $registryHash.Enable1.Machine.Data = $registryHash.Enable1.Machine.Data.Enable
+  $registryHash.Enable2.Machine.Data = $registryHash.Enable2.Machine.Data.Enable
 }
 else {
-  $registryHash.Enable.Machine.Data = $registryHash.Enable.Machine.Data.Disable
+  $registryHash.Enable1.Machine.Data = $registryHash.Enable1.Machine.Data.Disable
+  $registryHash.Enable2.Machine.Data = $registryHash.Enable2.Machine.Data.Disable
 }
 
 Set-WURegistryFromHash -RegistryHash $registryHash
