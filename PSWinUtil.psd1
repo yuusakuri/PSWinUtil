@@ -12,7 +12,7 @@
   RootModule        = 'PSWinUtil.psm1'
 
   # このモジュールのバージョン番号です。
-  ModuleVersion     = '1.2.6'
+  ModuleVersion     = '1.2.7'
 
   # サポートされている PSEditions
   # CompatiblePSEditions = @()
@@ -88,7 +88,7 @@
     'Disable-WUAdvertisingId',
     'Disable-WUAppLaunchTracking',
     'Disable-WUAppSuggestionsInStart',
-    'Disable-WUContentDelivery',
+    'Disable-WUContentDeliveryManager',
     'Disable-WUFileHistory',
     'Disable-WUGameDvr',
     'Disable-WULockScreen',
@@ -105,7 +105,7 @@
     'Enable-WUAdvertisingId',
     'Enable-WUAppLaunchTracking',
     'Enable-WUAppSuggestionsInStart',
-    'Enable-WUContentDelivery',
+    'Enable-WUContentDeliveryManager',
     'Enable-WUFileHistory',
     'Enable-WUGameDvr',
     'Enable-WULockScreen',
@@ -178,6 +178,3 @@
   # DefaultCommandPrefix = 'u'
 
 }
-
-
-
