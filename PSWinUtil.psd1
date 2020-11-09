@@ -12,7 +12,7 @@
   RootModule        = 'PSWinUtil.psm1'
 
   # このモジュールのバージョン番号です。
-  ModuleVersion     = '1.2.2'
+  ModuleVersion     = '1.2.4'
 
   # サポートされている PSEditions
   # CompatiblePSEditions = @()
@@ -92,6 +92,7 @@
     'Disable-WUGameDvr',
     'Disable-WULockScreen',
     'Disable-WUSaveZoneInformation',
+    'Disable-WUSmartScreen',
     'Disable-WUSuggestedContentInSettingsApp',
     'Disable-WUUac',
     'Disable-WUWebsiteAccessToLanguageList',
@@ -107,6 +108,7 @@
     'Enable-WUGameDvr',
     'Enable-WULockScreen',
     'Enable-WUSaveZoneInformation',
+    'Enable-WUSmartScreen',
     'Enable-WUSuggestedContentInSettingsApp',
     'Enable-WUUac',
     'Enable-WUWebsiteAccessToLanguageList',
