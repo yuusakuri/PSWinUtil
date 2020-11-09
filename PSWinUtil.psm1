@@ -82,12 +82,14 @@ $scoopDepends = @(
     AppName = 'main/ffmpeg'
   }
   @{
-    CmdName = 'es.exe'
-    AppName = 'extras/everything'
-  }
-  @{
     CmdName = 'Set-CRegistryKeyValue'
     AppName = 'yuusakuri/carbon'
+  }
+)
+$chocoDepends = @(
+  @{
+    CmdName = 'es.exe'
+    AppName = 'Everything'
   }
 )
 
@@ -109,5 +111,20 @@ if ($installScoopDepends) {
 
   foreach ($installScoopDepend in $installScoopDepends) {
     scoop install $installScoopDepend.AppName
+  }
+}
+$chocoDepends = $chocoDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
+if ($chocoDepends) {
+  if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
+    # Install Chocolatey
+    Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
+    # スクリプト実行の確認をしない
+    choco feature enable -n allowGlobalConfirmation
+    # チェックサムを無効にする
+    choco feature disable -n checksumFiles
+  }
+
+  foreach ($installChocoDepend in $installChocoDepends) {
+    scoop install $installChocoDepend.AppName -y --ignore-checksums -limitoutput
   }
 }
