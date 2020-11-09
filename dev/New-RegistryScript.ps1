@@ -35,8 +35,8 @@ $registryFiles[0].Content = @"
         Enable  = 1
         Disable = 0
       }
-  }
-  User = @{
+    }
+    User = @{
       KeyName   = ''
       ValueName = ''
       Type      = 'REG_SZ'
