@@ -120,6 +120,7 @@
     'Enable-WUWindowsUpdateAutoRestart',
     'Enable-WUWindowsUpdateNotifications',
     'Register-WUStartup',
+    'Set-WUCapsLockToControl',
     'Set-WUDesktopIconSize',
     'Set-WUPointerScheme',
     'Set-WUPS1Action',
@@ -178,3 +179,6 @@
   # DefaultCommandPrefix = 'u'
 
 }
+
+
+
