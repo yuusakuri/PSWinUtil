@@ -12,7 +12,7 @@
   RootModule        = 'PSWinUtil.psm1'
 
   # このモジュールのバージョン番号です。
-  ModuleVersion     = '1.2.9'
+  ModuleVersion     = '1.2.11'
 
   # サポートされている PSEditions
   # CompatiblePSEditions = @()
@@ -120,7 +120,6 @@
     'Enable-WUWindowsUpdateAutoRestart',
     'Enable-WUWindowsUpdateNotifications',
     'Register-WUStartup',
-    'Set-WUCapsLockToControl',
     'Set-WUDesktopIconSize',
     'Set-WUPointerScheme',
     'Set-WUPS1Action',
@@ -179,6 +178,3 @@
   # DefaultCommandPrefix = 'u'
 
 }
-
-
-
