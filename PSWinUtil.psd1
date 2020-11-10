@@ -12,7 +12,7 @@
   RootModule        = 'PSWinUtil.psm1'
 
   # このモジュールのバージョン番号です。
-  ModuleVersion     = '1.2.11'
+  ModuleVersion     = '1.2.12'
 
   # サポートされている PSEditions
   # CompatiblePSEditions = @()
@@ -179,5 +179,3 @@
   # DefaultCommandPrefix = 'u'
 
 }
-
-
