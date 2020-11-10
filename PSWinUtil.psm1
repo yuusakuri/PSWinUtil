@@ -75,9 +75,6 @@ foreach ($function in $functions) {
   New-Item -Path ('function:\{0}' -f $function.BaseName) -Value (Get-Content -Path $function.FullName -Raw)
 }
 
-# Pass the path to the required executable
-Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$env:PSWinUtil\tools" -Directory).FullName -Scope Process
-
 # Resolve dependencies using scoop which does not require administrator privileges
 $scoopDepends = @(
   @{
@@ -148,4 +145,13 @@ if ($chocoDepends) {
       }
     }
   }
+}
+
+# Pass the path to the required executable.
+Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$env:PSWinUtil\tools" -Directory).FullName -Scope Process
+
+# Reset these variables if $env:TEMP and $env:TMP point to a non-existent path.
+if (!(Test-Path -LiteralPath $env:TEMP)) {
+  Set-CEnvironmentVariable -Name TEMP -Value "$env:USERPROFILE\AppData\Local\Temp" -ForProcess -ForUser
+  Set-CEnvironmentVariable -Name TMP -Value "$env:USERPROFILE\AppData\Local\Temp" -ForProcess -ForUser
 }
