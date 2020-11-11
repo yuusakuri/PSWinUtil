@@ -2,7 +2,7 @@
   PointerScheme = @{
     User = @{
       KeyName   = 'HKEY_CURRENT_USER\Control Panel\Cursors'
-      ValueName = ''
+      ValueName = '(Default)'
       Type      = 'REG_SZ'
       Data      = @{
         Magnified                 = 'Magnified'
