@@ -29,25 +29,19 @@ param (
 
 Set-StrictMode -Version 'Latest'
 
-$xmlPath = "$env:TEMP/MonitorTool-{0}.xml" -f (Get-WURandomString -Length 8)
+$tempDirPath = (New-TemporaryFile).FullName
+try {
+  $xmlPath = "$tempPath\MonitorTool.xml"
 
-MultiMonitorTool.exe /sxml $xmlPath
+  Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f $xmlPath) -Wait -NoNewWindow
 
-# ファイル作成を約60秒まで待つ
-$limit = 60
-for ($i = 0; $i -lt $limit; $i++) {
-  if ((Test-Path -LiteralPath $xmlPath)) {
-    break
-  }
-  if ($i -eq $limit - 1) {
-    Write-Error "Failed to write monitor information to path '$xmlPath'."
-    return
-  }
-  Start-Sleep 1
+  [xml]$xmlo = Get-Content -LiteralPath $xmlPath
+
+  return $xmlo.monitors_list.item
 }
-
-[xml]$xmlo = Get-Content -LiteralPath $xmlPath
-
-Remove-Item -LiteralPath $xmlPath -Force
-
-return $xmlo.monitors_list.item
+finally {
+  # tempを削除
+  $tempDirPath |
+  Where-Object { Test-Path -LiteralPath $_ } |
+  Remove-Item -Recurse -Force
+}
