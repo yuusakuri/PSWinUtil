@@ -29,7 +29,7 @@ param (
 
 Set-StrictMode -Version 'Latest'
 
-$tempDirPath = (New-TemporaryFile).FullName
+$tempDirPath = (New-CTempDirectory).FullName
 try {
   $xmlPath = "$tempPath\MonitorTool.xml"
 
