@@ -28,4 +28,11 @@ jobs:
           prerelease: false
           title: "${{ steps.tag.outputs.result }} Release of PSWinUtil"
           files: |
-            *
+            functions/*
+            resources/*
+            tools/*
+            CHANGELOG.md
+            LICENSE
+            PSWinUtil.psd1
+            PSWinUtil.psm1
+            README.md
