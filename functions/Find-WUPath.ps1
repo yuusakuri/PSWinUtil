@@ -85,7 +85,7 @@ $isCompleated = {
 
   if ($Exclude) {
     foreach ($aExclude in $Exclude) {
-      $resultItems = $resultItems | Where-Object { !$_.FullName.Contains($aExclude) }
+      $resultItems = $resultItems | Where-Object { !(Select-String -InputObject $_.FullName -SimpleMatch $aExclude) }
     }
   }
 
@@ -93,12 +93,17 @@ $isCompleated = {
     $pattern = $_
 
     $completedItem = $resultItems |
-    Where-Object { (Split-Path $_ -Parent).Contains($pattern.Parent) } |
+    Where-Object {
+      if (!$pattern.Parent) {
+        return $true
+      }
+      return Select-String -InputObject (Split-Path $_ -Parent) -SimpleMatch $pattern.Parent
+    } |
     Where-Object {
       if ($Strict) {
         return $_.Name -eq $pattern.Leaf
       }
-      return $_.Name.Contains($pattern.Leaf)
+      return Select-String -InputObject $_.Name -SimpleMatch $pattern.Leaf
     }
 
     if ($completedItem) {
@@ -106,6 +111,7 @@ $isCompleated = {
       $completedLeafs.add($pattern.Leaf) | Out-Null
     }
   }
+  $resultItems.FullName | ForEach-Object { Write-Verbose "3:$_" }
 
   $resultPaths.Clear()
   if (!$resultItems) { return $false }
@@ -180,7 +186,7 @@ if ($Program) {
 
 # es.exeで探す
 [string[]]$esResultPaths = $leafs | ForEach-Object {
-  es.exe -i $_
+  es.exe $_
 }
 
 if ((& $isCompleated -AddPath $esResultPaths)) {
