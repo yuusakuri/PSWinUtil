@@ -2,8 +2,9 @@ name: "tagged-release"
 
 on:
   push:
+    # Sequence of patterns matched against refs/tags
     tags:
-      - "v*"
+      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
   tagged-release:
@@ -11,28 +12,15 @@ jobs:
     runs-on: "ubuntu-latest"
 
     steps:
-      - name: "Extract tag name"
-        id: tag
-        uses: actions/github-script@0.2.0
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            return context.payload.ref.replace(/\/refs\/tags\//, '');
-      - name: "Build & test"
-        run: |
-          echo "done!"
-
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }} Release of PSWinUtil
+          draft: false
           prerelease: false
-          title: "${{ steps.tag.outputs.result }} Release of PSWinUtil"
-          files: |
-            functions/*
-            resources/*
-            tools/*
-            CHANGELOG.md
-            LICENSE
-            PSWinUtil.psd1
-            PSWinUtil.psm1
-            README.md
