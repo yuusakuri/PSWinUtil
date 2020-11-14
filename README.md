@@ -18,7 +18,7 @@ scoop install yuusakuri/pswinutil
 ### Option 2: PowerShellGet
 
 ```powershell
-Install-Module -Name PSWinUtil
+Install-Module -Name PSWinUtil -Scope CurrentUser
 ```
 
 ### Option 3: ZIP File
@@ -31,5 +31,8 @@ Download the ZIP file of a release and unpack it to one of the following locatio
 ## Check if the module is installed
 
 ```powershell
+# When installed using scoop
+Get-Module PSWinUtil
+# When installed from PowerShell Gallery
 Get-Module PSWinUtil -ListAvailable
 ```
