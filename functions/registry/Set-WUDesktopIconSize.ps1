@@ -16,3 +16,5 @@ if (!$registryHash) {
 }
 
 Set-WURegistryFromHash -RegistryHash $registryHash -DataKey $Size
+
+Get-Process explorer | Stop-Process
