@@ -27,7 +27,7 @@ $registryFiles[0].Path = "$env:PSWinUtil/resources/registry/$Name.ps1"
 $registryFiles[0].Content = @"
 @{
   $Name = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = ''
       ValueName = ''
       Type      = 'REG_DWORD'
@@ -36,7 +36,7 @@ $registryFiles[0].Content = @"
         Disable = 0
       }
     }
-    User = @{
+    CurrentUser = @{
       KeyName   = ''
       ValueName = ''
       Type      = 'REG_SZ'
@@ -53,10 +53,10 @@ for ($i = 0; $i -lt $Verb.Count; $i++) {
   $registryFiles += @{}
   $registryFiles[$i + 1].Path = "$env:PSWinUtil/functions/registry/{0}-WU$Name.ps1" -f $Verb[$i]
   $scopeParamStr = @'
-  # Specify the target user. The target is the current user if you specify 'User', and all users if you specify 'Machine'. The default value is 'User'.
-  [ValidateSet('User', 'Machine')]
+  # Specifies the scope that is affected. The default scope is CurrentUser.
+  [ValidateSet('LocalMachine', 'CurrentUser')]
   [string]
-  $Scope = 'User'
+  $Scope = 'CurrentUser'
 
 '@
   $scopeArgStr = ' -Scope $Scope'

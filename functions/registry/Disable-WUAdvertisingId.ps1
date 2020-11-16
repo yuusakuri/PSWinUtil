@@ -5,10 +5,10 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param (
-  # Specify the target user. The target is the current user if you specify 'User', and all users if you specify 'Machine'. The default value is 'User'.
-  [ValidateSet('User', 'Machine')]
+  # Specifies the scope that is affected. The default scope is CurrentUser.
+  [ValidateSet('LocalMachine', 'CurrentUser')]
   [string]
-  $Scope = 'User'
+  $Scope = 'CurrentUser'
 )
 
 Set-StrictMode -Version 'Latest'
