@@ -31,7 +31,7 @@ Set-StrictMode -Version 'Latest'
 
 $tempDirPath = (New-CTempDirectory).FullName
 try {
-  $xmlPath = "$tempPath\MonitorTool.xml"
+  $xmlPath = "$tempDirPath\MonitorTool.xml"
 
   Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f $xmlPath) -Wait -NoNewWindow
 
