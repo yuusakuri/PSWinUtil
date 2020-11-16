@@ -8,7 +8,7 @@
   This cmdlet works with registry.
 
   .EXAMPLE
-  PS C:\>Register-WUStartup -LiteralPath 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -Valuename powershell -Argument '-NoLogo -Command ls' -Scope 'Machine'
+  PS C:\>Register-WUStartup -LiteralPath 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -Valuename powershell -Argument '-NoLogo -Command ls' -Scope 'LocalMachine'
 
   In this example, we want all users to start powershell with arguments at startup.
 #>
@@ -47,10 +47,10 @@ param (
   [string]
   $Argument,
 
-  # Specify the target user. The target is the current user if you specify 'User', and all users if you specify 'Machine'. The default value is 'User'.
-  [ValidateSet('User', 'Machine')]
+  # Specifies the scope that is affected. The default scope is CurrentUser.
+  [ValidateSet('LocalMachine', 'CurrentUser')]
   [string]
-  $Scope = 'User'
+  $Scope = 'CurrentUser'
 )
 
 Set-StrictMode -Version 'Latest'
