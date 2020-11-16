@@ -46,31 +46,52 @@ param (
   $Lastest,
 
   # Specifies the location where an environment variable. The default Scope is Process.
-  [ValidateSet('Process', 'User', 'Machine')]
-  [string]
+  [ValidateSet('Process', 'CurrentUser', 'LocalMachine')]
+  [string[]]
   $Scope = 'Process'
 )
 
 Set-StrictMode -Version 'Latest'
 
-[System.Collections.ArrayList]$envPaths = [array][System.Environment]::GetEnvironmentVariable('Path', $Scope) -split ';'
+$Scope = $Scope + 'Process' | Select-Object -Unique
 
-if ($Lastest) {
-  $envPaths.RemoveAt(($envPaths.Count - 1))
+$scopeParams = @{
+  LocalMachine = 'ForComputer'
+  CurrentUser  = 'ForUser'
+  Process      = 'ForProcess'
 }
-else {
-  if ($psCmdlet.ParameterSetName -eq 'Path') {
-    $removePaths = Resolve-WUFullPath -Path $Path
+$scopeTargets = @{
+  LocalMachine = 'Machine'
+  CurrentUser  = 'User'
+  Process      = 'Process'
+}
+
+foreach ($aScope in $Scope) {
+  [System.Collections.ArrayList]$envPaths = [array][System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
+
+  if ($Lastest) {
+    $envPaths.RemoveAt(($envPaths.Count - 1))
   }
   else {
-    $removePaths = Resolve-WUFullPath -LiteralPath $LiteralPath
+    if ($psCmdlet.ParameterSetName -eq 'Path') {
+      $removePaths = Resolve-WUFullPath -Path $Path
+    }
+    else {
+      $removePaths = Resolve-WUFullPath -LiteralPath $LiteralPath
+    }
+
+    $envPaths = $envPaths | Where-Object { $removePaths -notcontains $_ }
   }
 
-  $envPaths = $envPaths | Where-Object { $removePaths -notcontains $_ }
-}
+  $newEnvPath = $envPaths -join ';'
 
-$newEnvPath = $envPaths -join ';'
+  $Parameters = @{
+    Name                 = 'Path'
+    Value                = $newEnvPath
+    $scopeParams.$aScope = $true
+  }
 
-if ($pscmdlet.ShouldProcess($newEnvPath, 'Set to the Path environment variable')) {
-  [System.Environment]::SetEnvironmentVariable('Path', $newEnvPath, $Scope)
+  if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
+    Set-CEnvironmentVariable @Parameters
+  }
 }

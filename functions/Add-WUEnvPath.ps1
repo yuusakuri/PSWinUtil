@@ -39,7 +39,7 @@ param (
   $LiteralPath,
 
   # Specifies the location where an environment variable. The default Scope is Process.
-  [ValidateSet('Process', 'User', 'Machine')]
+  [ValidateSet('LocalMachine', 'CurrentUser', 'Process')]
   [string[]]
   $Scope = 'Process'
 )
@@ -80,26 +80,29 @@ else {
 if (!$paths) {
   return
 }
-$scopeParamNames = @{
-  Process = 'ForProcess'
-  User    = 'ForUser'
-  Machine = 'ForComputer'
-}
+
 $Scope = $Scope + 'Process' | Select-Object -Unique
+
+$scopeParams = @{
+  LocalMachine = 'ForComputer'
+  CurrentUser  = 'ForUser'
+  Process      = 'ForProcess'
+}
+$scopeTargets = @{
+  LocalMachine = 'Machine'
+  CurrentUser  = 'User'
+  Process      = 'Process'
+}
+
 foreach ($aScope in $Scope) {
-  [string[]]$currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $Scope) -split ';'
+  [string[]]$currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
   $newEnvPath = ($currentEnvPaths + $paths | Where-Object { $_ } | Select-Object -Unique) -join ';'
 
-  if ($pscmdlet.ShouldProcess($newEnvPath, 'Set to the Path environment variable')) {
-    <# The following code could not be executed due to an error. So use the Carbon cmdlet instead.
-    [System.Environment]::SetEnvironmentVariable('Path', $newEnvPath, $Scope)
-    Error message:
-    This script contains malicious content and has been blocked by your antivirus software. #>
-
+  if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
     $Parameters = @{
-      Name                     = 'Path'
-      Value                    = $newEnvPath
-      $scopeParamNames.$aScope = $true
+      Name                 = 'Path'
+      Value                = $newEnvPath
+      $scopeParams.$aScope = $true
     }
     Set-CEnvironmentVariable @Parameters
   }
