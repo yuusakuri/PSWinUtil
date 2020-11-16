@@ -1,6 +1,6 @@
 ﻿@{
   FileHistory = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\FileHistory'
       ValueName = 'Disabled'
       Type      = 'REG_DWORD'

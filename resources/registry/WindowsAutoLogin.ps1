@@ -1,6 +1,6 @@
 ﻿@{
   Enable1  = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
       ValueName = 'AutoAdminLogon'
       Type      = 'REG_DWORD'
@@ -11,7 +11,7 @@
     }
   }
   Enable2  = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device'
       ValueName = 'DevicePasswordLessBuildVersion'
       Type      = 'REG_DWORD'
@@ -22,7 +22,7 @@
     }
   }
   Username = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
       ValueName = 'DefaultUserName'
       Type      = 'REG_SZ'
@@ -30,7 +30,7 @@
     }
   }
   Password = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
       ValueName = 'DefaultPassword'
       Type      = 'REG_SZ'

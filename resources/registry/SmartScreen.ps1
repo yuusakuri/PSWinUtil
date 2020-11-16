@@ -1,6 +1,6 @@
 ﻿@{
   SmartScreen = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System
       '
       ValueName = 'EnableSmartScreen'

@@ -1,6 +1,6 @@
 ﻿@{
   WindowsUpdateAutoRestart = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
       ValueName = 'NoAutoRebootWithLoggedOnUsers'
       Type      = 'REG_DWORD'

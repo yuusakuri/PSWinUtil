@@ -1,6 +1,6 @@
 ﻿@{
   ScalingBehavior = @{
-    User    = @{
+    CurrentUser  = @{
       KeyName   = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
       ValueName = ''
       Type      = 'REG_SZ'
@@ -10,7 +10,7 @@
         SystemEnhanced = '~ GDIDPISCALING DPIUNAWARE'
       }
     }
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKLM\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
       ValueName = ''
       Type      = 'REG_SZ'

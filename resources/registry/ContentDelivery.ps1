@@ -1,6 +1,6 @@
 ﻿@{
   PreInstalledAppsEnabled     = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'PreInstalledAppsEnabled'
       Type      = 'REG_DWORD'
@@ -11,7 +11,7 @@
     }
   }
   PreInstalledAppsEverEnabled = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'PreInstalledAppsEverEnabled'
       Type      = 'REG_DWORD'
@@ -22,7 +22,7 @@
     }
   }
   OEMPreInstalledAppsEnabled  = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'OEMPreInstalledAppsEnabled'
       Type      = 'REG_DWORD'
@@ -33,7 +33,7 @@
     }
   }
   SilentInstalledAppsEnabled  = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'SilentInstalledAppsEnabled'
       Type      = 'REG_DWORD'
@@ -44,7 +44,7 @@
     }
   }
   ContentDeliveryAllowed      = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'ContentDeliveryAllowed'
       Type      = 'REG_DWORD'
@@ -55,7 +55,7 @@
     }
   }
   SubscribedContentEnabled    = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'SubscribedContentEnabled'
       Type      = 'REG_DWORD'

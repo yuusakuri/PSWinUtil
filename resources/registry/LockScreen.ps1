@@ -1,6 +1,6 @@
 ﻿@{
   LockScreen = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\Personalization'
       ValueName = 'NoLockScreen'
       Type      = 'REG_DWORD'

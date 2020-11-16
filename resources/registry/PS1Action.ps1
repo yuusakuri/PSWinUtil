@@ -1,6 +1,6 @@
 ﻿@{
   PS1Action = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKEY_CLASSES_ROOT\Microsoft.PowerShellScript.1\Shell'
       ValueName = '(Default)'
       Type      = 'REG_SZ'

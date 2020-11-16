@@ -1,6 +1,6 @@
 @{
   GameDvr = @{
-    Machine = @{
+    LocalMachine = @{
       KeyName   = 'HKLM\Software\Policies\Microsoft\Windows\GameDVR'
       ValueName = 'AllowGameDVR'
       Type      = 'REG_DWORD'

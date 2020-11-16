@@ -1,7 +1,7 @@
 ﻿@{
   WebsiteAccessToLanguageList = @{
     # WEBサイトが言語リストにアクセス
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKEY_CURRENT_USER\Control Panel\International\User Profile'
       ValueName = 'HttpAdcceptLanguageOptOut'
       Type      = 'REG_DWORD'

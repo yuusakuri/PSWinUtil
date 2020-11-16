@@ -1,6 +1,6 @@
 ﻿@{
   PointerScheme = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKEY_CURRENT_USER\Control Panel\Cursors'
       ValueName = '(Default)'
       Type      = 'REG_SZ'

@@ -1,6 +1,6 @@
 ﻿@{
   AppSuggestionsInStart = @{
-    User = @{
+    CurrentUser = @{
       KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
       ValueName = 'SystemPaneSuggestionsEnabled'
       Type      = 'REG_DWORD'

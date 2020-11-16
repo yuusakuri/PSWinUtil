@@ -1,6 +1,6 @@
 @{
   SaveZoneInformation = @{
-    Machine = @{
+    CurrentUser = @{
       KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Attachments'
       ValueName = 'SaveZoneInformation'
       Type      = 'REG_DWORD'

@@ -1,6 +1,6 @@
 ﻿@{
   AppLaunchTracking = @{
-    User = @{
+    CurrentUser = @{
       # 追跡アプリ
       KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
       ValueName = 'Start_TrackProgs'
