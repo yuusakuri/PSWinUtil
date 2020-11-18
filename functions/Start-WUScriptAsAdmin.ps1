@@ -124,7 +124,7 @@ if ($Arguments) {
   $ArgumentsPath = "$tempDirPath/Arguments.xml"
   $Arguments | Export-Clixml -LiteralPath $ArgumentsPath -Force
 
-  $powershellArgs += "-Command `"`$Arguments = Import-Clixml -LiteralPath $ArgumentsPath; $tempDirPath | Where-Object { Test-Path -LiteralPath `$_ } | Remove-Item -Recurse -Force; . '$ScriptPath' @Arguments`""
+  $powershellArgs += "-Command `"`$Arguments = Import-Clixml -LiteralPath $ArgumentsPath; '$tempDirPath' | Where-Object { Test-Path -LiteralPath `$_ } | Remove-Item -Recurse -Force; . '$ScriptPath' @Arguments`""
 }
 else {
   $powershellArgs += "-Command `". '$ScriptPath'`""
