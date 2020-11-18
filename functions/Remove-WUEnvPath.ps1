@@ -85,13 +85,12 @@ foreach ($aScope in $Scope) {
 
   $newEnvPath = $envPaths -join ';'
 
-  $Parameters = @{
-    Name                 = 'Path'
-    Value                = $newEnvPath
-    $scopeParams.$aScope = $true
-  }
-
   if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
-    Set-CEnvironmentVariable @Parameters
+    $setEnvArgs = @{
+      Name                 = 'Path'
+      Value                = $newEnvPath
+      $scopeParams.$aScope = $true
+    }
+    Set-CEnvironmentVariable @setEnvArgs
   }
 }
