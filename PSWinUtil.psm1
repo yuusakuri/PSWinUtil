@@ -129,12 +129,21 @@ if ($installChocoDepends) {
   }
   else {
     if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
+      # 関数名の衝突を避ける
+      $PSModuleAutoloadingPreference = 'ModuleQualified'
+      $moduleNames = @(
+        'Carbon'
+      )
+      Remove-Module $moduleNames -ErrorAction Ignore
+
       # Install Chocolatey
       Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
       # スクリプト実行の確認をしない
       choco feature enable -n allowGlobalConfirmation
       # チェックサムを無効にする
       choco feature disable -n checksumFiles
+
+      $PSModuleAutoloadingPreference = $null
     }
 
     foreach ($aInstallDepend in $installChocoDepends) {
