@@ -78,7 +78,9 @@ $isCompleated = {
     $AddPath
   )
 
-  if (!$AddPath) { return $false }
+  if (!$AddPath) {
+    return $false
+  }
 
   $resultPaths.AddRange($AddPath)
   $resultItems = Get-Item -LiteralPath $resultPaths -ErrorAction Ignore
@@ -111,10 +113,11 @@ $isCompleated = {
       $completedLeafs.add($pattern.Leaf) | Out-Null
     }
   }
-  $resultItems.FullName | ForEach-Object { Write-Verbose "3:$_" }
 
   $resultPaths.Clear()
-  if (!$resultItems) { return $false }
+  if (!$resultItems) {
+    return $false
+  }
   $resultPaths.AddRange([string[]](Convert-Path -LiteralPath $resultItems.FullName | Select-Object -Unique))
 
   # $leafsを未取得のもので上書き
