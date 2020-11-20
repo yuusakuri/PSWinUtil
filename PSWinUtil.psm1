@@ -97,7 +97,7 @@ $chocoDepends = @(
   }
 )
 
-$installScoopDepends = $scoopDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
+[hashtable[]]$installScoopDepends = $scoopDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
 if ($installScoopDepends) {
   if (!(Get-Command -Name scoop -ErrorAction Ignore)) {
     # Install scoop
@@ -117,15 +117,15 @@ if ($installScoopDepends) {
     Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
     scoop install $aInstallDepend.AppName
     if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
-      Write-Warning ("Installation of '{0}' failed." -f $aInstallDepend.AppName)
+      Write-Warning ("Unable to resolve PSWinUtil Dependencies. Installation of '{0}' failed." -f $aInstallDepend.AppName)
     }
   }
 }
 
-$chocoDepends = $chocoDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
-if ($chocoDepends) {
+[hashtable[]]$installChocoDepends = $chocoDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
+if ($installChocoDepends) {
   if (!(Test-WUAdmin)) {
-    Write-Warning 'Unable to resolve Dependencies. Chocolatey require admin rights.'
+    Write-Warning 'Unable to resolve PSWinUtil Dependencies. Chocolatey require admin rights.'
   }
   else {
     if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
@@ -139,9 +139,9 @@ if ($chocoDepends) {
 
     foreach ($aInstallDepend in $installChocoDepends) {
       Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
-      scoop install $aInstallDepend.AppName -y --ignore-checksums -limitoutput
+      choco install $aInstallDepend.AppName -y --ignore-checksums -limitoutput
       if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
-        Write-Warning ("Installation of '{0}' failed." -f $aInstallDepend.AppName)
+        Write-Warning ("Unable to resolve PSWinUtil Dependencies. Installation of '{0}' failed." -f $aInstallDepend.AppName)
       }
     }
   }
