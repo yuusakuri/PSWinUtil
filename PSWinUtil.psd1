@@ -81,9 +81,9 @@
     'Get-WURandomString',
     'Invoke-WUDownload',
     'New-WUSshKey',
+    'Optimize-WUPowerShellStartup',
     'Remove-WUEnvPath',
     'Resolve-WUFullPath',
-    'Set-WUEnvPath',
     'Set-WUMonitor',
     'Start-WUScriptAsAdmin',
     'Disable-WUAdvertisingId',
@@ -93,6 +93,7 @@
     'Disable-WUFileHistory',
     'Disable-WUGameDvr',
     'Disable-WULockScreen',
+    'Disable-WULockWorkstation',
     'Disable-WUSaveZoneInformation',
     'Disable-WUSmartScreen',
     'Disable-WUSuggestedContentInSettingsApp',
@@ -111,6 +112,7 @@
     'Enable-WUFileHistory',
     'Enable-WUGameDvr',
     'Enable-WULockScreen',
+    'Enable-WULockWorkstation',
     'Enable-WUSaveZoneInformation',
     'Enable-WUSmartScreen',
     'Enable-WUSuggestedContentInSettingsApp',
@@ -125,7 +127,6 @@
     'Register-WUStartup',
     'Set-WUCapsLockToControl',
     'Set-WUDesktopIconSize',
-    'Set-WUPointerScheme',
     'Set-WUPS1Action',
     'Set-WUScalingBehavior',
     'Set-WUWindowsAutoLogin'
@@ -182,3 +183,4 @@
   # DefaultCommandPrefix = 'u'
 
 }
+
