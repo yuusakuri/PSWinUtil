@@ -7,6 +7,7 @@
 param (
   [string]
   $Username,
+
   [string]
   $Password
 )
@@ -17,16 +18,16 @@ if (!$registryHash) {
   return
 }
 
-$registryHash.Username.Machine.Data = $Username
-$registryHash.Password.Machine.Data = $Password
+$registryHash.Username.LocalMachine.Data = $Username
+$registryHash.Password.LocalMachine.Data = $Password
 
 if ($Username) {
-  $registryHash.Enable1.Machine.Data = $registryHash.Enable1.Machine.Data.Enable
-  $registryHash.Enable2.Machine.Data = $registryHash.Enable2.Machine.Data.Enable
+  $registryHash.Enable1.LocalMachine.Data = $registryHash.Enable1.LocalMachine.Data.Enable
+  $registryHash.Enable2.LocalMachine.Data = $registryHash.Enable2.LocalMachine.Data.Enable
 }
 else {
-  $registryHash.Enable1.Machine.Data = $registryHash.Enable1.Machine.Data.Disable
-  $registryHash.Enable2.Machine.Data = $registryHash.Enable2.Machine.Data.Disable
+  $registryHash.Enable1.LocalMachine.Data = $registryHash.Enable1.LocalMachine.Data.Disable
+  $registryHash.Enable2.LocalMachine.Data = $registryHash.Enable2.LocalMachine.Data.Disable
 }
 
 Set-WURegistryFromHash -RegistryHash $registryHash
