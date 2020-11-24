@@ -94,6 +94,7 @@
     'Disable-WUGameDvr',
     'Disable-WULockScreen',
     'Disable-WULockWorkstation',
+    'Disable-WURequireSignInOnWakeup',
     'Disable-WUSaveZoneInformation',
     'Disable-WUSmartScreen',
     'Disable-WUSuggestedContentInSettingsApp',
@@ -113,6 +114,7 @@
     'Enable-WUGameDvr',
     'Enable-WULockScreen',
     'Enable-WULockWorkstation',
+    'Enable-WURequireSignInOnWakeup',
     'Enable-WUSaveZoneInformation',
     'Enable-WUSmartScreen',
     'Enable-WUSuggestedContentInSettingsApp',
@@ -183,3 +185,4 @@
   # DefaultCommandPrefix = 'u'
 
 }
+
