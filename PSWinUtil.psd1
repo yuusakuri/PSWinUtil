@@ -24,7 +24,7 @@
   Author            = 'yuusakuri'
 
   # このモジュールの会社またはベンダー
-  CompanyName       = '不明'
+  CompanyName       = ''
 
   # このモジュールの著作権情報
   Copyright         = '(c) 2020 yuusakuri. All rights reserved.'
