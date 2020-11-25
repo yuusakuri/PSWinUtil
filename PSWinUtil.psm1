@@ -105,7 +105,7 @@ if ($installScoopDepends) {
   }
   if (!(Get-Command -Name git -ErrorAction Ignore)) {
     # Install git
-    scoop install git
+    scoop install git --force
   }
   . {
     # Add buckets
@@ -115,7 +115,7 @@ if ($installScoopDepends) {
 
   foreach ($aInstallDepend in $installScoopDepends) {
     Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
-    scoop install $aInstallDepend.AppName
+    scoop install $aInstallDepend.AppName --force
     if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
       Write-Warning ("Unable to resolve PSWinUtil Dependencies. Installation of '{0}' failed." -f $aInstallDepend.AppName)
     }
@@ -148,7 +148,7 @@ if ($installChocoDepends) {
 
     foreach ($aInstallDepend in $installChocoDepends) {
       Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
-      choco install $aInstallDepend.AppName -y --ignore-checksums -limitoutput
+      choco install $aInstallDepend.AppName -y --force --ignore-checksums -limitoutput
       if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
         Write-Warning ("Unable to resolve PSWinUtil Dependencies. Installation of '{0}' failed." -f $aInstallDepend.AppName)
       }
