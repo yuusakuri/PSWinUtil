@@ -17,7 +17,7 @@ param (
 
 Set-StrictMode -Version 'Latest'
 
-if ((Test-WUAdmin)) {
+if (!(Test-WUAdmin)) {
   Write-Error 'Administrator privileges are required to run this script.'
   return
 }
