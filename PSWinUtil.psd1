@@ -33,7 +33,7 @@
   Description       = 'PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey.'
 
   # このモジュールに必要な Windows PowerShell エンジンの最小バージョン
-  PowerShellVersion = '5.0'
+  PowerShellVersion = '5.1'
 
   # このモジュールに必要な Windows PowerShell ホストの名前
   # PowerShellHostName = ''
@@ -185,4 +185,3 @@
   # DefaultCommandPrefix = 'u'
 
 }
-
