@@ -22,12 +22,17 @@ if (!(Test-WUAdmin)) {
   return
 }
 
+if (($PSEdition -eq 'Core')) {
+  Write-Error 'This script only works with Windows PowerShell.'
+  return
+}
+
 $ngenPath = Join-Path ([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()) 'ngen.exe'
 
-[System.AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object {
-  if (!$_.location) {
-    continue
-  }
+Write-Host 'Compiling .NET assemblies with ngen.exe.'
 
-  & $ngenPath install $_.location /nologo
+[System.AppDomain]::CurrentDomain.GetAssemblies() |
+Select-Object -ExpandProperty Location |
+ForEach-Object {
+  & $ngenPath install $_ /nologo
 }
