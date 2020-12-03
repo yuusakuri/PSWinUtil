@@ -26,9 +26,9 @@
     In this example, Searches for and returns a path whose leaf exactly matches powershell.exe and whose parent path contains PowerShell\v1.0.
 
     .EXAMPLE
-    PS C:\> Find-WUPath 'powershell.exe' -Strict -Exclude 'C:\Windows\WinSxS'
+    PS C:\> Find-WUPath 'powershell.exe' -Strict -Exclude 'Windows'
 
-    In this example, Searches for and returns a path that does not contain C:\Windows\WinSxS and leaves exactly match powershell.exe.
+    This example searches for a path whose path does not match'Windows' and whose filename is powershell.exe.
 
     .EXAMPLE
     PS C:\> Find-WUPath 'powershell.exe' -Program
@@ -47,12 +47,13 @@ param (
     [string[]]
     $Name,
 
-    # Excludes paths that contain the specified string. It is case sensitive. Paths containing the following strings are excluded regardless of the value specified for this parameter.
+    # Specifies the regular expression for the path to exclude. It is case sensitive. Paths that match the following strings are excluded, regardless of the value specified for this parameter.
 
     <#
-    'C:\Windows\SysWOW64'
+    'C\:\\Windows\\SysWOW64'
     'SxS'
-    "$env:LOCALAPPDATA\Microsoft\Windows\FileHistory"
+    '\\AppData\\Local\\Microsoft\\Windows\\FileHistory'
+    'scoop\\apps\\.+\\_.+\.old\\'
     #>
     [string[]]
     $Exclude,
@@ -84,7 +85,7 @@ $isCompleated = {
 
     if ($Exclude) {
         foreach ($aExclude in $Exclude) {
-            $resultItems = $resultItems | Where-Object { !$_.FullName.Contains($aExclude) }
+            $resultItems = $resultItems | Where-Object { !($_.FullName -cmatch $aExclude) }
         }
     }
 
@@ -140,9 +141,10 @@ $resultPaths = New-Object System.Collections.ArrayList
 $completedLeafs = New-Object System.Collections.ArrayList
 
 $Exclude += @(
-    'C:\Windows\SysWOW64'
+    'C\:\\Windows\\SysWOW64'
     'SxS'
-    "$env:LOCALAPPDATA\Microsoft\Windows\FileHistory"
+    '\\AppData\\Local\\Microsoft\\Windows\\FileHistory'
+    'scoop\\apps\\.+\\_.+\.old\\'
 )
 
 if ($Program) {
