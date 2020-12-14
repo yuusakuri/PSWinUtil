@@ -11,7 +11,6 @@
       }
     }
     LocalMachine = @{
-      # https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.UserProfiles::DisableAdvertisingId
       KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo'
       ValueName = 'DisabledByGroupPolicy'
       Type      = 'REG_DWORD'
