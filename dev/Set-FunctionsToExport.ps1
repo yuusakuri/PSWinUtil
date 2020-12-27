@@ -5,7 +5,7 @@ if (!(Test-Path -LiteralPath $script:PSWinUtil)) {
     return
 }
 
-$functionDir = "$script:PSWinUtil/Functions"
+$functionDir = "$script:PSWinUtil/functions"
 if (!(Test-Path -LiteralPath $functionDir)) {
     Write-Error "Cannot find path '$functionDir' because it does not exist." -Category ObjectNotFound
     return
@@ -17,7 +17,7 @@ $functionNames = (Get-ChildItem -LiteralPath $functionDir -File -Recurse).BaseNa
 # エクスポートする関数を書き換え
 $psdPath = "$script:PSWinUtil/PSWinUtil.psd1"
 $psdContent = Get-Content -LiteralPath $psdPath -Raw
-$publicFunctionNameStr = "'{0}'" -f ($functionNames -join "',`n    '")
-$newPsdContent = $psdContent -replace 'FunctionsToExport\s+=\s+@\([\s\S]*?\)', ("FunctionsToExport = @(`n    {0}`n  )" -f $publicFunctionNameStr)
+$publicFunctionNameStr = "'{0}'" -f ($functionNames -join "',`n        '")
+$newPsdContent = $psdContent -replace 'FunctionsToExport\s+=\s+@\([\s\S]*?\)', ("FunctionsToExport = @(`n        {0}`n    )" -f $publicFunctionNameStr)
 
 [System.IO.File]::WriteAllLines($psdPath, [string[]]$newPsdContent, [System.Text.UTF8Encoding]::new($true))
