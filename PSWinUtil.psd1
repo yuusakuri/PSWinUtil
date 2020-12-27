@@ -96,7 +96,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Start-WUScriptAsAdmin',
         'Disable-WUAdvertisingId',
         'Disable-WUAppLaunchTracking',
-        'Disable-WUAppSuggestionsInStart',
+        'Disable-WUAppSuggestions',
         'Disable-WUDarkMode',
         'Disable-WUFileHistory',
         'Disable-WUGameDvr',
@@ -116,7 +116,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Disable-WUWindowsUpdateNotifications',
         'Enable-WUAdvertisingId',
         'Enable-WUAppLaunchTracking',
-        'Enable-WUAppSuggestionsInStart',
+        'Enable-WUAppSuggestions',
         'Enable-WUDarkMode',
         'Enable-WUFileHistory',
         'Enable-WUGameDvr',
@@ -194,3 +194,6 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # DefaultCommandPrefix = 'u'
 
 }
+
+
+
