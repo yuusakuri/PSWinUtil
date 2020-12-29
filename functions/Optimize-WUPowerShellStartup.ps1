@@ -18,13 +18,13 @@ param (
 Set-StrictMode -Version 'Latest'
 
 if (!(Test-WUAdmin)) {
-  Write-Error 'Administrator privileges are required to run this script.'
-  return
+    Write-Error 'Administrator privileges are required to run this script.'
+    return
 }
 
 if (($PSEdition -eq 'Core')) {
-  Write-Error 'This script only works with Windows PowerShell.'
-  return
+    Write-Error 'This script only works with Windows PowerShell.'
+    return
 }
 
 $ngenPath = Join-Path ([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()) 'ngen.exe'
@@ -34,5 +34,5 @@ Write-Host 'Compiling .NET assemblies with ngen.exe.'
 [System.AppDomain]::CurrentDomain.GetAssemblies() |
 Select-Object -ExpandProperty Location |
 ForEach-Object {
-  & $ngenPath install $_ /nologo
+    & $ngenPath install $_ /nologo
 }

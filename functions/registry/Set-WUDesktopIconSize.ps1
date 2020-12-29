@@ -5,14 +5,14 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param (
-  [ValidateSet('ExtraLarge', 'Large', 'Medium', 'Small')]
-  $Size
+    [ValidateSet('ExtraLarge', 'Large', 'Medium', 'Small')]
+    $Size
 )
 
 Set-StrictMode -Version 'Latest'
 $registryHash = Get-WURegistryHash
 if (!$registryHash) {
-  return
+    return
 }
 
 Set-WURegistryFromHash -RegistryHash $registryHash -DataKey $Size

@@ -10,7 +10,7 @@ param (
 Set-StrictMode -Version 'Latest'
 $registryHash = Get-WURegistryHash
 if (!$registryHash) {
-  return
+    return
 }
 
 Set-WURegistryFromHash -RegistryHash $registryHash -DataKey $MyInvocation.MyCommand.Verb
@@ -18,11 +18,11 @@ Set-WURegistryFromHash -RegistryHash $registryHash -DataKey $MyInvocation.MyComm
 Get-ChildItem -Path "HKCU:\AppEvents\Schemes\Apps" |
 Get-ChildItem |
 ForEach-Object {
-  $value = Get-ChildItem $_.PSPath | Where-Object { $_.PSChildName -eq ".default" } |
-  Get-ItemProperty | Where-Object { $_ | Get-Member -Name "(Default)" } |
-  Get-ItemPropertyValue -Name "(Default)"
+    $value = Get-ChildItem $_.PSPath | Where-Object { $_.PSChildName -eq ".default" } |
+    Get-ItemProperty | Where-Object { $_ | Get-Member -Name "(Default)" } |
+    Get-ItemPropertyValue -Name "(Default)"
 
-  Get-ChildItem  $_.PSPath | Where-Object { $_.PSChildName -eq ".Current" } |
-  Get-ItemProperty | Where-Object { $_ | Get-Member -Name "(Default)" } |
-  Set-ItemProperty -Name "(Default)" -Value $value
+    Get-ChildItem  $_.PSPath | Where-Object { $_.PSChildName -eq ".Current" } |
+    Get-ItemProperty | Where-Object { $_ | Get-Member -Name "(Default)" } |
+    Set-ItemProperty -Name "(Default)" -Value $value
 }
