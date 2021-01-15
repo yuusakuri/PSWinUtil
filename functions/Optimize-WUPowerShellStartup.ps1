@@ -1,15 +1,14 @@
 ﻿<#
-  .SYNOPSIS
-  Speed up PowerShell startup by precompiling .NET assemblies with ngen.exe.
+    .SYNOPSIS
+    Speed up PowerShell startup by precompiling .NET assemblies with ngen.exe.
 
-  .DESCRIPTION
-  Administrator privileges are required to run this script.
+    .DESCRIPTION
+    Administrator privileges are required to run this script.
 
-  Every time, PowerShell compiles and loads the .NET assembly at startup. Speed up PowerShell startup by precompiling .NET assemblies with ngen.exe.
+    Every time, PowerShell compiles and loads the .NET assembly at startup. Speed up PowerShell startup by precompiling .NET assemblies with ngen.exe.
 
-  .EXAMPLE
-  PS C:\>Optimize-WUPowerShellStartup
-
+    .EXAMPLE
+    PS C:\>Optimize-WUPowerShellStartup
 #>
 [CmdletBinding()]
 param (

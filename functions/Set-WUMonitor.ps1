@@ -1,17 +1,17 @@
 ﻿<#
-  .SYNOPSIS
-  Change the display settings.
+    .SYNOPSIS
+    Change the display settings.
 
-  .DESCRIPTION
-  Changes the display refresh rate, resolution, and color depth to the specified values.
+    .DESCRIPTION
+    Changes the display refresh rate, resolution, and color depth to the specified values.
 
-  .EXAMPLE
-  PS C:\>Set-WUMonitor -MonitorIndex 1 -RefreshRate 60
+    .EXAMPLE
+    PS C:\>Set-WUMonitor -MonitorIndex 1 -RefreshRate 60
 
-  Set the refresh rate of DISPLAY1 to 60.
+    Set the refresh rate of DISPLAY1 to 60.
 
-  .LINK
-  Get-WUMonitor
+    .LINK
+    Get-WUMonitor
 #>
 
 [CmdletBinding(SupportsShouldProcess)]

@@ -1,9 +1,4 @@
-﻿<#
-  .DESCRIPTION
-  This cmdlet works with registry.
-#>
-
-[CmdletBinding(SupportsShouldProcess)]
+﻿[CmdletBinding(SupportsShouldProcess)]
 param (
     # Specifies the scope that is affected. The default scope is CurrentUser.
     [ValidateSet('CurrentUser', 'LocalMachine')]

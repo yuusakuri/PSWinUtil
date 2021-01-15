@@ -1,26 +1,26 @@
 ﻿<#
-  .SYNOPSIS
-  Get Monitor details.
+    .SYNOPSIS
+    Get Monitor details.
 
-  .DESCRIPTION
-  Get monitor's name, resolution, frequency, id, key, etc. Supports multiple monitors.
+    .DESCRIPTION
+    Get monitor's name, resolution, frequency, id, key, etc. Supports multiple monitors.
 
-  .OUTPUTS
-  System.Xml.XmlElement.
+    .OUTPUTS
+    System.Xml.XmlElement.
 
-  .EXAMPLE
-  PS C:\>Get-WUMonitor
+    .EXAMPLE
+    PS C:\>Get-WUMonitor
 
-  Get details of all monitors.
+    Get details of all monitors.
 
-  .LINK
-  Set-WUMonitor
+    .LINK
+    Set-WUMonitor
 
-  .Notes
-  Get-CimInstance -ClassName Win32_VideoController
-  Get-CimInstance -ClassName Win32_PnPEntity | Where-Object Service -eq Monitor
-  Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams
-  MonitorInfoView.exe /sxml $xmlPath
+    .Notes
+    Get-CimInstance -ClassName Win32_VideoController
+    Get-CimInstance -ClassName Win32_PnPEntity | Where-Object Service -eq Monitor
+    Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams
+    MonitorInfoView.exe /sxml $xmlPath
 #>
 
 [CmdletBinding()]
@@ -29,19 +29,19 @@ param (
 
 Set-StrictMode -Version 'Latest'
 
-$tempDirPath = (New-CTempDirectory).FullName
+$tempDirPath = (Carbon\New-CTempDirectory).FullName
 try {
-  $xmlPath = "$tempDirPath\MonitorTool.xml"
+    $xmlPath = "$tempDirPath\MonitorTool.xml"
 
-  Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f $xmlPath) -Wait -NoNewWindow
+    Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f $xmlPath) -Wait -NoNewWindow
 
-  [xml]$xmlo = Get-Content -LiteralPath $xmlPath
+    [xml]$xmlo = Get-Content -LiteralPath $xmlPath
 
-  return $xmlo.monitors_list.item
+    return $xmlo.monitors_list.item
 }
 finally {
-  # tempを削除
-  $tempDirPath |
-  Where-Object { Test-Path -LiteralPath $_ } |
-  Remove-Item -Recurse -Force
+    # tempを削除
+    $tempDirPath |
+    Where-Object { Test-Path -LiteralPath $_ } |
+    Remove-Item -LiteralPath { $_ } -Recurse -Force
 }

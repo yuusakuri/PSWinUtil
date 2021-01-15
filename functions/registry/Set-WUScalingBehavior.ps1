@@ -1,9 +1,4 @@
-﻿<#
-  .DESCRIPTION
-  This cmdlet works with registry.
-#>
-
-[CmdletBinding(SupportsShouldProcess)]
+﻿[CmdletBinding(SupportsShouldProcess)]
 param (
     # Specifies a path to one or more locations. Wildcards are permitted.
     [Parameter(Mandatory,

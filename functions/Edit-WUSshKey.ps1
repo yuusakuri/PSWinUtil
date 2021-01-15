@@ -1,27 +1,27 @@
 ﻿<#
-  .SYNOPSIS
-  Edit SSH key.
+    .SYNOPSIS
+    Edit SSH key.
 
-  .DESCRIPTION
-  Edit an ssh key using ssh-keygen. This cmdlet use the new OpenSSH format rather than the more compatible PEM format. The new format has increased resistance to brute-force password cracking but is not supported by versions of OpenSSH prior to 6.5.
+    .DESCRIPTION
+    Edit an ssh key using ssh-keygen. This cmdlet use the new OpenSSH format rather than the more compatible PEM format. The new format has increased resistance to brute-force password cracking but is not supported by versions of OpenSSH prior to 6.5.
 
-  .OUTPUTS
-  System.String
+    .OUTPUTS
+    System.String
 
-  Returns the key file path if the change was successful.
+    Returns the key file path if the change was successful.
 
-  .EXAMPLE
-  PS C:\>Edit-WUSshKey -Path test_rsa -NewPassphrase '' -CurrentPassphrase 'aaaaaa'
+    .EXAMPLE
+    PS C:\>Edit-WUSshKey -Path test_rsa -NewPassphrase '' -CurrentPassphrase 'aaaaaa'
 
-  In this example, change the key file passphrase from 'aaaaaa' to none.
+    In this example, change the key file passphrase from 'aaaaaa' to none.
 
-  .EXAMPLE
-  PS C:\>Edit-WUSshKey -Path test_rsa -Comment 'comment' -CurrentPassphrase ''
+    .EXAMPLE
+    PS C:\>Edit-WUSshKey -Path test_rsa -Comment 'comment' -CurrentPassphrase ''
 
-  In this example, change the comment in the key file with an empty passphrase to 'comment'.
+    In this example, change the comment in the key file with an empty passphrase to 'comment'.
 
-  .LINK
-  New-WUSshKey
+    .LINK
+    New-WUSshKey
 #>
 
 [CmdletBinding(SupportsShouldProcess)]

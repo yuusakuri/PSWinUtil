@@ -1,21 +1,20 @@
 ﻿<#
-  .SYNOPSIS
-  Deletes the specified path from the path environment variable.
+    .SYNOPSIS
+    Deletes the specified path from the path environment variable.
 
-  .DESCRIPTION
-  Removes the specified path from the path environment variable of the specified scope. Wildcards are not supported.
+    .DESCRIPTION
+    Removes the specified path from the path environment variable of the specified scope. Wildcards are not supported.
 
-  .EXAMPLE
-  PS C:\>Remove-WUEnvPath -Path $env:USERPROFILE
+    .EXAMPLE
+    PS C:\>Remove-WUEnvPath -Path $env:USERPROFILE
 
-  In this example, Remove $env:USERPROFILE from the process scope path environment variable.
+    In this example, Remove $env:USERPROFILE from the process scope path environment variable.
 
-  .LINK
-  Add-WUEnvPath
+    .LINK
+    Add-WUEnvPath
 #>
 
-[CmdletBinding(
-    SupportsShouldProcess,
+[CmdletBinding(SupportsShouldProcess,
     DefaultParameterSetName = 'Path')]
 param (
     # Specifies a path to one or more locations. Wildcards are permitted. The path does not have to exist.

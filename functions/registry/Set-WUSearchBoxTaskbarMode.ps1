@@ -1,9 +1,4 @@
-﻿<#
-  .DESCRIPTION
-  This cmdlet works with registry.
-#>
-
-[CmdletBinding(SupportsShouldProcess)]
+﻿[CmdletBinding(SupportsShouldProcess)]
 param (
     [string]
     [ValidateSet('Box', 'Icon', 'None')]

@@ -1,22 +1,22 @@
 ﻿<#
-  .SYNOPSIS
-  Create SSH key.
+    .SYNOPSIS
+    Create SSH key.
 
-  .DESCRIPTION
-  Create an ssh key using ssh-keygen. This cmdlet use the new OpenSSH format rather than the more compatible PEM format. The new format has increased resistance to brute-force password cracking but is not supported by versions of OpenSSH prior to 6.5.
+    .DESCRIPTION
+    Create an ssh key using ssh-keygen. This cmdlet use the new OpenSSH format rather than the more compatible PEM format. The new format has increased resistance to brute-force password cracking but is not supported by versions of OpenSSH prior to 6.5.
 
-  .OUTPUTS
-  System.String
+    .OUTPUTS
+    System.String
 
-  Returns the path of the created key file.
+    Returns the path of the created key file.
 
-  .EXAMPLE
-  PS C:\>New-WUSshKey -Path test_rsa
+    .EXAMPLE
+    PS C:\>New-WUSshKey -Path test_rsa
 
-  This example creates test_rsa and test_rsa.pub in the path $env:USERPROFILE/.ssh and returns test_rsa path.
+    This example creates test_rsa and test_rsa.pub in the path $env:USERPROFILE/.ssh and returns test_rsa path.
 
-  .LINK
-  Edit-WUSshKey
+    .LINK
+    Edit-WUSshKey
 #>
 
 [CmdletBinding()]
