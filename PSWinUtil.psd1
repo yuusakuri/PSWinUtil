@@ -115,6 +115,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Disable-WUWindowsSecurityNonCriticalNotifications',
         'Disable-WUWindowsUpdateAutoRestart',
         'Disable-WUWindowsUpdateNotifications',
+        'Disable-WUWindowsUpdateTrayIcon',
         'Enable-WUAdvertisingId',
         'Enable-WUAppLaunchTracking',
         'Enable-WUAppSuggestions',
@@ -135,6 +136,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Enable-WUWindowsSecurityNonCriticalNotifications',
         'Enable-WUWindowsUpdateAutoRestart',
         'Enable-WUWindowsUpdateNotifications',
+        'Enable-WUWindowsUpdateTrayIcon',
         'Register-WUStartup',
         'Set-WUCapsLockToControl',
         'Set-WUDesktopIconSize',
@@ -195,3 +197,4 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # DefaultCommandPrefix = 'u'
 
 }
+
