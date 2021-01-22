@@ -195,5 +195,3 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # DefaultCommandPrefix = 'u'
 
 }
-
-}
