@@ -1,4 +1,4 @@
-@{
+﻿@{
     # Blocking of downloaded files
     SaveZoneInformation = @{
         CurrentUser = @{

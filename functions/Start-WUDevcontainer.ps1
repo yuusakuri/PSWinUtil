@@ -1,4 +1,4 @@
-<#
+﻿<#
     .SYNOPSIS
     Launch .devcontainer project with Visual Studio Code Remote - Containers.
 
