@@ -1,4 +1,4 @@
-@{
+﻿@{
     GameDvr = @{
         LocalMachine = @{
             KeyName   = 'HKLM\Software\Policies\Microsoft\Windows\GameDVR'

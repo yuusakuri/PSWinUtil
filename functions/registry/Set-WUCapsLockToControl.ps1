@@ -1,4 +1,4 @@
-<#
+﻿<#
   .SYNOPSIS
   Remap capslock key to control key.
 
