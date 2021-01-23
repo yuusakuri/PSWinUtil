@@ -145,6 +145,7 @@ $Exclude += @(
     'SxS'
     '\\AppData\\Local\\Microsoft\\Windows\\FileHistory'
     'scoop\\apps\\.+\\_.+\.old\\'
+    'C\:\\Windows\\Prefetch'
 )
 
 if ($Program) {
