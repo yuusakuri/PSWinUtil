@@ -11,13 +11,25 @@ if (!(Test-Path -LiteralPath $functionDir)) {
     return
 }
 
-# 関数名を取得
 $functionNames = (Get-ChildItem -LiteralPath $functionDir -File -Recurse).BaseName
 
-# エクスポートする関数を書き換え
+# Rewrite the functions to export
 $psdPath = "$script:PSWinUtil/PSWinUtil.psd1"
 $psdContent = Get-Content -LiteralPath $psdPath -Raw
-$publicFunctionNameStr = "'{0}'" -f ($functionNames -join "',`n        '")
-$newPsdContent = $psdContent -replace 'FunctionsToExport\s+=\s+@\([\s\S]*?\)', ("FunctionsToExport = @(`n        {0}`n    )" -f $publicFunctionNameStr)
+$publicFunctionNameStr = "'{0}'" -f ($functionNames -join "',`r`n        '")
+$newPsdContent = New-Object 'Collections.ArrayList'
+$newPsdContent.AddRange(
+    @($psdContent -replace 'FunctionsToExport\s+=\s+@\([\s\S]*?\)', ("FunctionsToExport = @(`r`n        {0}`r`n    )" -f $publicFunctionNameStr) -split [System.Environment]::NewLine)
+)
+
+# Remove last line break
+while ($newPsdContent.Count -ne 0) {
+    if ($newPsdContent[$newPsdContent.Count - 1] -eq '') {
+        $newPsdContent.RemoveAt(($newPsdContent.Count - 1))
+    }
+    else {
+        break
+    }
+}
 
 [System.IO.File]::WriteAllLines($psdPath, [string[]]$newPsdContent, [System.Text.UTF8Encoding]::new($true))
