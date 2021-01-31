@@ -3,7 +3,7 @@
         # 広告識別子
         CurrentUser  = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo'
-            ValueName = 'Enabled'
+            Valuename = 'Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -12,7 +12,7 @@
         }
         LocalMachine = @{
             KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo'
-            ValueName = 'DisabledByGroupPolicy'
+            Valuename = 'DisabledByGroupPolicy'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1

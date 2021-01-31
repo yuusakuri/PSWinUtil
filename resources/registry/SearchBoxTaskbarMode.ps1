@@ -2,7 +2,7 @@
     SearchBoxTaskbarMode = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search'
-            ValueName = 'SearchboxTaskbarMode'
+            Valuename = 'SearchboxTaskbarMode'
             Type      = 'REG_DWORD'
             Data      = @{
                 Box  = 2

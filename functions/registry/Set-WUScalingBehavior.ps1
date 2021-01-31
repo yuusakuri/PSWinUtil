@@ -51,7 +51,7 @@ foreach ($aPath in $paths) {
         return
     }
 
-    $registryHash.ScalingBehavior.$Scope.ValueName = $aPath
+    $registryHash.ScalingBehavior.$Scope.Valuename = $aPath
 
     Set-WURegistryFromHash -RegistryHash $registryHash -Scope $Scope -DataKey $ScalingBehavior
 }

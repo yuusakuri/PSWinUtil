@@ -31,7 +31,7 @@ $registryFiles[0].Content = @"
     $Name = @{
         LocalMachine = @{
             KeyName   = ''
-            ValueName = ''
+            Valuename = ''
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -40,7 +40,7 @@ $registryFiles[0].Content = @"
         }
         CurrentUser = @{
             KeyName   = ''
-            ValueName = ''
+            Valuename = ''
             Type      = 'REG_SZ'
             Data      = @{
                 Enable  = 1

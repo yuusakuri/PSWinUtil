@@ -2,7 +2,7 @@
     SystemSounds = @{
         CurrentUser = @{
             KeyName   = 'HKCU\AppEvents\Schemes'
-            ValueName = '(Default)'
+            Valuename = '(Default)'
             Type      = 'REG_SZ'
             Data      = @{
                 Enable  = '.Default'

@@ -2,7 +2,7 @@
     SystemUsesDarkTheme = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-            ValueName = 'SystemUsesLightTheme'
+            Valuename = 'SystemUsesLightTheme'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0
@@ -13,7 +13,7 @@
     AppsUseDarkTheme    = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-            ValueName = 'AppsUseLightTheme'
+            Valuename = 'AppsUseLightTheme'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0

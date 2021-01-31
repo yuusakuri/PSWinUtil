@@ -85,10 +85,10 @@ if ($paths.Count -ne 1) {
 
 foreach ($aPath in $paths) {
     if ($Valuename) {
-        $registryHash.Startup.$Scope.ValueName = $ValueName
+        $registryHash.Startup.$Scope.Valuename = $Valuename
     }
     else {
-        $registryHash.Startup.$Scope.ValueName = Split-Path $aPath -Leaf
+        $registryHash.Startup.$Scope.Valuename = Split-Path $aPath -Leaf
     }
 
     $registryHash.Startup.$Scope.Data = '"{0}"' -f $aPath

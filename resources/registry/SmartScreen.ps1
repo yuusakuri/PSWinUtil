@@ -2,7 +2,7 @@
     WindowsSmartScreen         = @{
         LocalMachine = @{
             KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System'
-            ValueName = 'EnableSmartScreen'
+            Valuename = 'EnableSmartScreen'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -13,7 +13,7 @@
     WindowsDefenderSmartScreen = @{
         LocalMachine = @{
             KeyName   = 'HKLM\SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter'
-            ValueName = 'EnabledV9'
+            Valuename = 'EnabledV9'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1

@@ -2,7 +2,7 @@
     ConsentPromptBehaviorAdmin = @{
         LocalMachine = @{
             KeyName   = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-            ValueName = 'ConsentPromptBehaviorAdmin'
+            Valuename = 'ConsentPromptBehaviorAdmin'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 2
@@ -13,7 +13,7 @@
     PromptOnSecureDesktop      = @{
         LocalMachine = @{
             KeyName   = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-            ValueName = 'PromptOnSecureDesktop'
+            Valuename = 'PromptOnSecureDesktop'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -24,7 +24,7 @@
     EnableLUA                  = @{
         LocalMachine = @{
             KeyName   = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-            ValueName = 'EnableLUA'
+            Valuename = 'EnableLUA'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1

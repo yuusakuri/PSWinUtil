@@ -3,7 +3,7 @@
     PreInstalledAppsEnabled            = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'PreInstalledAppsEnabled'
+            Valuename = 'PreInstalledAppsEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -14,7 +14,7 @@
     PreInstalledAppsEverEnabled        = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'PreInstalledAppsEverEnabled'
+            Valuename = 'PreInstalledAppsEverEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -25,7 +25,7 @@
     OEMPreInstalledAppsEnabled         = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'OEMPreInstalledAppsEnabled'
+            Valuename = 'OEMPreInstalledAppsEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -36,7 +36,7 @@
     SilentInstalledAppsEnabled         = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SilentInstalledAppsEnabled'
+            Valuename = 'SilentInstalledAppsEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -47,7 +47,7 @@
     ContentDeliveryAllowed             = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'ContentDeliveryAllowed'
+            Valuename = 'ContentDeliveryAllowed'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -58,7 +58,7 @@
     SubscribedContentEnabled           = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContentEnabled'
+            Valuename = 'SubscribedContentEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -69,7 +69,7 @@
     SuggestedContentInSettings1        = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-338393Enabled'
+            Valuename = 'SubscribedContent-338393Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -80,7 +80,7 @@
     SuggestedContentInSettings2        = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-353694Enabled'
+            Valuename = 'SubscribedContent-353694Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -91,7 +91,7 @@
     SuggestedContentInSettings3        = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-353696Enabled'
+            Valuename = 'SubscribedContent-353696Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -102,7 +102,7 @@
     WindowsWelcomeExperience           = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-310093Enabled'
+            Valuename = 'SubscribedContent-310093Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -113,7 +113,7 @@
     SubscribedContent314559Enabled     = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-314559Enabled'
+            Valuename = 'SubscribedContent-314559Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -124,7 +124,7 @@
     ShowTipsOnTheLockScreen            = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-338387Enabled'
+            Valuename = 'SubscribedContent-338387Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -135,7 +135,7 @@
     AppSuggestionsInStart              = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-338388Enabled'
+            Valuename = 'SubscribedContent-338388Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -146,7 +146,7 @@
     AppSuggestionsInStartOld           = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SystemPaneSuggestionsEnabled'
+            Valuename = 'SystemPaneSuggestionsEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -157,7 +157,7 @@
     GetTipsAndTricksAndSuggestions     = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-338389Enabled'
+            Valuename = 'SubscribedContent-338389Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -168,7 +168,7 @@
     TimelineSuggestions                = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-            ValueName = 'SubscribedContent-353698Enabled'
+            Valuename = 'SubscribedContent-353698Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -179,7 +179,7 @@
     GetEvenMoreOutOfWindows            = @{
         CurrentUser = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement'
-            ValueName = 'ScoobeSystemSettingEnabled'
+            Valuename = 'ScoobeSystemSettingEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -190,7 +190,7 @@
     SuggestedAppsInWindowsInkWorkspace = @{
         CurrentUser = @{
             KeyName   = 'HKLM\SOFTWARE\Policies\Microsoft\WindowsInkWorkspace'
-            ValueName = 'AllowSuggestedAppsInWindowsInkWorkspace'
+            Valuename = 'AllowSuggestedAppsInWindowsInkWorkspace'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1

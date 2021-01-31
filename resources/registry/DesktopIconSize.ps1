@@ -2,7 +2,7 @@
     DesktopIconSize        = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop'
-            ValueName = 'IconSize'
+            Valuename = 'IconSize'
             Type      = 'REG_DWORD'
             Data      = @{
                 ExtraLarge = 256
@@ -15,7 +15,7 @@
     DesktopMode            = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop'
-            ValueName = 'Mode'
+            Valuename = 'Mode'
             Type      = 'REG_DWORD'
             Data      = @{
                 ExtraLarge = 1
@@ -28,7 +28,7 @@
     DesktopLogicalViewMode = @{
         CurrentUser = @{
             KeyName   = 'HKCU\SOFTWARE\Microsoft\Windows\Shell\Bags\1\Desktop'
-            ValueName = 'LogicalViewMode'
+            Valuename = 'LogicalViewMode'
             Type      = 'REG_DWORD'
             Data      = @{
                 ExtraLarge = 3

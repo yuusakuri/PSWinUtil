@@ -2,7 +2,7 @@
     BingSearchEnabled    = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
-            ValueName = 'BingSearchEnabled'
+            Valuename = 'BingSearchEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -14,7 +14,7 @@
         # Windows 10 v2004 or later
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows'
-            ValueName = 'DisableSearchBoxSuggestions'
+            Valuename = 'DisableSearchBoxSuggestions'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0

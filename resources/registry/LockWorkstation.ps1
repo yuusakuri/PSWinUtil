@@ -2,7 +2,7 @@
     LockWorkstation = @{
         CurrentUser = @{
             KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System'
-            ValueName = 'DisableLockWorkstation'
+            Valuename = 'DisableLockWorkstation'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0

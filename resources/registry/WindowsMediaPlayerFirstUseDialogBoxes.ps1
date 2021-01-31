@@ -2,7 +2,7 @@
     WindowsMediaPlayerFirstUseDialogBoxes = @{
         LocalMachine = @{
             KeyName   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\WindowsMediaPlayer'
-            ValueName = 'GroupPrivacyAcceptance'
+            Valuename = 'GroupPrivacyAcceptance'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1

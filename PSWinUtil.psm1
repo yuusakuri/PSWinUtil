@@ -54,15 +54,15 @@ function Set-WURegistryFromHash {
                 $data = $hash.$aScope.Data
             }
             $keyPath = Resolve-WUFullPath -KeyName $hash.$aScope.KeyName
-            $valueName = $hash.$aScope.ValueName
+            $valuename = $hash.$aScope.Valuename
             $dataType = $hash.$aScope.Type
 
             $registryCmdParam = @{}
             $registryCmdParam.Add('Path', $keyPath)
-            $registryCmdParam.Add('Name', $valueName)
+            $registryCmdParam.Add('Name', $valuename)
             $registryCmdParam.Add($dataTypeParamNames.$dataType, $data)
 
-            if ($psCmdlet.ShouldProcess("Path: $keyPath ValueName: $valueName Value: $data", 'Set to registry')) {
+            if ($psCmdlet.ShouldProcess("Path: $keyPath Valuename: $valuename Value: $data", 'Set to registry')) {
                 Set-CRegistryKeyValue @registryCmdParam
             }
         }

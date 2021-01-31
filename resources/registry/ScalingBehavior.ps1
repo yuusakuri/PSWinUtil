@@ -2,7 +2,7 @@
     ScalingBehavior = @{
         CurrentUser  = @{
             KeyName   = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
-            ValueName = ''
+            Valuename = ''
             Type      = 'REG_SZ'
             Data      = @{
                 Application    = '~ HIGHDPIAWARE'
@@ -12,7 +12,7 @@
         }
         LocalMachine = @{
             KeyName   = 'HKLM\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
-            ValueName = ''
+            Valuename = ''
             Type      = 'REG_SZ'
             Data      = @{
                 Application    = '~ HIGHDPIAWARE'
