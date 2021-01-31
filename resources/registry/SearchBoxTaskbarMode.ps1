@@ -1,7 +1,7 @@
 ﻿@{
     SearchBoxTaskbarMode = @{
         CurrentUser = @{
-            KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search'
+            Keyname   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search'
             Valuename = 'SearchboxTaskbarMode'
             Type      = 'REG_DWORD'
             Data      = @{

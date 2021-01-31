@@ -1,7 +1,7 @@
 ﻿@{
     SystemUsesDarkTheme = @{
         CurrentUser = @{
-            KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+            Keyname   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
             Valuename = 'SystemUsesLightTheme'
             Type      = 'REG_DWORD'
             Data      = @{
@@ -12,7 +12,7 @@
     }
     AppsUseDarkTheme    = @{
         CurrentUser = @{
-            KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+            Keyname   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
             Valuename = 'AppsUseLightTheme'
             Type      = 'REG_DWORD'
             Data      = @{

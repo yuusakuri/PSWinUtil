@@ -1,13 +1,13 @@
 ﻿@{
     Startup = @{
         CurrentUser  = @{
-            KeyName   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run'
+            Keyname   = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run'
             Valuename = ''
             Type      = 'REG_SZ'
             Data      = ''
         }
         LocalMachine = @{
-            KeyName   = 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run'
+            Keyname   = 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run'
             Valuename = ''
             Type      = 'REG_SZ'
             Data      = ''

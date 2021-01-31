@@ -43,12 +43,12 @@ param (
 
     # Specify key names of the registry. Converts specified key names to path. The default location is the current directory (.).
     [Parameter(Position = 0,
-        ParameterSetName = 'KeyName',
+        ParameterSetName = 'Keyname',
         ValueFromPipelineByPropertyName
     )]
     [ValidateNotNullOrEmpty()]
     [string[]]
-    $KeyName,
+    $Keyname,
 
     # Specify the beginning of a fully qualified path. The default location is the current directory (.).
     [Parameter(ParameterSetName = 'Path')]
@@ -66,13 +66,13 @@ param (
 
 Set-StrictMode -Version 'Latest'
 
-if ($PSCmdlet.ParameterSetName -eq 'KeyName') {
+if ($PSCmdlet.ParameterSetName -eq 'Keyname') {
     $regPaths = @()
-    foreach ($aKeyName in $KeyName) {
-        if (!($aKeyName -match ':')) {
-            $aKeyName = "Registry::$aKeyName"
+    foreach ($aKeyname in $Keyname) {
+        if (!($aKeyname -match ':')) {
+            $aKeyname = "Registry::$aKeyname"
         }
-        $regPaths += $aKeyName
+        $regPaths += $aKeyname
     }
 
     return $regPaths

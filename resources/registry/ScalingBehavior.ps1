@@ -1,7 +1,7 @@
 ﻿@{
     ScalingBehavior = @{
         CurrentUser  = @{
-            KeyName   = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
+            Keyname   = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
             Valuename = ''
             Type      = 'REG_SZ'
             Data      = @{
@@ -11,7 +11,7 @@
             }
         }
         LocalMachine = @{
-            KeyName   = 'HKLM\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
+            Keyname   = 'HKLM\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
             Valuename = ''
             Type      = 'REG_SZ'
             Data      = @{

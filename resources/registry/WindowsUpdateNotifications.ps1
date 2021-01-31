@@ -1,7 +1,7 @@
 ﻿@{
     SetAutoRestartNotificationDisable = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
             Valuename = 'SetAutoRestartNotificationDisable'
             Type      = 'REG_DWORD'
             Data      = @{
@@ -12,7 +12,7 @@
     }
     SetUpdateNotificationLevel        = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate'
+            Keyname   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate'
             Valuename = 'SetUpdateNotificationLevel'
             Type      = 'REG_DWORD'
             Data      = @{
@@ -23,7 +23,7 @@
     }
     UpdateNotificationLevel           = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate'
+            Keyname   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate'
             Valuename = 'UpdateNotificationLevel'
             Type      = 'REG_DWORD'
             Data      = @{

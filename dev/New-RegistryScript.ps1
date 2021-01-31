@@ -30,7 +30,7 @@ $registryFiles[0].Content = @"
 @{
     $Name = @{
         LocalMachine = @{
-            KeyName   = ''
+            Keyname   = ''
             Valuename = ''
             Type      = 'REG_DWORD'
             Data      = @{
@@ -39,7 +39,7 @@ $registryFiles[0].Content = @"
             }
         }
         CurrentUser = @{
-            KeyName   = ''
+            Keyname   = ''
             Valuename = ''
             Type      = 'REG_SZ'
             Data      = @{

@@ -1,7 +1,7 @@
 ﻿@{
     WindowsUpdateTrayIcon = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
             Valuename = 'TrayIconVisibility'
             Type      = 'REG_DWORD'
             Data      = @{
