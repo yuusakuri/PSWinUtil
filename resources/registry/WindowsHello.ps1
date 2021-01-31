@@ -1,8 +1,8 @@
 ﻿@{
     WindowsHello                        = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\PassportForWork\PINComplexity'
-            ValueName = '(Default)'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\PassportForWork\PINComplexity'
+            Valuename = '(Default)'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -12,8 +12,8 @@
     }
     AllowSignInOptions                  = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\Settings\AllowSignInOptions'
-            ValueName = 'value'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PolicyManager\default\Settings\AllowSignInOptions'
+            Valuename = 'value'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -23,8 +23,8 @@
     }
     Biometrics                          = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Biometrics'
-            ValueName = 'Enabled'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Biometrics'
+            Valuename = 'Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1 #remove
@@ -34,8 +34,8 @@
     }
     AllowDomainPINLogon                 = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\System'
-            ValueName = 'AllowDomainPINLogon'
+            Keyname   = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\System'
+            Valuename = 'AllowDomainPINLogon'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -45,8 +45,8 @@
     }
     AllowDomainUsersBiometrics          = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Biometrics\Credential Provider'
-            ValueName = 'Domain Accounts'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Biometrics\Credential Provider'
+            Valuename = 'Domain Accounts'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -56,8 +56,8 @@
     }
     UseWindowsHelloForBusiness          = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\PassportForWork'
-            ValueName = 'Enabled'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\PassportForWork'
+            Valuename = 'Enabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -67,8 +67,8 @@
     }
     WindowsHelloProvisioningAfterSignIn = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\PassportForWork'
-            ValueName = 'DisablePostLogonProvisioning'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\PassportForWork'
+            Valuename = 'DisablePostLogonProvisioning'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0

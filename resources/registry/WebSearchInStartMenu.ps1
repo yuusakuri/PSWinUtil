@@ -1,8 +1,8 @@
 ﻿@{
     BingSearchEnabled    = @{
         CurrentUser = @{
-            KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
-            ValueName = 'BingSearchEnabled'
+            Keyname   = 'HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+            Valuename = 'BingSearchEnabled'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
@@ -13,8 +13,8 @@
     WebSearchInStartMenu = @{
         # Windows 10 v2004 or later
         CurrentUser = @{
-            KeyName   = 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows'
-            ValueName = 'DisableSearchBoxSuggestions'
+            Keyname   = 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows'
+            Valuename = 'DisableSearchBoxSuggestions'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0

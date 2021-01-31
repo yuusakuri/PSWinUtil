@@ -1,8 +1,8 @@
 ﻿@{
     WindowsSecurityNonCriticalNotifications = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'
-            ValueName = 'DisableEnhancedNotifications'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'
+            Valuename = 'DisableEnhancedNotifications'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0

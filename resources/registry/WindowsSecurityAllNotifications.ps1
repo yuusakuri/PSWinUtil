@@ -1,8 +1,8 @@
 ﻿@{
     WindowsSecurityAllNotifications = @{
         LocalMachine = @{
-            KeyName   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'
-            ValueName = 'DisableNotifications'
+            Keyname   = 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'
+            Valuename = 'DisableNotifications'
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 0
