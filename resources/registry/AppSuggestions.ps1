@@ -198,4 +198,15 @@
             }
         }
     }
+    SearchBoxSuggestions               = @{
+        CurrentUser = @{
+            Keyname   = 'HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+            Valuename = 'DisableSearchBoxSuggestions'
+            Type      = 'REG_DWORD'
+            Data      = @{
+                Enable  = 0
+                Disable = 1
+            }
+        }
+    }
 }
