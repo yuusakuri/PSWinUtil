@@ -66,7 +66,9 @@ $scopeTargets = @{
 }
 
 foreach ($aScope in $Scope) {
-    [System.Collections.ArrayList]$envPaths = [array][System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
+    $envPaths = New-Object 'Collections.ArrayList'
+    $currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
+    $envPaths.AddRange(@($currentEnvPaths))
 
     if ($Lastest) {
         $envPaths.RemoveAt(($envPaths.Count - 1))
@@ -79,7 +81,9 @@ foreach ($aScope in $Scope) {
             $removePaths = Resolve-WUFullPath -LiteralPath $LiteralPath
         }
 
-        $envPaths = $envPaths | Where-Object { $removePaths -notcontains $_ }
+        foreach ($aRemovePaths in $removePaths) {
+            $envPaths.Remove($aRemovePaths)
+        }
     }
 
     $newEnvPath = $envPaths -join ';'
