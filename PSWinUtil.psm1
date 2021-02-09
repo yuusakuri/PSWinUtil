@@ -1,9 +1,9 @@
-﻿$script:PSWinUtil = Convert-Path $PSScriptRoot
+﻿$PSWinUtil = Convert-Path $PSScriptRoot
 
 # Private functions
 function Get-WURegistryHash {
     $registryFileName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name -replace '.+-WU', ''
-    return . "$script:PSWinUtil/resources/registry/$registryFileName"
+    return . "$PSWinUtil/resources/registry/$registryFileName"
 }
 
 function Test-WUAdmin {
@@ -70,7 +70,7 @@ function Set-WURegistryFromHash {
 }
 
 # Public functions
-$functions = Get-ChildItem -Path ('{0}\functions' -f $script:PSWinUtil) -Recurse -File
+$functions = Get-ChildItem -Path ('{0}\functions' -f $PSWinUtil) -Recurse -File
 foreach ($function in $functions) {
     New-Item -Path ('function:\{0}' -f $function.BaseName) -Value (Get-Content -Path $function.FullName -Raw)
 }
@@ -157,4 +157,4 @@ if ($installChocoDepends) {
 }
 
 # Pass the path to the required executable.
-Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$script:PSWinUtil\tools" -Directory).FullName -Scope Process
+Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process

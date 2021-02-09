@@ -20,12 +20,12 @@ param (
     $NoScope
 )
 
-$script:PSWinUtil = Convert-Path "$PSScriptRoot/.."
+$PSWinUtil = Convert-Path "$PSScriptRoot/.."
 
 $Name = PSWinUtil\ConvertTo-WUPascalCase -String $Name
 $registryFiles = @()
 $registryFiles += @{}
-$registryFiles[0].Path = "$script:PSWinUtil/resources/registry/$Name.ps1"
+$registryFiles[0].Path = "$PSWinUtil/resources/registry/$Name.ps1"
 $registryFiles[0].Content = @"
 @{
     $Name = @{
@@ -53,7 +53,7 @@ $registryFiles[0].Content = @"
 
 for ($i = 0; $i -lt $Verb.Count; $i++) {
     $registryFiles += @{}
-    $registryFiles[$i + 1].Path = "$script:PSWinUtil/functions/registry/{0}-WU$Name.ps1" -f $Verb[$i]
+    $registryFiles[$i + 1].Path = "$PSWinUtil/functions/registry/{0}-WU$Name.ps1" -f $Verb[$i]
     $scopeParamStr = @'
     # Specifies the scope that is affected. The default scope is CurrentUser.
     [ValidateSet('LocalMachine', 'CurrentUser')]
