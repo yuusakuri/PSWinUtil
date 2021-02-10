@@ -25,10 +25,14 @@ param (
     $String
 )
 
-$words = [regex]::Replace($String, '\W|_|-', "`n") -split ("`n")
+$words = $String -split ("`n|`r`n|\W|_|-")
 
 $newString = ''
 foreach ($word in $words) {
+    if ($word -eq '') {
+        continue
+    }
+
     $newWord = '{0}{1}' -f $word.Substring(0, 1).ToUpper(), $word.Remove(0, 1)
     $newString = '{0}{1}' -f $newString, $newWord
 }
