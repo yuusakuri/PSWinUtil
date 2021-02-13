@@ -141,11 +141,12 @@ $resultPaths = New-Object System.Collections.ArrayList
 $completedLeafs = New-Object System.Collections.ArrayList
 
 $Exclude += @(
-    'C\:\\Windows\\SysWOW64'
-    'SxS'
-    '\\AppData\\Local\\Microsoft\\Windows\\FileHistory'
-    'scoop\\apps\\.+\\_.+\.old\\'
-    'C\:\\Windows\\Prefetch'
+    [System.Text.RegularExpressions.Regex]::Escape("C:\Windows\SysWOW64")
+    "SxS"
+    [System.Text.RegularExpressions.Regex]::Escape("AppData\Local\Microsoft\Windows\FileHistory")
+    [System.Text.RegularExpressions.Regex]::Escape("C:\Windows\Prefetch")
+    [System.Text.RegularExpressions.Regex]::Escape("AppData\Roaming\Microsoft\Windows\Recent")
+    "scoop\\apps\\.+\\_.+\.old\\"
 )
 
 if ($Program) {
