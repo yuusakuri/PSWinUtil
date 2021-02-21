@@ -24,12 +24,10 @@ $newPsdContent.AddRange(
 
 # Remove last line break
 while ($newPsdContent.Count -ne 0) {
-    if ($newPsdContent[$newPsdContent.Count - 1] -eq '') {
-        $newPsdContent.RemoveAt(($newPsdContent.Count - 1))
-    }
-    else {
+    if ($newPsdContent[$newPsdContent.Count - 1] -ne '') {
         break
     }
+    $newPsdContent.RemoveAt(($newPsdContent.Count - 1))
 }
 
 [System.IO.File]::WriteAllLines($psdPath, [string[]]$newPsdContent, [System.Text.UTF8Encoding]::new($true))

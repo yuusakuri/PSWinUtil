@@ -85,7 +85,8 @@ $isCompleated = {
 
     if ($Exclude) {
         foreach ($aExclude in $Exclude) {
-            $resultItems = $resultItems | Where-Object { !($_.FullName -cmatch $aExclude) }
+            $resultItems = $resultItems |
+            Where-Object { !($_.FullName -cmatch $aExclude) }
         }
     }
 
@@ -116,10 +117,11 @@ $isCompleated = {
     if (!$resultItems) {
         return $false
     }
-    $resultPaths.AddRange([string[]](Convert-Path -LiteralPath $resultItems.FullName | Select-Object -Unique))
+    $resultPaths.AddRange(@(Convert-Path -LiteralPath $resultItems.FullName | Select-Object -Unique))
 
     # $leafsを未取得のもので上書き
-    [string[]]$leafs = $leafs | Where-Object { $completedLeafs -notcontains $_ }
+    $leafs = $leafs |
+    Where-Object { $completedLeafs -notcontains $_ }
 
     $completedLeafs.Clear()
 
@@ -141,17 +143,20 @@ $resultPaths = New-Object System.Collections.ArrayList
 $completedLeafs = New-Object System.Collections.ArrayList
 
 $Exclude += @(
-    [System.Text.RegularExpressions.Regex]::Escape("C:\Windows\SysWOW64")
-    "SxS"
-    [System.Text.RegularExpressions.Regex]::Escape("AppData\Local\Microsoft\Windows\FileHistory")
-    [System.Text.RegularExpressions.Regex]::Escape("C:\Windows\Prefetch")
-    [System.Text.RegularExpressions.Regex]::Escape("AppData\Roaming\Microsoft\Windows\Recent")
+    [regex]::Escape("C:\Windows\SysWOW64")
+    [regex]::Escape("SxS\")
+    [regex]::Escape("AppData\Local\Microsoft\Windows\FileHistory")
+    [regex]::Escape("C:\Windows\Prefetch")
+    [regex]::Escape("AppData\Roaming\Microsoft\Windows\Recent")
     "scoop\\apps\\.+\\_.+\.old\\"
 )
+if ($env:ChocolateyInstall) {
+    $Exclude += [regex]::Escape("$env:ChocolateyInstall\bin")
+}
 
 if ($Program) {
     # コマンドから探す
-    [string[]]$cmdPaths = Get-Command $leafs -ErrorAction Ignore | Select-Object -ExpandProperty Path
+    $cmdPaths = Get-Command $leafs -ErrorAction Ignore | Select-Object -ExpandProperty Path
 
     if ($cmdPaths) {
         $cmdResultPaths = @()
@@ -195,7 +200,7 @@ if ($Program) {
 }
 
 # es.exeで探す
-[string[]]$esResultPaths = $leafs | ForEach-Object {
+$esResultPaths = $leafs | ForEach-Object {
     es.exe $_
 }
 
