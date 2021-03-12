@@ -78,6 +78,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
 
     # このモジュールからエクスポートする関数です。最適なパフォーマンスを得るには、ワイルドカードを使用せず、エクスポートする関数がない場合は、エントリを削除しないで空の配列を使用してください。
     FunctionsToExport = @(
+        'Add-AngleSharp',
         'Add-WUEnvPath',
         'ConvertTo-WUPascalCase',
         'Edit-WUSshKey',
