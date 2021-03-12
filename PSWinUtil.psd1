@@ -90,6 +90,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Get-WURandomString',
         'Get-WUUriWithoutQuery',
         'Invoke-WUDownload',
+        'Join-WUUri',
         'New-WUSshKey',
         'Optimize-WUPowerShellStartup',
         'Remove-WUEnvPath',
