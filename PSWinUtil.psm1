@@ -158,3 +158,6 @@ if ($installChocoDepends) {
 
 # Pass the path to the required executable.
 Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
+
+# Load AngleSharp
+Add-AngleSharp
