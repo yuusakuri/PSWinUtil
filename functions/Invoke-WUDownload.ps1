@@ -24,42 +24,52 @@ param (
     [uri]
     $Uri,
 
-    # Specifies the path to the location where the items are being moved. The default is the current directory.
+    # Specifies the path to the location where the items are being downloaded. The default is the current directory.
     [ValidateNotNullOrEmpty()]
     [string]
-    $Destination = $PWD.Path,
+    $Destination = $PWD,
 
     # Specify the maximum number of connections to one server. The range of numbers is 1 to 16.
     [ValidateRange(1, 16)]
     [int]
-    $MaxConnectionPerServer = 1,
+    $MaxConnectionPerServer = 16,
 
     # Specify when overwriting the file.
     [switch]
     $Force
 )
 
-$Destination = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
+$DestinationFullPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
+if (!$DestinationFullPath) {
+    return
+}
 
-if ((Test-Path -LiteralPath $Destination -PathType Container)) {
-    $outDir = $Destination
+if ((Test-Path -LiteralPath $DestinationFullPath -PathType Container)) {
+    $outDirPath = $DestinationFullPath
     $outName = ''
 }
 else {
-    $outDir = Split-Path $Destination -Parent
-    $outName = Split-Path $Destination -Leaf
+    $outDirPath = Split-Path $DestinationFullPath -Parent
+    $outName = Split-Path $DestinationFullPath -Leaf
+
+    if (!(Test-Path -LiteralPath $outDirPath -PathType Container)) {
+        New-Item -Path $outDirPath -ItemType 'Directory' -Force | Out-String | Write-Verbose
+        if (!(Test-Path -LiteralPath $outDirPath -PathType Container)) {
+            return
+        }
+    }
 }
 
-if ($pscmdlet.ShouldProcess($URI, 'Download')) {
-    Write-Host "Downloading from '$URI'"
-    $ariaCmd = '& aria2c --auto-file-renaming=false -x {0} -d "{1}"' -f $MaxConnectionPerServer, $outDir
-    if ($outName) {
-        $ariaCmd = '{0} -o "{1}"' -f $ariaCmd, $outName
-    }
-    if ($Force) {
-        $ariaCmd = '{0} --allow-overwrite=true' -f $ariaCmd
-    }
-    $ariaCmd = '{0} "{1}"' -f $ariaCmd, $URI
+$ariaCmd = '& aria2c --auto-file-renaming=false -x {0} -d "{1}"' -f $MaxConnectionPerServer, $outDirPath
+if ($outName) {
+    $ariaCmd = '{0} -o "{1}"' -f $ariaCmd, $outName
+}
+if ($Force) {
+    $ariaCmd = '{0} --allow-overwrite=true' -f $ariaCmd
+}
+$ariaCmd = '{0} "{1}"' -f $ariaCmd, $URI
 
+Write-Host "Downloading from '$URI' to '$outDirPath'"
+if ($pscmdlet.ShouldProcess($ariaCmd, 'Execute')) {
     Invoke-Expression $ariaCmd
 }
