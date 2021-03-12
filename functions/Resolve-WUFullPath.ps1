@@ -29,7 +29,7 @@ param (
     [ValidateNotNullOrEmpty()]
     [SupportsWildcards()]
     [string[]]
-    $Path = $PWD.Path,
+    $Path = $PWD,
 
     # Specifies a path to one or more locations. Unlike the Path parameter, the value of the LiteralPath parameter is used exactly as it is typed. No characters are interpreted as wildcards. If the path includes escape characters, enclose it in single quotation marks. Single quotation marks tell Windows PowerShell not to interpret any characters as escape sequences. The default location is the current directory (.).
     [Parameter(Position = 0,
@@ -55,7 +55,7 @@ param (
     [Parameter(ParameterSetName = 'LiteralPath')]
     [ValidateNotNullOrEmpty()]
     [string]
-    $BasePath = $PWD.Path,
+    $BasePath = $PWD,
 
     # If specified, creates the parent directory of the obtained path.
     [Parameter(ParameterSetName = 'Path')]
