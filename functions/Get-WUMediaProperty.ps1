@@ -64,16 +64,20 @@ else {
     }
 }
 
-$mediaObj = @()
+$mediaProperties = @()
 foreach ($aPath in $paths) {
-    $mediaJson = ffprobe.exe -v quiet -print_format json -show_format -show_streams $aPath
+    $mediaJsonStr = $null
+    $mediaJsonStr = ffprobe.exe -v quiet -print_format json -show_format -show_streams $aPath
 
-    if ($mediaJson.Count -eq 3) {
-        Write-Error "Cannot get information for file '$aPath'."
+    $isSucceeded = $null -ne $mediaJsonStr -and `
+        $mediaJsonStr.PSobject.Properties.name -contains "Count" -and `
+        $mediaJsonStr.Count -ne 3
+    if (!$isSucceeded) {
+        Write-Error "Cannot get media information for file '$aPath'."
         continue
     }
 
-    $mediaObj += $mediaJson | ConvertFrom-Json
+    $mediaProperties += $mediaJsonStr | ConvertFrom-Json
 }
 
-return $mediaObj
+return $mediaProperties
