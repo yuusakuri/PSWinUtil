@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.4.12'
+    ModuleVersion     = '1.4.20'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
@@ -78,7 +78,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
 
     # このモジュールからエクスポートする関数です。最適なパフォーマンスを得るには、ワイルドカードを使用せず、エクスポートする関数がない場合は、エントリを削除しないで空の配列を使用してください。
     FunctionsToExport = @(
-        'Add-AngleSharp',
+        'Add-WUAngleSharp',
         'Add-WUEnvPath',
         'ConvertTo-WUPascalCase',
         'Edit-WUSshKey',
