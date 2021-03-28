@@ -22,7 +22,7 @@ param (
 
 $PSWinUtil = Convert-Path "$PSScriptRoot/.."
 
-$Name = PSWinUtil\ConvertTo-WUPascalCase -String $Name
+$Name = PSWinUtil\Convert-WUString -String $Name -Type PascalCase
 $registryFiles = @()
 $registryFiles += @{}
 $registryFiles[0].Path = "$PSWinUtil/resources/registry/$Name.ps1"

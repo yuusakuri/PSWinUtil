@@ -80,7 +80,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     FunctionsToExport = @(
         'Add-WUAngleSharp',
         'Add-WUEnvPath',
-        'ConvertTo-WUPascalCase',
+        'Convert-WUString',
         'Edit-WUSshKey',
         'Find-WUPath',
         'Get-WUChassisType',
