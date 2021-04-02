@@ -36,9 +36,9 @@ param (
 )
 
 foreach ($aUri in $Uri) {
-    $uriWithoutQuery = Get-WUUriWithoutQuery -Uri $aUri
+    [uri]$uriWithoutQuery = Get-WUUriWithoutQuery -Uri $aUri
     if (!($uriWithoutQuery -match '/$')) {
-        $uriWithoutQuery = '{0}/' -f $uriWithoutQuery
+        [uri]$uriWithoutQuery = '{0}/' -f $uriWithoutQuery
     }
     $ChildPath = $ChildPath -replace '^/'
     $query = $aUri.Query
