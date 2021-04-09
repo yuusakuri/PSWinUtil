@@ -50,50 +50,58 @@ param (
     $Scope = 'Process'
 )
 
-Set-StrictMode -Version 'Latest'
+begin {
+    Set-StrictMode -Version 'Latest'
 
-$Scope = $Scope + 'Process' | Select-Object -Unique
+    $Scope = $Scope + 'Process' | Select-Object -Unique
 
-$scopeParams = @{
-    LocalMachine = 'ForComputer'
-    CurrentUser  = 'ForUser'
-    Process      = 'ForProcess'
-}
-$scopeTargets = @{
-    LocalMachine = 'Machine'
-    CurrentUser  = 'User'
-    Process      = 'Process'
-}
-
-foreach ($aScope in $Scope) {
-    $envPaths = New-Object 'Collections.ArrayList'
-    $currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
-    $envPaths.AddRange(@($currentEnvPaths))
-
-    if ($Lastest) {
-        $envPaths.RemoveAt(($envPaths.Count - 1))
+    $scopeParams = @{
+        LocalMachine = 'ForComputer'
+        CurrentUser  = 'ForUser'
+        Process      = 'ForProcess'
     }
-    else {
-        if ($psCmdlet.ParameterSetName -eq 'Path') {
-            $removePaths = Resolve-WUFullPath -Path $Path
+    $scopeTargets = @{
+        LocalMachine = 'Machine'
+        CurrentUser  = 'User'
+        Process      = 'Process'
+    }
+
+    $removePaths = @()
+}
+
+process {
+    if ($psCmdlet.ParameterSetName -eq 'Path') {
+        $removePaths += ConvertTo-WUFullPath -Path $Path
+    }
+    elseif ($psCmdlet.ParameterSetName -eq 'LiteralPath') {
+        $removePaths += ConvertTo-WUFullPath -LiteralPath $LiteralPath
+    }
+}
+
+end {
+    foreach ($aScope in $Scope) {
+        $envPaths = New-Object 'Collections.ArrayList'
+        $currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
+        $envPaths.AddRange(@($currentEnvPaths))
+
+        if ($Lastest) {
+            $envPaths.RemoveAt(($envPaths.Count - 1))
         }
         else {
-            $removePaths = Resolve-WUFullPath -LiteralPath $LiteralPath
+            foreach ($aRemovePaths in $removePaths) {
+                $envPaths.Remove($aRemovePaths)
+            }
         }
 
-        foreach ($aRemovePaths in $removePaths) {
-            $envPaths.Remove($aRemovePaths)
-        }
-    }
+        $newEnvPath = $envPaths -join ';'
 
-    $newEnvPath = $envPaths -join ';'
-
-    if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
-        $setEnvArgs = @{
-            Name                 = 'Path'
-            Value                = $newEnvPath
-            $scopeParams.$aScope = $true
+        if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
+            $setEnvArgs = @{
+                Name                 = 'Path'
+                Value                = $newEnvPath
+                $scopeParams.$aScope = $true
+            }
+            Set-CEnvironmentVariable @setEnvArgs
         }
-        Set-CEnvironmentVariable @setEnvArgs
     }
 }

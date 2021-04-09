@@ -39,54 +39,62 @@ param (
     $LiteralPath
 )
 
-Set-StrictMode -Version 'Latest'
+begin {
+    Set-StrictMode -Version 'Latest'
 
-$paths = @()
-if ($psCmdlet.ParameterSetName -eq 'Path') {
-    foreach ($aPath in $Path) {
-        if (!(Test-Path -Path $aPath)) {
-            $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-            $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-            $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-            $psCmdlet.WriteError($errRecord)
-            continue
-        }
-
-        # Resolve any wildcards that might be in the path
-        $provider = $null
-        $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
-    }
-}
-else {
-    foreach ($aPath in $LiteralPath) {
-        if (!(Test-Path -LiteralPath $aPath)) {
-            $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-            $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-            $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-            $psCmdlet.WriteError($errRecord)
-            continue
-        }
-
-        # Resolve any relative paths
-        $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
-    }
+    $paths = @()
 }
 
-$lnkTargets = @()
-$sh = New-Object -ComObject WScript.Shell
+process {
+    if ($psCmdlet.ParameterSetName -eq 'Path') {
+        foreach ($aPath in $Path) {
+            if (!(Test-Path -Path $aPath)) {
+                $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
+                $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
+                $psCmdlet.WriteError($errRecord)
+                continue
+            }
 
-foreach ($aPath in $paths) {
-    try {
-        $lnkTarget = $sh.CreateShortcut($aPath).TargetPath
+            # Resolve any wildcards that might be in the path
+            $provider = $null
+            $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
+        }
     }
-    catch {
-        Write-Error "Failed to get the link target of '$aPath'."
+    else {
+        foreach ($aPath in $LiteralPath) {
+            if (!(Test-Path -LiteralPath $aPath)) {
+                $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
+                $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
+                $psCmdlet.WriteError($errRecord)
+                continue
+            }
+
+            # Resolve any relative paths
+            $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
+        }
+    }
+}
+
+end {
+    $lnkTargets = @()
+    $sh = New-Object -ComObject WScript.Shell
+
+    foreach ($aPath in $paths) {
         $lnkTarget = ''
-    }
+        try {
+            $lnkTarget = $sh.CreateShortcut($aPath).TargetPath
+        }
+        catch {
+            Write-Error "Failed to get the link target of '$aPath'."
+        }
+        if (!$lnkTarget) {
+            continue
+        }
 
-    if ($lnkTarget) {
         $lnkTargets += $lnkTarget
     }
-}
 
-return $lnkTargets
+    return $lnkTargets
+}

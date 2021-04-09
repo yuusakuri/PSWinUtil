@@ -43,76 +43,82 @@ param (
     [string[]]
     $Scope = 'Process'
 )
+begin {
+    Set-StrictMode -Version 'Latest'
 
-Set-StrictMode -Version 'Latest'
+    $paths = @()
+}
 
-$paths = @()
-if ($psCmdlet.ParameterSetName -eq 'Path') {
-    foreach ($aPath in $Path) {
-        if (!(Test-Path -Path $aPath)) {
-            $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-            $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-            $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-            $psCmdlet.WriteError($errRecord)
-            continue
+process {
+    if ($psCmdlet.ParameterSetName -eq 'Path') {
+        foreach ($aPath in $Path) {
+            if (!(Test-Path -Path $aPath)) {
+                $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
+                $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
+                $psCmdlet.WriteError($errRecord)
+                continue
+            }
+
+            # Resolve any wildcards that might be in the path
+            $provider = $null
+            $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
         }
-
-        # Resolve any wildcards that might be in the path
-        $provider = $null
-        $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
-    }
-}
-else {
-    foreach ($aPath in $LiteralPath) {
-        if (!(Test-Path -LiteralPath $aPath)) {
-            $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-            $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-            $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-            $psCmdlet.WriteError($errRecord)
-            continue
-        }
-
-        # Resolve any relative paths
-        $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
-    }
-}
-
-if (!$paths) {
-    return
-}
-
-$paths = $paths | ForEach-Object {
-    if ((Test-Path -LiteralPath $_ -PathType Leaf)) {
-        Split-Path $_ -Parent
     }
     else {
-        $_
+        foreach ($aPath in $LiteralPath) {
+            if (!(Test-Path -LiteralPath $aPath)) {
+                $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
+                $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
+                $psCmdlet.WriteError($errRecord)
+                continue
+            }
+
+            # Resolve any relative paths
+            $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
+        }
     }
 }
 
-$Scope = $Scope + 'Process' | Select-Object -Unique
+end {
+    if (!$paths) {
+        return
+    }
 
-$scopeParams = @{
-    LocalMachine = 'ForComputer'
-    CurrentUser  = 'ForUser'
-    Process      = 'ForProcess'
-}
-$scopeTargets = @{
-    LocalMachine = 'Machine'
-    CurrentUser  = 'User'
-    Process      = 'Process'
-}
-
-foreach ($aScope in $Scope) {
-    [string[]]$currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
-    $newEnvPath = ($currentEnvPaths + $paths | Where-Object { $_ } | Select-Object -Unique) -join ';'
-
-    if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
-        $setEnvArgs = @{
-            Name                 = 'Path'
-            Value                = $newEnvPath
-            $scopeParams.$aScope = $true
+    $paths = $paths | ForEach-Object {
+        if ((Test-Path -LiteralPath $_ -PathType Leaf)) {
+            Split-Path $_ -Parent
         }
-        Set-CEnvironmentVariable @setEnvArgs
+        else {
+            $_
+        }
+    }
+
+    $Scope = $Scope + 'Process' | Select-Object -Unique
+
+    $scopeParams = @{
+        LocalMachine = 'ForComputer'
+        CurrentUser  = 'ForUser'
+        Process      = 'ForProcess'
+    }
+    $scopeTargets = @{
+        LocalMachine = 'Machine'
+        CurrentUser  = 'User'
+        Process      = 'Process'
+    }
+
+    foreach ($aScope in $Scope) {
+        [string[]]$currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
+        $newEnvPath = ($currentEnvPaths + $paths | Where-Object { $_ } | Select-Object -Unique) -join ';'
+
+        if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
+            $setEnvArgs = @{
+                Name                 = 'Path'
+                Value                = $newEnvPath
+                $scopeParams.$aScope = $true
+            }
+            Set-CEnvironmentVariable @setEnvArgs
+        }
     }
 }

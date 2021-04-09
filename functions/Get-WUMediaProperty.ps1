@@ -31,53 +31,60 @@ param (
     $LiteralPath
 )
 
-Set-StrictMode -Version 'Latest'
+begin {
+    Set-StrictMode -Version 'Latest'
 
-$paths = @()
-if ($psCmdlet.ParameterSetName -eq 'Path') {
-    foreach ($aPath in $Path) {
-        if (!(Test-Path -Path $aPath)) {
-            $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-            $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-            $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-            $psCmdlet.WriteError($errRecord)
+    $paths = @()
+}
+
+process {
+    if ($psCmdlet.ParameterSetName -eq 'Path') {
+        foreach ($aPath in $Path) {
+            if (!(Test-Path -Path $aPath)) {
+                $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
+                $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
+                $psCmdlet.WriteError($errRecord)
+                continue
+            }
+
+            # Resolve any wildcards that might be in the path
+            $provider = $null
+            $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
+        }
+    }
+    else {
+        foreach ($aPath in $LiteralPath) {
+            if (!(Test-Path -LiteralPath $aPath)) {
+                $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
+                $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
+                $psCmdlet.WriteError($errRecord)
+                continue
+            }
+
+            # Resolve any relative paths
+            $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
+        }
+    }
+}
+
+end {
+    $mediaProperties = @()
+    foreach ($aPath in $paths) {
+        $mediaJsonStr = $null
+        $mediaJsonStr = ffprobe.exe -v quiet -print_format json -show_format -show_streams $aPath
+
+        $isSucceeded = $null -ne $mediaJsonStr -and `
+            $mediaJsonStr.PSobject.Properties.name -contains "Count" -and `
+            $mediaJsonStr.Count -ne 3
+        if (!$isSucceeded) {
+            Write-Error "Cannot get media information for file '$aPath'."
             continue
         }
 
-        # Resolve any wildcards that might be in the path
-        $provider = $null
-        $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
-    }
-}
-else {
-    foreach ($aPath in $LiteralPath) {
-        if (!(Test-Path -LiteralPath $aPath)) {
-            $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-            $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-            $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-            $psCmdlet.WriteError($errRecord)
-            continue
-        }
-
-        # Resolve any relative paths
-        $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
-    }
-}
-
-$mediaProperties = @()
-foreach ($aPath in $paths) {
-    $mediaJsonStr = $null
-    $mediaJsonStr = ffprobe.exe -v quiet -print_format json -show_format -show_streams $aPath
-
-    $isSucceeded = $null -ne $mediaJsonStr -and `
-        $mediaJsonStr.PSobject.Properties.name -contains "Count" -and `
-        $mediaJsonStr.Count -ne 3
-    if (!$isSucceeded) {
-        Write-Error "Cannot get media information for file '$aPath'."
-        continue
+        $mediaProperties += $mediaJsonStr | ConvertFrom-Json
     }
 
-    $mediaProperties += $mediaJsonStr | ConvertFrom-Json
+    return $mediaProperties
 }
-
-return $mediaProperties

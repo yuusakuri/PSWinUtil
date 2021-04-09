@@ -70,7 +70,7 @@ elseif ($NewPassphrase.Length -lt 5) {
     return
 }
 
-$keyPath = Resolve-WUFullPath -LiteralPath $Path -BasePath '~/.ssh'
+$keyPath = ConvertTo-WUFullPath -LiteralPath $Path -BasePath '~/.ssh'
 
 if (!(Test-Path -LiteralPath $keyPath)) {
     Write-Error "Cannot find path '$keyPath' because it does not exist." -Category ObjectNotFound

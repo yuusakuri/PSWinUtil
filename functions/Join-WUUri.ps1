@@ -35,15 +35,15 @@ param (
     $ChildPath
 )
 
-foreach ($aUri in $Uri) {
-    [uri]$uriWithoutQuery = Get-WUUriWithoutQuery -Uri $aUri
-    if (!($uriWithoutQuery -match '/$')) {
-        [uri]$uriWithoutQuery = '{0}/' -f $uriWithoutQuery
+process {
+    foreach ($aUri in $Uri) {
+        [uri]$uriWithoutQuery = Get-WUUriWithoutQuery -Uri $aUri
+        if (!($uriWithoutQuery -match '/$')) {
+            [uri]$uriWithoutQuery = '{0}/' -f $uriWithoutQuery
+        }
+        $ChildPath = $ChildPath -replace '^/'
+        $query = $aUri.Query
+
+        [uri]('{0}{1}' -f ([uri]::new($uriWithoutQuery, $ChildPath), $query))
     }
-    $ChildPath = $ChildPath -replace '^/'
-    $query = $aUri.Query
-
-    $joinedUri = '{0}{1}' -f ([uri]::new($uriWithoutQuery, $ChildPath), $query)
-
-    [uri]$joinedUri
 }

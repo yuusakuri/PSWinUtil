@@ -30,17 +30,23 @@ param (
 Set-StrictMode -Version 'Latest'
 
 $tempDirPath = (Carbon\New-CTempDirectory).FullName
+if (!(Test-Path -LiteralPath $tempDirPath)) {
+    return
+}
 try {
-    $xmlPath = "$tempDirPath\MonitorTool.xml"
+    $xmlPath = Join-Path $tempDirPath 'MonitorTool.xml'
 
     Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f $xmlPath) -Wait -NoNewWindow
 
+    $xmlo = $null
     [xml]$xmlo = Get-Content -LiteralPath $xmlPath
+    if (!$xmlo) {
+        return
+    }
 
     return $xmlo.monitors_list.item
 }
 finally {
-    # tempを削除
     $tempDirPath |
     Where-Object { Test-Path -LiteralPath $_ } |
     Remove-Item -LiteralPath { $_ } -Recurse -Force
