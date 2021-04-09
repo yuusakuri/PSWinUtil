@@ -53,7 +53,7 @@ function Set-WURegistryFromHash {
             else {
                 $data = $hash.$aScope.Data
             }
-            $keyPath = Resolve-WUFullPath -Keyname $hash.$aScope.Keyname
+            $keyPath = ConvertTo-WUFullPath -Keyname $hash.$aScope.Keyname
             $valuename = $hash.$aScope.Valuename
             $dataType = $hash.$aScope.Type
 

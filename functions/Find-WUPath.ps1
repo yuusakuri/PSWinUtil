@@ -67,145 +67,159 @@ param (
     $Program
 )
 
-Set-StrictMode -Version 'Latest'
+begin {
+    Set-StrictMode -Version 'Latest'
 
-# 結果を処理するスクリプト
-$isCompleated = {
-    param (
-        [string[]]
-        $AddPath
-    )
+    $isCompleated = {
+        param (
+            [string[]]
+            $AddPath
+        )
 
-    if (!$AddPath) {
-        return $false
-    }
-
-    $resultPaths.AddRange($AddPath)
-    $resultItems = Get-Item -LiteralPath $resultPaths -ErrorAction Ignore
-
-    if ($Exclude) {
-        foreach ($aExclude in $Exclude) {
-            $resultItems = $resultItems |
-            Where-Object { !($_.FullName -cmatch $aExclude) }
+        if (!$AddPath) {
+            return $false
         }
-    }
 
-    $resultItems = $patterns | ForEach-Object {
-        $pattern = $_
+        $resultPaths.AddRange($AddPath)
+        $resultItems = Get-Item -LiteralPath $resultPaths -ErrorAction Ignore
 
-        $completedItem = $resultItems |
-        Where-Object {
-            if (!$pattern.Parent) {
-                return $true
+        if ($Exclude) {
+            foreach ($aExclude in $Exclude) {
+                $resultItems = $resultItems |
+                Where-Object { !($_.FullName -cmatch $aExclude) }
             }
-            return Select-String -InputObject (Split-Path $_ -Parent) -SimpleMatch $pattern.Parent
-        } |
-        Where-Object {
-            if ($Strict) {
-                return $_.Name -eq $pattern.Leaf
-            }
-            return Select-String -InputObject $_.Name -SimpleMatch $pattern.Leaf
         }
 
-        if ($completedItem) {
-            $completedItem
-            $completedLeafs.add($pattern.Leaf) | Out-Null
-        }
-    }
+        $resultItems = $patterns | ForEach-Object {
+            $pattern = $_
 
-    $resultPaths.Clear()
-    if (!$resultItems) {
-        return $false
-    }
-    $resultPaths.AddRange(@(Convert-Path -LiteralPath $resultItems.FullName | Select-Object -Unique))
-
-    # $leafsを未取得のもので上書き
-    $leafs = $leafs |
-    Where-Object { $completedLeafs -notcontains $_ }
-
-    $completedLeafs.Clear()
-
-    return !$leafs
-}
-
-# パスセパレータを\で統一
-$Name = $Name -replace '/', '\'
-
-$patterns = $Name | ForEach-Object {
-    @{
-        Leaf   = Split-Path $_ -Leaf
-        Parent = Split-Path $_ -Parent
-    }
-}
-
-$leafs = $patterns.Leaf
-$resultPaths = New-Object System.Collections.ArrayList
-$completedLeafs = New-Object System.Collections.ArrayList
-
-$Exclude += @(
-    [regex]::Escape("C:\Windows\SysWOW64")
-    [regex]::Escape("SxS\")
-    [regex]::Escape("AppData\Local\Microsoft\Windows\FileHistory")
-    [regex]::Escape("C:\Windows\Prefetch")
-    [regex]::Escape("AppData\Roaming\Microsoft\Windows\Recent")
-    "scoop\\apps\\.+\\_.+\.old\\"
-)
-if ($env:ChocolateyInstall) {
-    $Exclude += [regex]::Escape("$env:ChocolateyInstall\bin")
-}
-
-if ($Program) {
-    # コマンドから探す
-    $cmdPaths = Get-Command $leafs -ErrorAction Ignore | Select-Object -ExpandProperty Path
-
-    if ($cmdPaths) {
-        $cmdResultPaths = @()
-        [string[]]$scoopShimPaths = $cmdPaths |
-        Where-Object {
-            (Split-Path $_ -Parent) -like '*scoop\shims' -and
-            (Split-Path $_ -Leaf) -match '\.exe$'
-        }
-        $GeneralCmdPaths = $cmdPaths | Where-Object { $scoopShimPaths -notcontains $_ }
-
-        $cmdResultPaths += $GeneralCmdPaths
-
-        if ($scoopShimPaths) {
-            if ((Get-Command -Name scoop -ErrorAction Ignore)) {
-                $scoopCmdPaths = Split-Path $scoopShimPaths -Leaf | ForEach-Object {
-                    scoop which ($_ -replace '\.exe$', '')
+            $completedItem = $resultItems |
+            Where-Object {
+                if (!$pattern.Parent) {
+                    return $true
                 }
-                $cmdResultPaths += $scoopCmdPaths
+                return Select-String -InputObject (Split-Path $_ -Parent) -SimpleMatch $pattern.Parent
+            } |
+            Where-Object {
+                if ($Strict) {
+                    return $_.Name -eq $pattern.Leaf
+                }
+                return Select-String -InputObject $_.Name -SimpleMatch $pattern.Leaf
             }
-            else {
-                $cmdResultPaths += $scoopShimPaths
+
+            if ($completedItem) {
+                $completedItem
+                $completedLeaves.add($pattern.Leaf) | Out-Null
             }
         }
 
-        if ((& $isCompleated -AddPath $cmdResultPaths)) {
+        $resultPaths.Clear()
+        if (!$resultItems) {
+            return $false
+        }
+        $resultPaths.AddRange(@(Convert-Path -LiteralPath $resultItems.FullName | Select-Object -Unique))
+
+        # Narrow down $leaves to incomplete ones
+        $leaves = $leaves |
+        Where-Object { $completedLeaves -notcontains $_ }
+
+        $completedLeaves.Clear()
+
+        return !$leaves
+    }
+
+    $names = @()
+}
+
+process {
+    foreach ($aName in $Name) {
+        # Unified path separator to backslash (\)
+        $names += $aName -replace '/', '\'
+    }
+}
+
+end {
+    $patterns = $names | ForEach-Object {
+        @{
+            Leaf   = Split-Path $_ -Leaf
+            Parent = Split-Path $_ -Parent
+        }
+    }
+
+    $leaves = $patterns.Leaf
+    $resultPaths = New-Object System.Collections.ArrayList
+    $completedLeaves = New-Object System.Collections.ArrayList
+
+    $Exclude += @(
+        [regex]::Escape("C:\Windows\SysWOW64")
+        [regex]::Escape("SxS\")
+        [regex]::Escape("AppData\Local\Microsoft\Windows\FileHistory")
+        [regex]::Escape("C:\Windows\Prefetch")
+        [regex]::Escape("AppData\Roaming\Microsoft\Windows\Recent")
+        "scoop\\apps\\.+\\_.+\.old\\"
+    )
+    if ($env:ChocolateyInstall) {
+        $Exclude += [regex]::Escape("$env:ChocolateyInstall\bin")
+    }
+
+    if ($Program) {
+        # Search by command
+        $cmdPaths = Get-Command $leaves -ErrorAction Ignore | Select-Object -ExpandProperty Path
+
+        if ($cmdPaths) {
+            $cmdResultPaths = @()
+            [string[]]$scoopShimPaths = $cmdPaths |
+            Where-Object {
+                (Split-Path $_ -Parent) -like '*scoop\shims' -and
+                (Split-Path $_ -Leaf) -match '\.exe$'
+            }
+            $GeneralCmdPaths = $cmdPaths | Where-Object { $scoopShimPaths -notcontains $_ }
+
+            $cmdResultPaths += $GeneralCmdPaths
+
+            if ($scoopShimPaths) {
+                if ((Get-Command -Name scoop -ErrorAction Ignore)) {
+                    $scoopCmdPaths = Split-Path $scoopShimPaths -Leaf | ForEach-Object {
+                        scoop which ($_ -replace '\.exe$', '')
+                    }
+                    $cmdResultPaths += $scoopCmdPaths
+                }
+                else {
+                    $cmdResultPaths += $scoopShimPaths
+                }
+            }
+
+            if ((& $isCompleated -AddPath $cmdResultPaths)) {
+                return $resultPaths
+            }
+        }
+
+        # Search by shortcut
+        $lnkDirs = @(
+            "$env:APPDATA\Microsoft\Windows\Start Menu"
+            "C:\ProgramData\Microsoft\Windows\Start Menu"
+        )
+
+        $lnkResultPaths = Get-WULnkTarget -LiteralPath (Get-ChildItem -LiteralPath $lnkDirs -Recurse | Where-Object { $_.Extension -eq '.lnk' } | Select-Object -ExpandProperty FullName) -WarningAction Ignore
+
+        if ((& $isCompleated -AddPath $lnkResultPaths)) {
             return $resultPaths
         }
     }
 
-    # ショートカットから探す
-    $lnkDirs = @(
-        "$env:APPDATA\Microsoft\Windows\Start Menu"
-        "C:\ProgramData\Microsoft\Windows\Start Menu"
-    )
+    # Search by es.exe
+    if ((Get-Command -Name 'es.exe' -ErrorAction Ignore)) {
+        $esResultPaths = $leaves | ForEach-Object {
+            es.exe $_
+        }
 
-    $lnkResultPaths = Get-WULnkTarget -LiteralPath (Get-ChildItem -LiteralPath $lnkDirs -Recurse | Where-Object { $_.Extension -eq '.lnk' } | Select-Object -ExpandProperty FullName) -WarningAction Ignore
-
-    if ((& $isCompleated -AddPath $lnkResultPaths)) {
-        return $resultPaths
+        if ((& $isCompleated -AddPath $esResultPaths)) {
+            return $resultPaths
+        }
     }
-}
+    else {
+        Write-Warning "Cannot find command 'es.exe'."
+    }
 
-# es.exeで探す
-$esResultPaths = $leafs | ForEach-Object {
-    es.exe $_
-}
-
-if ((& $isCompleated -AddPath $esResultPaths)) {
     return $resultPaths
 }
-
-return $resultPaths

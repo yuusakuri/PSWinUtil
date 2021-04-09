@@ -27,6 +27,8 @@ param (
     $Uri
 )
 
-foreach ($aUri in $Uri) {
-    [uri]($aUri -replace '\?.+')
+process {
+    foreach ($aUri in $Uri) {
+        [uri]($aUri -replace '\?.+')
+    }
 }

@@ -74,7 +74,7 @@ elseif ($Passphrase.Length -lt 5) {
 }
 
 # 鍵ファイルのフルパスを取得して親ディレクトリを作成
-$keyPath = Resolve-WUFullPath -LiteralPath $Path -BasePath '~/.ssh' -Parents
+$keyPath = ConvertTo-WUFullPath -LiteralPath $Path -BasePath '~/.ssh' -Parents
 
 $keyDir = Split-Path $keyPath -Parent
 if (!(Test-Path -LiteralPath $keyDir)) {

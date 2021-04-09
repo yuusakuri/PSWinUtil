@@ -26,7 +26,7 @@
 
 [CmdletBinding()]
 param (
-    [ValidateNotNull()]
+    [ValidateNotNullOrEmpty()]
     [int]
     # Specify the number of characters to retrieve.
     $Length,
@@ -54,4 +54,9 @@ $CharRanges = $CharType | ForEach-Object {
 
 $CharRanges += [int[]]$Char
 
-return -join ( $CharRanges | Select-Object -Unique | Get-Random -Count $Length | ForEach-Object { [char]$_ })
+return -join (
+    $CharRanges |
+    Select-Object -Unique |
+    Get-Random -Count $Length |
+    ForEach-Object { [char]$_ }
+)

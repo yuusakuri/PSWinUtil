@@ -72,10 +72,10 @@ if ($psCmdlet.ParameterSetName -eq 'Empty') {
     $paths += ""
 }
 elseif ($psCmdlet.ParameterSetName -eq 'Path') {
-    $paths += Resolve-WUFullPath -Path $Path
+    $paths += ConvertTo-WUFullPath -Path $Path
 }
 else {
-    $paths += Resolve-WUFullPath -LiteralPath $LiteralPath
+    $paths += ConvertTo-WUFullPath -LiteralPath $LiteralPath
 }
 
 if ($paths.Count -ne 1) {

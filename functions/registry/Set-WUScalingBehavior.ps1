@@ -39,10 +39,10 @@ Set-StrictMode -Version 'Latest'
 
 $paths = @()
 if ($psCmdlet.ParameterSetName -eq 'Path') {
-    $paths += Resolve-WUFullPath -Path $Path
+    $paths += ConvertTo-WUFullPath -Path $Path
 }
 else {
-    $paths += Resolve-WUFullPath -LiteralPath $LiteralPath
+    $paths += ConvertTo-WUFullPath -LiteralPath $LiteralPath
 }
 
 foreach ($aPath in $paths) {

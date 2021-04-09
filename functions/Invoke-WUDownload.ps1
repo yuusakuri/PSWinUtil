@@ -6,14 +6,13 @@
     Download files at high speed using aria2.
 
     .EXAMPLE
-    PS C:\>Invoke-WUDownload -URI "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi" -Destination $env:TMP -MaxConnectionPerServer 16 -Force
+    PS C:\>Invoke-WUDownload -Uri "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi" -Destination $env:TMP -MaxConnectionPerServer 16 -Force
 
     This example downloads the file from the specified URI to $env:TMP. The maximum number of connections to one server is 16. Overwrites the destination file if it already exists.
 #>
 
 [CmdletBinding(SupportsShouldProcess,
-    DefaultParameterSetName = 'Path'
-)]
+    DefaultParameterSetName = 'Path')]
 param (
     #Specifies the Uniform Resource Identifier (URI) of the internet resource to which the web request is sent. Enter a URI.
     [Parameter(Mandatory,
@@ -60,16 +59,16 @@ else {
     }
 }
 
-$ariaCmd = '& aria2c --auto-file-renaming=false -x {0} -d "{1}"' -f $MaxConnectionPerServer, $outDirPath
+$ariaCmd = '& aria2c --auto-file-renaming=false -x {0} -d "{1}"' -f $MaxConnectionPerServer, (Convert-WUString -String $outDirPath -Type EscapeForPowerShellDoubleQuotation)
 if ($outName) {
-    $ariaCmd = '{0} -o "{1}"' -f $ariaCmd, $outName
+    $ariaCmd = '{0} -o "{1}"' -f $ariaCmd, (Convert-WUString -String $outName -Type EscapeForPowerShellDoubleQuotation)
 }
 if ($Force) {
     $ariaCmd = '{0} --allow-overwrite=true' -f $ariaCmd
 }
-$ariaCmd = '{0} "{1}"' -f $ariaCmd, $URI
+$ariaCmd = '{0} "{1}"' -f $ariaCmd, (Convert-WUString -String $Uri -Type EscapeForPowerShellDoubleQuotation)
 
-Write-Host "Downloading from '$URI' to '$outDirPath'"
+Write-Host "Downloading from '$Uri' to '$outDirPath'"
 if ($pscmdlet.ShouldProcess($ariaCmd, 'Execute')) {
     Invoke-Expression $ariaCmd
 }
