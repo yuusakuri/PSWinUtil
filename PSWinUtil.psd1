@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.4.24'
+    ModuleVersion     = '1.4.26'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
