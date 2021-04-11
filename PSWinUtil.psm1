@@ -2,16 +2,16 @@
 $PSWinUtilBinDir = $PSWinUtil | Join-Path -ChildPath 'bin'
 
 # Private functions
-function Get-WURegistryHash {
-    $registryFileName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name -replace '.+-WU', ''
-    return . "$PSWinUtil/resources/registry/$registryFileName"
-}
-
 function Test-WUAdmin {
     (
         [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
         GetCurrent()
     ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Get-WURegistryHash {
+    $registryFileName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name -replace '.+-WU', ''
+    return . "$PSWinUtil/resources/registry/$registryFileName"
 }
 
 function Set-WURegistryFromHash {
