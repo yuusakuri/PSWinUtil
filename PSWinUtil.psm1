@@ -1,4 +1,5 @@
 ﻿$PSWinUtil = Convert-Path $PSScriptRoot
+$PSWinUtilBinDir = $PSWinUtil | Join-Path -ChildPath 'bin'
 
 # Private functions
 function Get-WURegistryHash {
@@ -75,7 +76,14 @@ foreach ($function in $functions) {
     New-Item -Path ('function:\{0}' -f $function.BaseName) -Value (Get-Content -Path $function.FullName -Raw)
 }
 
+# Alias
+Set-Alias -Name 'Install-WUApp' -Value (Join-Path $PSWinUtilBinDir 'Install-App.ps1')
+
 # Resolve dependencies using scoop which does not require administrator privileges
+$scoopBuckets = @{
+    'extras'    = ''
+    'yuusakuri' = 'https://github.com/yuusakuri/scoop-bucket.git'
+}
 $scoopDepends = @(
     @{
         CmdName = 'aria2c.exe'
@@ -89,75 +97,31 @@ $scoopDepends = @(
         CmdName = 'Set-CRegistryKeyValue'
         AppName = 'yuusakuri/carbon'
     }
-)
+) |
+Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
+
 $chocoDepends = @(
     @{
         CmdName = 'es.exe'
         AppName = 'Everything'
     }
-)
+) |
+Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
 
-[hashtable[]]$installScoopDepends = $scoopDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
-if ($installScoopDepends) {
-    if (!(Get-Command -Name scoop -ErrorAction Ignore)) {
-        # Install scoop
-        Invoke-WebRequest -useb get.scoop.sh | Invoke-Expression
-    }
-    if (!(Get-Command -Name git -ErrorAction Ignore)) {
-        # Install git
-        scoop install git --force
-    }
-    . {
-        # Add buckets
-        scoop bucket add extras
-        scoop bucket add yuusakuri https://github.com/yuusakuri/scoop-bucket.git
-    } 6>&1 | Out-Null
-
-    foreach ($aInstallDepend in $installScoopDepends) {
-        Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
-        scoop install $aInstallDepend.AppName --force
-        if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
-            Write-Warning ("Unable to resolve PSWinUtil Dependencies. Installation of '{0}' failed." -f $aInstallDepend.AppName)
-        }
+$installWuAppArgs = @{
+    ChocoApp = $chocoDepends.AppName
+    Force    = $true
+}
+if ($scoopDepends) {
+    $installWuAppArgs += @{
+        ScoopBucket = $scoopBuckets
+        ScoopApp    = $scoopDepends.AppName
     }
 }
-
-[hashtable[]]$installChocoDepends = $chocoDepends | Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
-if ($installChocoDepends) {
-    if (!(Test-WUAdmin)) {
-        Write-Warning 'Unable to resolve PSWinUtil Dependencies. Chocolatey require admin rights.'
-    }
-    else {
-        if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
-            # 関数名の衝突を避ける
-            $PSModuleAutoloadingPreference = 'ModuleQualified'
-            $moduleNames = @(
-                'Carbon'
-            )
-            Remove-Module $moduleNames -ErrorAction Ignore
-
-            # Install Chocolatey
-            Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-            # スクリプト実行の確認をしない
-            choco feature enable -n allowGlobalConfirmation
-            # チェックサムを無効にする
-            choco feature disable -n checksumFiles
-
-            $PSModuleAutoloadingPreference = $null
-        }
-
-        foreach ($aInstallDepend in $installChocoDepends) {
-            Write-Host ("Installing '{0}'" -f $aInstallDepend.AppName)
-            choco install $aInstallDepend.AppName -y --force --ignore-checksums -limitoutput
-            if (!(Get-Command -Name $aInstallDepend.CmdName -ErrorAction Ignore)) {
-                Write-Warning ("Unable to resolve PSWinUtil Dependencies. Installation of '{0}' failed." -f $aInstallDepend.AppName)
-            }
-        }
-    }
-}
+Install-WUApp @installWuAppArgs
 
 # Pass the path to the required executable.
 Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
 
-# Load AngleSharp
+# Load assembly
 Add-WUAngleSharp
