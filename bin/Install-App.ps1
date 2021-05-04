@@ -7,7 +7,7 @@ param (
     $ScoopBucket,
 
     [string[]]
-    $ChocoApp,
+    $ChocolateyPackage,
 
     [string[]]
     $PSModule,
@@ -179,7 +179,7 @@ function Install-Chocolatey {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         [string[]]
-        $ChocoApp,
+        $ChocolateyPackage,
 
         [switch]
         $Unsafe,
@@ -191,7 +191,7 @@ function Install-Chocolatey {
         $Optimize
     )
 
-    if ($Optimize -or $ChocoApp) {
+    if ($Optimize -or $ChocolateyPackage) {
         if (!(Test-WUAdmin)) {
             Write-Warning "Administrator privileges are required for Chocolatey."
             return
@@ -219,7 +219,7 @@ function Install-Chocolatey {
             $PSModuleAutoloadingPreference = $null
         }
 
-        $ChocoApp | ForEach-Object {
+        $ChocolateyPackage | ForEach-Object {
             if ($Force) {
                 choco install $_ -y -limitoutput --force --ignore-checksums
             }
@@ -286,7 +286,7 @@ Install-Scoop @params
 
 $params = @{} + $PSBoundParameters
 $keyNames = @(
-    'ChocoApp'
+    'ChocolateyPackage'
     'Unsafe'
     'Force'
     'Optimize'

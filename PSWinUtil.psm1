@@ -109,7 +109,7 @@ $chocoDepends = @(
 Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
 
 $installWuAppArgs = @{
-    ChocoApp = $chocoDepends.AppName
+    ChocolateyPackage = $chocoDepends.AppName
     Force    = $true
 }
 if ($scoopDepends) {
