@@ -87,6 +87,50 @@ function Install-Scoop {
         $Optimize
     )
 
+    function Get-InstalledScoopApp {
+        $installedApps = @()
+        $appListStrings = @()
+        $appListStrings += scoop list 2>&1 6>&1 | ForEach-Object ToString
+
+        $labelList = @{
+            1 = 'name'
+            2 = 'version'
+            3 = 'bucketName'
+            4 = 'isFailed'
+        }
+        for (($i = 1), ($labelId = 1); $i -lt $appListStrings.Count - 2; $i++, $labelId++) {
+            if ($labelId -eq 4) {
+                $labelId = 0
+                continue
+            }
+
+            switch ($labelId) {
+                1 {
+                    $installedApps += [PSCustomObject]@{}
+                    $appListStrings[$i] = $appListStrings[$i] -replace '^\s*'
+                }
+                3 {
+                    if ($appListStrings[$i] -match '\*failed\*') {
+                        $isFailed = $true
+
+                        $appListStrings[$i] = ''
+                    }
+                    else {
+                        $isFailed = $false
+
+                        $appListStrings[$i] = $appListStrings[$i] -replace '^\s*\[|\]$'
+                    }
+
+                    $installedApps[$installedApps.Count - 1] | Add-Member -MemberType NoteProperty -Name $labelList[4] -Value $isFailed
+                }
+            }
+
+            $installedApps[$installedApps.Count - 1] | Add-Member -MemberType NoteProperty -Name $labelList[$labelId] -Value $appListStrings[$i]
+        }
+
+        return $installedApps
+    }
+
     if ($Optimize -or $ScoopApp -or $ScoopBucket) {
         if (!(Get-Command -Name scoop -ErrorAction Ignore)) {
             # Install scoop
@@ -116,6 +160,16 @@ function Install-Scoop {
             }
             else {
                 scoop install $_
+            }
+        }
+
+        if ($Optimize) {
+            # Reinstall the failed apps
+            Get-InstalledScoopApp |
+            Where-Object { $_.isFailed -eq $true } |
+            ForEach-Object {
+                scoop uninstall $_.name
+                scoop install $_.name
             }
         }
     }
