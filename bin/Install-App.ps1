@@ -21,7 +21,8 @@ param (
     [switch]
     $Force,
 
-    [switch]
+    [ValidateSet('All', 'Scoop', 'Chocolatey', 'PSModule', 'Pip')]
+    [string[]]
     $Optimize
 )
 
@@ -30,6 +31,18 @@ function Test-WUAdmin {
         [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
         GetCurrent()
     ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+$shouldOptimize = {
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Provider
+    )
+
+    return $Provider -in $Optimize `
+        -or 'All' -in $Optimize
 }
 
 function Install-PowerShellModule {
@@ -60,7 +73,9 @@ function Install-PowerShellModule {
             Update-Module -Name PowerShellGet
         }
 
-        $PSModule | ForEach-Object {
+        $PSModule |
+        Where-Object { $_ } |
+        ForEach-Object {
             if ($Force) {
                 Install-Module -Name $_ -Scope CurrentUser -Force -AllowClobber
             }
@@ -154,13 +169,16 @@ function Install-Scoop {
             }
         }
 
-        $ScoopApp | ForEach-Object {
+        $ScoopApp |
+        Where-Object { $_ } |
+        ForEach-Object {
             if ($Force) {
                 scoop install $_ --force
             }
             else {
                 scoop install $_
             }
+            $ScoopApp.Count
         }
 
         if ($Optimize) {
@@ -219,7 +237,9 @@ function Install-Chocolatey {
             $PSModuleAutoloadingPreference = $null
         }
 
-        $ChocolateyPackage | ForEach-Object {
+        $ChocolateyPackage |
+        Where-Object { $_ } |
+        ForEach-Object {
             if ($Force) {
                 choco install $_ -y -limitoutput --force --ignore-checksums
             }
@@ -248,7 +268,9 @@ function Install-Pip3 {
             Install-Scoop -ScoopApp 'python'
         }
 
-        $Pip3Package | ForEach-Object {
+        $Pip3Package |
+        Where-Object { $_ } |
+        ForEach-Object {
             if ($Force) {
                 pip3 install --upgrade --force-reinstall $_
             }
@@ -263,12 +285,10 @@ $params = @{} + $PSBoundParameters
 $keyNames = @(
     'PSModule'
     'Force'
-    'Optimize'
 )
 $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-$removeKeyNames | ForEach-Object {
-    $params.Remove($_)
-}
+$removeKeyNames | ForEach-Object { $params.Remove($_) }
+$params.Optimize = & $shouldOptimize -Provider 'PSModule'
 Install-PowerShellModule @params
 
 $params = @{} + $PSBoundParameters
@@ -276,12 +296,10 @@ $keyNames = @(
     'ScoopApp'
     'ScoopBucket'
     'Force'
-    'Optimize'
 )
 $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-$removeKeyNames | ForEach-Object {
-    $params.Remove($_)
-}
+$removeKeyNames | ForEach-Object { $params.Remove($_) }
+$params.Optimize = & $shouldOptimize -Provider 'Scoop'
 Install-Scoop @params
 
 $params = @{} + $PSBoundParameters
@@ -289,22 +307,18 @@ $keyNames = @(
     'ChocolateyPackage'
     'Unsafe'
     'Force'
-    'Optimize'
 )
 $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-$removeKeyNames | ForEach-Object {
-    $params.Remove($_)
-}
+$removeKeyNames | ForEach-Object { $params.Remove($_) }
+$params.Optimize = & $shouldOptimize -Provider 'Chocolatey'
 Install-Chocolatey @params
 
 $params = @{} + $PSBoundParameters
 $keyNames = @(
     'Pip3Package'
     'Force'
-    'Optimize'
 )
 $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-$removeKeyNames | ForEach-Object {
-    $params.Remove($_)
-}
+$removeKeyNames | ForEach-Object { $params.Remove($_) }
+$params.Optimize = & $shouldOptimize -Provider 'Pip'
 Install-Pip3 @params
