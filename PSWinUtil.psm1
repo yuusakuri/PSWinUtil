@@ -79,7 +79,7 @@ foreach ($function in $functions) {
 # Alias
 Set-Alias -Name 'Install-WUApp' -Value (Join-Path $PSWinUtilBinDir 'Install-App.ps1')
 
-# Resolve dependencies using scoop which does not require administrator privileges
+# Resolve dependencies
 $scoopBuckets = @{
     'extras'    = ''
     'yuusakuri' = 'https://github.com/yuusakuri/scoop-bucket.git'
@@ -109,16 +109,26 @@ $chocoDepends = @(
 Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
 
 $installWuAppArgs = @{
-    ChocolateyPackage = $chocoDepends.AppName
+    Optimize = @()
     Force    = $true
+}
+if ($chocoDepends) {
+    $installWuAppArgs += @{
+        ChocolateyPackage = $chocoDepends.AppName
+    }
+    $installWuAppArgs.Optimize += 'Chocolatey'
 }
 if ($scoopDepends) {
     $installWuAppArgs += @{
         ScoopBucket = $scoopBuckets
         ScoopApp    = $scoopDepends.AppName
     }
+    $installWuAppArgs.Optimize += 'Scoop'
 }
-Install-WUApp @installWuAppArgs
+
+if ($chocoDepends -or $scoopDepends) {
+    Install-WUApp @installWuAppArgs
+}
 
 # Pass the path to the required executable.
 Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
