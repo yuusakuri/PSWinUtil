@@ -159,7 +159,7 @@
 
             $installedBucketNames = scoop bucket list
             $bucketNames = ([string[]]$ScoopBucket.Keys) | Where-Object {
-                $_ -in $installedBucketNames
+                !($_ -in $installedBucketNames)
             }
             foreach ($aBucketName in $bucketNames) {
                 if ($ScoopBucket.$aBucketName) {
@@ -179,7 +179,6 @@
                 else {
                     scoop install $_
                 }
-                $ScoopApp.Count
             }
 
             if ($Optimize) {
