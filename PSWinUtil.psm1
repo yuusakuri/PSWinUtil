@@ -1,5 +1,6 @@
-﻿$PSWinUtil = Convert-Path $PSScriptRoot
-$PSWinUtilBinDir = $PSWinUtil | Join-Path -ChildPath 'bin'
+﻿$PSWinUtil = $PSScriptRoot
+$PSWinUtilRegConfDir = $PSWinUtil | Join-Path -ChildPath "resources/registry"
+$PSWinUtilFunctionDir = $PSWinUtil | Join-Path -ChildPath "functions"
 
 # Private functions
 function Test-WUAdmin {
@@ -10,8 +11,8 @@ function Test-WUAdmin {
 }
 
 function Get-WURegistryHash {
-    $registryFileName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name -replace '.+-WU', ''
-    return . "$PSWinUtil/resources/registry/$registryFileName"
+    $registryFileName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name -creplace '.+-(WU)?', ''
+    return . (Join-Path $PSWinUtilRegConfDir $registryFileName)
 }
 
 function Set-WURegistryFromHash {
@@ -71,13 +72,11 @@ function Set-WURegistryFromHash {
 }
 
 # Public functions
-$functions = Get-ChildItem -Path ('{0}\functions' -f $PSWinUtil) -Recurse -File
-foreach ($function in $functions) {
-    New-Item -Path ('function:\{0}' -f $function.BaseName) -Value (Get-Content -Path $function.FullName -Raw)
+$functionScripts = Get-ChildItem -LiteralPath $PSWinUtilFunctionDir -Recurse -File
+foreach ($aFunctionScript in $functionScripts) {
+    . $aFunctionScript.FullName
+    Set-Alias -Name $aFunctionScript.BaseName -Value ($aFunctionScript.BaseName -replace '-', '-WU')
 }
-
-# Alias
-Set-Alias -Name 'Install-WUApp' -Value (Join-Path $PSWinUtilBinDir 'Install-App.ps1')
 
 # Resolve dependencies
 $scoopBuckets = @{

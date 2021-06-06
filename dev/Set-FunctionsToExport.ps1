@@ -1,20 +1,20 @@
-﻿$PSWinUtil = Convert-Path "$PSScriptRoot/.."
+﻿$PSWinUtil = $PSScriptRoot | Split-Path -Parent
 
 if (!(Test-Path -LiteralPath $PSWinUtil)) {
     Write-Error "Cannot find path '$PSWinUtil' because it does not exist." -Category ObjectNotFound
     return
 }
 
-$functionDir = "$PSWinUtil/functions"
+$functionDir = Join-Path $PSWinUtil "functions"
 if (!(Test-Path -LiteralPath $functionDir)) {
     Write-Error "Cannot find path '$functionDir' because it does not exist." -Category ObjectNotFound
     return
 }
 
-$functionNames = (Get-ChildItem -LiteralPath $functionDir -File -Recurse).BaseName
+$functionNames = (Get-ChildItem -LiteralPath $functionDir -File -Recurse).BaseName -replace '-', '-WU'
 
 # Rewrite the functions to export
-$psdPath = "$PSWinUtil/PSWinUtil.psd1"
+$psdPath = Join-Path $PSWinUtil "PSWinUtil.psd1"
 $psdContent = Get-Content -LiteralPath $psdPath -Raw
 $publicFunctionNameStr = "'{0}'" -f ($functionNames -join "',`r`n        '")
 $newPsdContent = New-Object 'Collections.ArrayList'

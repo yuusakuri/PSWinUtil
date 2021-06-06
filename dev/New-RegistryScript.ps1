@@ -20,15 +20,19 @@ param (
     $NoScope
 )
 
-$PSWinUtil = Convert-Path "$PSScriptRoot/.."
+$PSWinUtil = $PSScriptRoot | Split-Path -Parent
+$PSWinUtilRegConfDir = $PSWinUtil | Join-Path -ChildPath "resources/registry"
+$PSWinUtilRegFunctionDir = $PSWinUtil | Join-Path -ChildPath "functions/registry"
 
-$Name = PSWinUtil\Convert-WUString -String $Name -Type PascalCase
-$registryFiles = @()
-$registryFiles += @{}
-$registryFiles[0].Path = "$PSWinUtil/resources/registry/$Name.ps1"
-$registryFiles[0].Content = @"
+$writeFiles = @()
+$aliasNoun = PSWinUtil\Convert-WUString -String $Name -Type PascalCase
+$functionNoun = $aliasNoun -replace '-', '-WU'
+
+$writeFiles += @{
+    Path    = $PSWinUtilRegConfDir | Join-Path -ChildPath "$aliasNoun.ps1"
+    Content = @"
 @{
-    $Name = @{
+    $aliasNoun = @{
         LocalMachine = @{
             Keyname   = ''
             Valuename = ''
@@ -50,53 +54,61 @@ $registryFiles[0].Content = @"
     }
 }
 "@
+}
 
-for ($i = 0; $i -lt $Verb.Count; $i++) {
-    $registryFiles += @{}
-    $registryFiles[$i + 1].Path = "$PSWinUtil/functions/registry/{0}-WU$Name.ps1" -f $Verb[$i]
-    $scopeParamStr = @'
-    # Specifies the scope that is affected. The default scope is CurrentUser.
-    [ValidateSet('LocalMachine', 'CurrentUser')]
-    [string]
-    $Scope = 'CurrentUser'
-
-'@
-
-    $scopeArgStr = ' -Scope $Scope'
+foreach ($aVerb in $Verb) {
+    $aliasName = "$aVerb-$aliasNoun"
+    $functionName = "$aVerb-$functionNoun"
 
     if ($NoScope) {
         $scopeParamStr = ''
         $scopeArgStr = ''
     }
+    else {
+        $scopeParamStr = @'
+        # Specifies the scope that is affected. The default scope is CurrentUser.
+        [ValidateSet('LocalMachine', 'CurrentUser')]
+        [string]
+        $Scope = 'CurrentUser'
 
-    $registryFiles[$i + 1].Content = @"
-<#
-    .DESCRIPTION
-    This cmdlet works with registry.
-#>
+'@
+        $scopeArgStr = ' -Scope $Scope'
+    }
 
-[CmdletBinding(SupportsShouldProcess)]
-param (
-$scopeParamStr)
+    $writeFiles += @{
+        Path    = $PSWinUtilRegFunctionDir | Join-Path -ChildPath "$aliasName.ps1"
+        Content = @"
+function $functionName {
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+$scopeParamStr    )
 
-Set-StrictMode -Version 'Latest'
-`$registryHash = Get-WURegistryHash
-if (!`$registryHash) {
-    return
+    Set-StrictMode -Version 'Latest'
+    `$registryHash = Get-WURegistryHash
+    if (!`$registryHash) {
+        return
+    }
+
+    Set-WURegistryFromHash -RegistryHash `$registryHash$scopeArgStr -DataKey `$MyInvocation.MyCommand.Verb
 }
-
-Set-WURegistryFromHash -RegistryHash `$registryHash$scopeArgStr -DataKey `$MyInvocation.MyCommand.Verb
 "@
+    }
 }
 
-foreach ($registryFile in $registryFiles) {
-    $aPath = $registryFile.Path
-    $aContent = $registryFile.Content
+foreach ($aWriteFile in $writeFiles) {
+    $aPath = $aWriteFile.Path
+    $aContent = $aWriteFile.Content
 
     if ((Test-Path -LiteralPath $aPath)) {
         Write-Error "Path '$aPath' already exists."
         continue
     }
 
-    [System.IO.File]::WriteAllLines($aPath, $aContent, (New-Object System.Text.UTF8Encoding $true))
+    $shouldProcessTarget = @(
+        "Path: $aPath"
+        "Content: $aContent"
+    ) -join [System.Environment]::NewLine
+    if ($PSCmdlet.ShouldProcess($shouldProcessTarget, "Write content")) {
+        [System.IO.File]::WriteAllLines($aPath, [string[]]$aContent, [System.Text.UTF8Encoding]::new($true))
+    }
 }

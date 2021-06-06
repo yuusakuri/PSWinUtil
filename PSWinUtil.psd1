@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.4.30'
+    ModuleVersion     = '1.5.0'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
@@ -90,6 +90,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Get-WUMonitor',
         'Get-WURandomString',
         'Get-WUUriWithoutQuery',
+        'Install-WUApp',
         'Invoke-WUDownload',
         'Join-WUUri',
         'New-WUSshKey',
