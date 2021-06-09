@@ -1,4 +1,4 @@
-﻿function Disable-LongPaths {
+﻿function Disable-WULongPaths {
     [CmdletBinding(SupportsShouldProcess)]
     param (
     )
