@@ -114,6 +114,7 @@
                 3 = 'bucketName'
                 4 = 'isFailed'
             }
+
             for (($i = 1), ($labelId = 1); $i -lt $appListStrings.Count - 2; $i++, $labelId++) {
                 if ($labelId -eq 4) {
                     $labelId = 0
@@ -123,13 +124,22 @@
                 switch ($labelId) {
                     1 {
                         $installedApps += [PSCustomObject]@{}
-                        $appListStrings[$i] = $appListStrings[$i] -replace '^\s*'
+                        $appListStrings[$i] = $appListStrings[$i] -replace '^\s*|\s*$'
                     }
                     3 {
                         if ($appListStrings[$i] -match '\*failed\*') {
                             $isFailed = $true
 
-                            $appListStrings[$i] = ''
+                            $installJsonPath = $env:SCOOP |
+                            Join-Path -ChildPath ('apps\{0}\current\install.json' -f $installedApps[$installedApps.Count - 1].name)
+
+                            $bucket = ''
+                            $bucket = $installJsonPath |
+                            Where-Object { Test-Path -LiteralPath $_ } |
+                            Get-Content -LiteralPath { $_ } |
+                            ConvertFrom-Json -ErrorAction Ignore |
+                            Select-Object -ExpandProperty bucket -ErrorAction Ignore
+                            $appListStrings[$i] = $bucket
                         }
                         else {
                             $isFailed = $false
@@ -149,16 +159,41 @@
 
         if ($Optimize -or $ScoopApp -or $ScoopBucket) {
             # Install Scoop
-            if (!(Get-Command -Name 'scoop.ps1' -ErrorAction Ignore)) {
+            if (!(Get-Command -Name 'scoop' -ErrorAction Ignore)) {
                 Invoke-WebRequest -useb get.scoop.sh | Invoke-Expression
             }
 
+            # Set process environment variable 'SCOOP'
+            $env:SCOOP = Get-Command -Name 'scoop' |
+            Select-Object -ExpandProperty Path |
+            Split-Path -Parent |
+            Split-Path -Parent
+
             # Install depends
-            @(
-                @{
-                    CmdName = 'git.exe'
-                    AppName = 'git'
+            if (!(Get-Command -Name 'git.exe' -ErrorAction Ignore)) {
+                scoop install git
+
+                if (!(Get-Command -Name 'git.exe' -ErrorAction Ignore)) {
+                    # If git installation fails, uninstall it and try installing again
+                    Get-InstalledScoopApp |
+                    Where-Object { $_.name -eq 'git' } |
+                    Where-Object { $_.isFailed -eq $true } |
+                    ForEach-Object {
+                        scoop uninstall $_.name
+                        scoop install $_.name
+                    }
                 }
+                if (!(Get-Command -Name 'git.exe' -ErrorAction Ignore)) {
+                    # Try to avoid Scoop updates and try to install in case Git is required to update Scoop
+                    $currentLastUpdate = scoop config lastupdate
+                    $newLastUpdate = $currentLastUpdate -replace '\|.+', ('|{0}' -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+                    scoop config lastupdate $newLastUpdate
+                    scoop install git
+                    scoop update
+                }
+            }
+
+            @(
                 @{
                     CmdName = '7z.exe'
                     AppName = '7zip'
@@ -171,13 +206,7 @@
 
             if ($Optimize) {
                 # Set user environment variable 'SCOOP'
-                if (!$env:SCOOP) {
-                    $scoopCmdPath = Get-Command -Name 'scoop' |
-                    Select-Object -ExpandProperty Path
-                    $env:SCOOP = $scoopCmdPath |
-                    Split-Path -Parent |
-                    Split-Path -Parent
-
+                if (![Environment]::GetEnvironmentVariable('SCOOP', 'User')) {
                     [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
                 }
 
@@ -226,9 +255,8 @@
             # Install Scoop buckets
             $installedBucketNames = scoop bucket list
             [string[]]$ScoopBucket.Keys |
-            Where-Object {
-                !($_ -in $installedBucketNames)
-            } |
+            Where-Object { $_ } |
+            Where-Object { !($_ -in $installedBucketNames) } |
             ForEach-Object {
                 $aBucketName = $_
                 if ($ScoopBucket.$aBucketName) {
@@ -256,8 +284,9 @@
                 Get-InstalledScoopApp |
                 Where-Object { $_.isFailed -eq $true } |
                 ForEach-Object {
-                    scoop uninstall $_.name
-                    scoop install $_.name
+                    $aFullName = '{0}/{1}' -f $_.bucketName, $_.name
+                    scoop uninstall $aFullName
+                    scoop install $aFullName
                 }
             }
         }
