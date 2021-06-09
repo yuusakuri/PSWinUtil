@@ -346,17 +346,20 @@
                 # Install Chocolatey
                 Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
 
-                # Set chocolatey config
+                $PSModuleAutoloadingPreference = $null
+            }
+
+            # Set chocolatey configs
+            if ($Optimize) {
                 if ($Unsafe) {
                     # Disable confirm script execution
                     choco feature enable -n allowGlobalConfirmation
                     # Disable checksum
                     choco feature disable -n checksumFiles
                 }
-
-                $PSModuleAutoloadingPreference = $null
             }
 
+            # Install Chocolatey apps
             $ChocolateyPackage |
             Where-Object { $_ } |
             ForEach-Object {
