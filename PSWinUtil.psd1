@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.5.1'
+    ModuleVersion     = '1.5.2'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
@@ -108,6 +108,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Disable-WUGameDvr',
         'Disable-WULockScreen',
         'Disable-WULockWorkstation',
+        'Disable-WULongPaths',
         'Disable-WURequireSignInOnWakeup',
         'Disable-WUSaveZoneInformation',
         'Disable-WUSmartScreen',
@@ -132,6 +133,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Enable-WUGameDvr',
         'Enable-WULockScreen',
         'Enable-WULockWorkstation',
+        'Enable-WULongPaths',
         'Enable-WURequireSignInOnWakeup',
         'Enable-WUSaveZoneInformation',
         'Enable-WUSmartScreen',
