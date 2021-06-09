@@ -97,6 +97,9 @@
             $ScoopBucket,
 
             [switch]
+            $Unsafe,
+
+            [switch]
             $Force,
 
             [switch]
@@ -157,6 +160,33 @@
             return $installedApps
         }
 
+        function Install-ScoopApp {
+            [CmdletBinding(SupportsShouldProcess)]
+            param (
+                [string[]]
+                $ScoopApp,
+
+                [switch]
+                $Unsafe,
+
+                [switch]
+                $Force
+            )
+
+            $ScoopApp |
+            Where-Object { $_ } |
+            ForEach-Object {
+                $cmd = 'scoop install "{0}"' -f $_
+                if ($Force) {
+                    $cmd = '{0} --force' -f $cmd
+                }
+                if ($Unsafe) {
+                    $cmd = '{0} --skip' -f $cmd
+                }
+                Invoke-Expression $cmd
+            }
+        }
+
         if ($Optimize -or $ScoopApp -or $ScoopBucket) {
             # Install Scoop
             if (!(Get-Command -Name 'scoop' -ErrorAction Ignore)) {
@@ -171,7 +201,7 @@
 
             # Install depends
             if (!(Get-Command -Name 'git.exe' -ErrorAction Ignore)) {
-                scoop install git
+                Install-ScoopApp -ScoopApp 'git' -Unsafe:$Unsafe -Force:$Force
 
                 if (!(Get-Command -Name 'git.exe' -ErrorAction Ignore)) {
                     # If git installation fails, uninstall it and try installing again
@@ -180,7 +210,7 @@
                     Where-Object { $_.isFailed -eq $true } |
                     ForEach-Object {
                         scoop uninstall $_.name
-                        scoop install $_.name
+                        Install-ScoopApp -ScoopApp $_.name -Unsafe:$Unsafe -Force:$Force
                     }
                 }
                 if (!(Get-Command -Name 'git.exe' -ErrorAction Ignore)) {
@@ -188,7 +218,7 @@
                     $currentLastUpdate = scoop config lastupdate
                     $newLastUpdate = $currentLastUpdate -replace '\|.+', ('|{0}' -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
                     scoop config lastupdate $newLastUpdate
-                    scoop install git
+                    Install-ScoopApp -ScoopApp 'git' -Unsafe:$Unsafe -Force:$Force
                     scoop update
                 }
             }
@@ -201,7 +231,7 @@
             ) |
             Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) } |
             ForEach-Object {
-                scoop install $_.AppName
+                Install-ScoopApp -ScoopApp $_.AppName -Unsafe:$Unsafe -Force:$Force
             }
 
             if ($Optimize) {
@@ -243,7 +273,7 @@
                 ) |
                 Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) } |
                 ForEach-Object {
-                    scoop install $_.AppName
+                    Install-ScoopApp -ScoopApp $_.AppName -Unsafe:$Unsafe -Force:$Force
                 }
 
                 # Enable MSIEXTRACT_USE_LESSMSI by default
@@ -268,16 +298,7 @@
             }
 
             # Install Scoop apps
-            $ScoopApp |
-            Where-Object { $_ } |
-            ForEach-Object {
-                if ($Force) {
-                    scoop install $_ --force
-                }
-                else {
-                    scoop install $_
-                }
-            }
+            Install-ScoopApp -ScoopApp $ScoopApp -Unsafe:$Unsafe -Force:$Force
 
             if ($Optimize) {
                 # Reinstall the failed apps
@@ -286,7 +307,7 @@
                 ForEach-Object {
                     $aFullName = '{0}/{1}' -f $_.bucketName, $_.name
                     scoop uninstall $aFullName
-                    scoop install $aFullName
+                    Install-ScoopApp -ScoopApp $aFullName -Unsafe:$Unsafe -Force:$Force
                 }
             }
         }
@@ -339,12 +360,14 @@
             $ChocolateyPackage |
             Where-Object { $_ } |
             ForEach-Object {
+                $cmd = 'choco install "{0}" --limitoutput --yes' -f $_
                 if ($Force) {
-                    choco install $_ -y -limitoutput --force --ignore-checksums
+                    $cmd = '{0} --force' -f $cmd
                 }
-                else {
-                    choco install $_ -y -limitoutput
+                if ($Unsafe) {
+                    $cmd = '{0} --ignore-checksums' -f $cmd
                 }
+                Invoke-Expression $cmd
             }
         }
     }
@@ -394,6 +417,7 @@
     $keyNames = @(
         'ScoopApp'
         'ScoopBucket'
+        'Unsafe'
         'Force'
     )
     $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
