@@ -148,20 +148,89 @@
         }
 
         if ($Optimize -or $ScoopApp -or $ScoopBucket) {
-            if (!(Get-Command -Name scoop -ErrorAction Ignore)) {
-                # Install scoop
+            # Install Scoop
+            if (!(Get-Command -Name 'scoop.ps1' -ErrorAction Ignore)) {
                 Invoke-WebRequest -useb get.scoop.sh | Invoke-Expression
             }
-            if (!(Get-Command -Name git -ErrorAction Ignore)) {
-                # Install git
-                scoop install git
+
+            # Install depends
+            @(
+                @{
+                    CmdName = 'git.exe'
+                    AppName = 'git'
+                }
+                @{
+                    CmdName = '7z.exe'
+                    AppName = '7zip'
+                }
+            ) |
+            Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) } |
+            ForEach-Object {
+                scoop install $_.AppName
             }
 
-            $installedBucketNames = scoop bucket list
-            $bucketNames = ([string[]]$ScoopBucket.Keys) | Where-Object {
-                !($_ -in $installedBucketNames)
+            if ($Optimize) {
+                # Set user environment variable 'SCOOP'
+                if (!$env:SCOOP) {
+                    $scoopCmdPath = Get-Command -Name 'scoop' |
+                    Select-Object -ExpandProperty Path
+                    $env:SCOOP = $scoopCmdPath |
+                    Split-Path -Parent |
+                    Split-Path -Parent
+
+                    [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
+                }
+
+                # Set Scoop Repo to Shovel
+                $scoopRepo = 'https://github.com/Ash258/Scoop-Core'
+                if ((scoop config SCOOP_REPO) -ne $scoopRepo) {
+                    scoop config SCOOP_REPO $scoopRepo
+                    scoop update
+                }
+
+                # Register Shovel executables
+                if (!(Get-Command -Name 'shovel' -ErrorAction Ignore)) {
+                    Join-Path $env:SCOOP 'shims' |
+                    Get-ChildItem -LiteralPath { $_ } -Filter 'scoop.*' |
+                    Copy-Item -Destination {
+                        Join-Path $_.Directory.FullName (($_.BaseName -replace 'scoop', 'shovel') + $_.Extension)
+                    }
+                }
+
+                # Install the apps recommended by Scoop
+                @(
+                    @{
+                        CmdName = 'aria2c.exe'
+                        AppName = 'aria2'
+                    }
+                    @{
+                        CmdName = 'innounp.exe'
+                        AppName = 'innounp'
+                    }
+                    @{
+                        CmdName = 'lessmsi.exe'
+                        AppName = 'lessmsi'
+                    }
+                ) |
+                Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) } |
+                ForEach-Object {
+                    scoop install $_.AppName
+                }
+
+                # Enable MSIEXTRACT_USE_LESSMSI by default
+                if ((scoop config MSIEXTRACT_USE_LESSMSI) -eq "'MSIEXTRACT_USE_LESSMSI' is not set") {
+                    scoop config MSIEXTRACT_USE_LESSMSI $true
+                }
             }
-            foreach ($aBucketName in $bucketNames) {
+
+            # Install Scoop buckets
+            $installedBucketNames = scoop bucket list
+            [string[]]$ScoopBucket.Keys |
+            Where-Object {
+                !($_ -in $installedBucketNames)
+            } |
+            ForEach-Object {
+                $aBucketName = $_
                 if ($ScoopBucket.$aBucketName) {
                     scoop bucket add $aBucketName $ScoopBucket.$aBucketName
                 }
@@ -170,6 +239,7 @@
                 }
             }
 
+            # Install Scoop apps
             $ScoopApp |
             Where-Object { $_ } |
             ForEach-Object {
