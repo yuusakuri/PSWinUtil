@@ -147,6 +147,11 @@
     process {
         if ($psCmdlet.ParameterSetName -eq 'Path') {
             foreach ($aPath in $Path) {
+                if (!$Assert -and !(Test-Path -LiteralPath $aPath)) {
+                    $isValidArray += $false
+                    continue
+                }
+
                 $fullPaths = @()
                 $fullPaths += Resolve-Path -Path $aPath -ErrorAction Continue | Select-Object -ExpandProperty Path
                 if (!$fullPaths) {
@@ -161,6 +166,11 @@
         }
         else {
             foreach ($aPath in $LiteralPath) {
+                if (!$Assert -and !(Test-Path -LiteralPath $aPath)) {
+                    $isValidArray += $false
+                    continue
+                }
+
                 $fullPaths = @()
                 $fullPaths += Resolve-Path -LiteralPath $aPath -ErrorAction Continue | Select-Object -ExpandProperty Path
                 if (!$fullPaths) {
