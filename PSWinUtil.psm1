@@ -130,7 +130,7 @@ if ($chocoDepends -or $scoopDepends) {
 }
 
 # Pass the path to the required executable.
-Add-WUEnvPath -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
+Add-WUPathEnvironmentVariable -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
 
 # Load assembly
 Add-WUAngleSharp

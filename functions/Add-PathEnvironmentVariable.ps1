@@ -1,4 +1,4 @@
-﻿function Add-WUEnvPath {
+﻿function Add-WUPathEnvironmentVariable {
     <#
         .SYNOPSIS
         Adds the specified path to the path environment variable.
@@ -7,12 +7,12 @@
         Adds the specified path to the path environment variable of the specified scope. The path must exist. Also, if the paths overlap, they will not be added.
 
         .EXAMPLE
-        PS C:\>Add-WUEnvPath -Path $env:USERPROFILE
+        PS C:\>Add-WUPathEnvironmentVariable -Path $env:USERPROFILE
 
         In this example, add $env:USERPROFILE to the process scope path environment variable.
 
         .LINK
-        Remove-WUEnvPath
+        Remove-WUPathEnvironmentVariable
     #>
 
     [CmdletBinding(SupportsShouldProcess,

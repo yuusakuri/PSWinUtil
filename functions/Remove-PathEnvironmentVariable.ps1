@@ -1,4 +1,4 @@
-﻿function Remove-WUEnvPath {
+﻿function Remove-WUPathEnvironmentVariable {
     <#
         .SYNOPSIS
         Deletes the specified path from the path environment variable.
@@ -7,12 +7,12 @@
         Removes the specified path from the path environment variable of the specified scope. Wildcards are not supported.
 
         .EXAMPLE
-        PS C:\>Remove-WUEnvPath -Path $env:USERPROFILE
+        PS C:\>Remove-WUPathEnvironmentVariable -Path $env:USERPROFILE
 
         In this example, Remove $env:USERPROFILE from the process scope path environment variable.
 
         .LINK
-        Add-WUEnvPath
+        Add-WUPathEnvironmentVariable
     #>
 
     [CmdletBinding(SupportsShouldProcess,
