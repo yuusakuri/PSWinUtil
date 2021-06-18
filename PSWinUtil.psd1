@@ -80,6 +80,8 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     FunctionsToExport = @(
         'Add-WUAngleSharp',
         'Add-WUEnvPath',
+        'Assert-WUPathProperty',
+        'Assert-WUPSScript',
         'Convert-WUString',
         'ConvertTo-WUFullPath',
         'Edit-WUSshKey',
@@ -98,6 +100,8 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Set-WUMonitor',
         'Start-WUDevcontainer',
         'Start-WUScriptAsAdmin',
+        'Test-WUPathProperty',
+        'Test-WUPSScript',
         'Disable-WUAdvertisingId',
         'Disable-WUAppLaunchTracking',
         'Disable-WUAppSuggestions',
