@@ -79,7 +79,8 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # このモジュールからエクスポートする関数です。最適なパフォーマンスを得るには、ワイルドカードを使用せず、エクスポートする関数がない場合は、エントリを削除しないで空の配列を使用してください。
     FunctionsToExport = @(
         'Add-WUAngleSharp',
-        'Add-WUEnvPath',
+        'Add-WUEnvironmentVariableFromFile',
+        'Add-WUPathEnvironmentVariable',
         'Assert-WUPathProperty',
         'Assert-WUPSScript',
         'Convert-WUString',
@@ -96,7 +97,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Invoke-WUDownload',
         'Join-WUUri',
         'New-WUSshKey',
-        'Remove-WUEnvPath',
+        'Remove-WUPathEnvironmentVariable',
         'Set-WUMonitor',
         'Start-WUDevcontainer',
         'Start-WUScriptAsAdmin',
@@ -211,5 +212,4 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # このモジュールからエクスポートされたコマンドの既定のプレフィックス。既定のプレフィックスをオーバーライドする場合は、Import-Module -Prefix を使用します。
     # DefaultCommandPrefix = 'u'
 
-}
 }
