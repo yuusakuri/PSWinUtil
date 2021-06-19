@@ -58,7 +58,7 @@
 
     Set-StrictMode -Version 'Latest'
 
-    # コマンドの引数に空文字を渡す場合にエスケープさせる
+    # Escape when specifying an empty string in the command argument
     $emptyParam = @{
         '' = '""'
     }
@@ -73,21 +73,31 @@
         return
     }
 
-    # 鍵ファイルのフルパスを取得して親ディレクトリを作成
+    # Get the full path of the key file and create the parent directory
     $KeyFullPath = ConvertTo-WUFullPath -LiteralPath $KeyPath -BasePath '~/.ssh' -Parents
+    if (!$KeyFullPath) {
+        return
+    }
 
-    $keyDir = Split-Path $KeyFullPath -Parent
-    if (!(Test-Path -LiteralPath $keyDir)) {
-        Write-Error "Failed to create directory '$keyDir' where the key file will be created."
+    # Test the parent directory of the key file
+    $keyParentPath = Split-Path $KeyFullPath -Parent
+    if (!$keyParentPath) {
+        Write-Error "Failed to get the parent directory of path '$KeyFullPath'."
+        return
+    }
+
+    if (!(Test-Path -LiteralPath $keyParentPath) -or !(Assert-WUPathProperty -LiteralPath $keyParentPath -PSProvider FileSystem -PathType Container)) {
         return
     }
 
     if ((Test-Path -LiteralPath $KeyFullPath)) {
+        # If the key path already exists
         if (!$Force) {
             Write-Error "Path '$KeyFullPath' already exists. Specify -Force to delete the item and create a new key file."
             return
         }
-        Remove-Item -LiteralPath $KeyFullPath
+
+        Remove-Item -LiteralPath $KeyFullPath -Force
     }
 
     $cmd = '& ssh-keygen -qo'

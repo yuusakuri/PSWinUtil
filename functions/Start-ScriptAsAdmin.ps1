@@ -36,8 +36,9 @@
         [SupportsWildcards()]
         [Alias('PSPath')]
         [Alias('LiteralPath')]
+        [Alias('Path')]
         [string]
-        $Path,
+        $PSScriptPath,
 
         # Specifies the hash table of the script file arguments. See example.
         # For more information, see about_Splatting (https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_splatting).
@@ -79,16 +80,11 @@
         $WindowStyle = 'Normal'
     )
 
-    if (!(Test-Path -LiteralPath $Path -PathType Leaf)) {
-        $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find file path '$Path' because it does not exist."
-        $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-        $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $Path
-        $psCmdlet.WriteError($errRecord)
-        return
+    if (!(Assert-WUPSScript -LiteralPath $PSScriptPath -AllowedExtension '.ps1')) {
+        continue
     }
 
-    # Resolve any relative paths
-    $ScriptPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    $PSScriptPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSScriptPath)
 
     $powershellArgs = @()
     $startProcessArgs = @{}
@@ -119,7 +115,7 @@
         $startProcessArgs.Add('WindowStyle', $WindowStyle)
     }
 
-    $escapedScriptPath = $ScriptPath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation
+    $escapedScriptPath = $PSScriptPath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation
 
     if ($Arguments) {
         $tempDirPath = (Carbon\New-CTempDirectory -Prefix 'PSWinUtil-').FullName

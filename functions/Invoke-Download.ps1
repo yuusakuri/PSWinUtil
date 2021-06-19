@@ -39,12 +39,16 @@
         $Force
     )
 
+    $DestinationFullPath = ''
     $DestinationFullPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
     if (!$DestinationFullPath) {
         return
     }
 
     if ((Test-Path -LiteralPath $DestinationFullPath -PathType Container)) {
+        if (!(Assert-WUPathProperty -LiteralPath $DestinationFullPath -PSProvider FileSystem -PathType Container)) {
+            return
+        }
         $outDirPath = $DestinationFullPath
         $outName = ''
     }
@@ -52,9 +56,19 @@
         $outDirPath = Split-Path $DestinationFullPath -Parent
         $outName = Split-Path $DestinationFullPath -Leaf
 
-        if (!(Test-Path -LiteralPath $outDirPath -PathType Container)) {
+        if (!$outDirPath) {
+            Write-Error "Failed to get the parent directory of path '$DestinationFullPath'."
+            return
+        }
+
+        if ((Test-Path -LiteralPath $outDirPath -PathType Container)) {
+            if (!(Assert-WUPathProperty -LiteralPath $outDirPath -PSProvider FileSystem -PathType Container)) {
+                return
+            }
+        }
+        else {
             New-Item -Path $outDirPath -ItemType 'Directory' -Force | Out-String | Write-Verbose
-            if (!(Test-Path -LiteralPath $outDirPath -PathType Container)) {
+            if (!(Assert-WUPathProperty -LiteralPath $outDirPath -PSProvider FileSystem -PathType Container)) {
                 return
             }
         }
