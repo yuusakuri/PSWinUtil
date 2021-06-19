@@ -4,7 +4,7 @@
         Converts a relative path to an absolute path.
 
         .DESCRIPTION
-        The path does not have to exist. However, base path must exist. If the base path directory does not exist, it will be created. Also, for now, it doesn't verify the validity of the path.
+        The path does not have to exist. However, the base path specified for parameter `-BasePath` must exist. Also, It doesn't verify the validity of the path. The PSProviders of the paths must be filesystem or registry.
 
         .EXAMPLE
         PS C:\>ConvertTo-WUFullPath -Path 'power*ise.exe' -BasePath 'C:\Windows\System32\WindowsPowerShell\v1.0'
@@ -40,7 +40,7 @@
         [string[]]
         $LiteralPath,
 
-        # Specify key names of the registry. Converts specified key names to path. The default location is the current directory (.).
+        # Specify key names of the registry. Converts specified key names to path.
         [Parameter(Position = 0,
             ParameterSetName = 'Keyname',
             ValueFromPipelineByPropertyName)]
@@ -55,11 +55,15 @@
         [string]
         $BasePath = $PWD,
 
-        # If specified, creates the parent directory of the obtained path.
+        # If specified, creates the base path specified for parameter `-BasePath` and the parent directory of the obtained path.
         [Parameter(ParameterSetName = 'Path')]
         [Parameter(ParameterSetName = 'LiteralPath')]
         [switch]
-        $Parents
+        $Parents,
+
+        # Allows invalid path characters and syntax.
+        [switch]
+        $AllowInvalid
     )
 
     begin {
@@ -68,21 +72,22 @@
         $paths = @()
         $shouldClose = $false
 
-        if ($PSCmdlet.ParameterSetName -ne 'Keyname') {
-            if ((Test-Path -LiteralPath $BasePath -PathType Leaf)) {
-                $shouldClose = $true
-                Write-Error "BasePath '$BasePath' is not a Directory"
-                return
-            }
-
-            if ($Parents -and !(Test-Path -LiteralPath $BasePath -PathType Container)) {
-                New-Item -Path $BasePath -ItemType 'Directory' -Force | Out-String | Write-Verbose
-            }
-
+        if (!($PSCmdlet.ParameterSetName -eq 'Keyname')) {
             if (!(Test-Path -LiteralPath $BasePath -PathType Container)) {
-                $shouldClose = $true
-                Write-Error "BasePath '$BasePath' must exist."
-                return
+                if ((Test-Path -LiteralPath $BasePath -PathType Leaf)) {
+                    $shouldClose = $true
+                    Write-Error "BasePath '$BasePath' is not a Directory"
+                    return
+                }
+
+                if ($Parents) {
+                    New-Item -Path $BasePath -ItemType 'Directory' -Force | Out-String | Write-Verbose
+                }
+
+                if (!(Assert-WUPathProperty -LiteralPath $BasePath -PSProvider FileSystem, Registry -PathType Container)) {
+                    $shouldClose = $true
+                    return
+                }
             }
 
             Push-Location -LiteralPath $BasePath
@@ -130,13 +135,34 @@
             return
         }
 
-        if ($Parents) {
-            [string[]]$parentPaths = Split-Path $paths -Parent
+        if (!$AllowInvalid) {
+            $invalidCharRegex = (
+                [System.IO.Path]::GetInvalidPathChars() |
+                ForEach-Object { [regex]::Escape($_) }
+            ) -join '|'
 
-            foreach ($parentPath in $parentPaths) {
-                if (!(Test-Path -LiteralPath $parentPath)) {
-                    Write-Verbose "Create the directory '$parentPath'."
-                    mkdir $parentPath | Out-Null
+            $paths = $paths | Where-Object {
+                if ($_ -match $invalidCharRegex) {
+                    Write-Error "Path '$_' contains invalid characters."
+                    return $false
+                }
+                elseif (!(Test-Path -LiteralPath $_ -IsValid)) {
+                    Write-Error "Path '$_' syntax is invalid."
+                    return $false
+                }
+                else {
+                    return $true
+                }
+            }
+        }
+
+        if ($Parents) {
+            $parentPaths = @()
+            $parentPaths += Split-Path $paths -Parent | Where-Object { $_ }
+
+            foreach ($aParentPath in $parentPaths) {
+                if (!(Test-Path -LiteralPath $aParentPath -PathType Container)) {
+                    New-Item -Path $aParentPath -ItemType 'Directory' -Force | Out-String | Write-Verbose
                 }
             }
         }
