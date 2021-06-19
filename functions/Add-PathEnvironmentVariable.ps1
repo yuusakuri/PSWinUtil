@@ -48,57 +48,6 @@
     begin {
         Set-StrictMode -Version 'Latest'
 
-        $paths = @()
-    }
-
-    process {
-        if ($psCmdlet.ParameterSetName -eq 'Path') {
-            foreach ($aPath in $Path) {
-                if (!(Test-Path -Path $aPath)) {
-                    $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-                    $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-                    $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-                    $psCmdlet.WriteError($errRecord)
-                    continue
-                }
-
-                # Resolve any wildcards that might be in the path
-                $provider = $null
-                $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
-            }
-        }
-        else {
-            foreach ($aPath in $LiteralPath) {
-                if (!(Test-Path -LiteralPath $aPath)) {
-                    $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$aPath' because it does not exist."
-                    $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-                    $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $aPath
-                    $psCmdlet.WriteError($errRecord)
-                    continue
-                }
-
-                # Resolve any relative paths
-                $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
-            }
-        }
-    }
-
-    end {
-        if (!$paths) {
-            return
-        }
-
-        $paths = $paths | ForEach-Object {
-            if ((Test-Path -LiteralPath $_ -PathType Leaf)) {
-                Split-Path $_ -Parent
-            }
-            else {
-                $_
-            }
-        }
-
-        $Scope = $Scope + 'Process' | Select-Object -Unique
-
         $scopeParams = @{
             LocalMachine = 'ForComputer'
             CurrentUser  = 'ForUser'
@@ -110,15 +59,68 @@
             Process      = 'Process'
         }
 
+        $paths = @()
+    }
+
+    process {
+        if ($psCmdlet.ParameterSetName -eq 'Path') {
+            foreach ($aPath in $Path) {
+                if (!(Assert-WUPathProperty -Path $aPath -PSProvider FileSystem -PathType Any)) {
+                    continue
+                }
+
+                $provider = $null
+                $paths += $psCmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath($aPath, [ref]$provider)
+            }
+        }
+        else {
+            foreach ($aPath in $LiteralPath) {
+                if (!(Assert-WUPathProperty -LiteralPath $aPath -PSProvider FileSystem -PathType Any)) {
+                    continue
+                }
+
+                $paths += $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($aPath)
+            }
+        }
+    }
+
+    end {
+        if (!$paths) {
+            return
+        }
+
+        $dirPaths = @()
+        $dirPaths += $paths |
+        ForEach-Object {
+            if ((Test-Path -LiteralPath $_ -PathType Leaf)) {
+                $aDirPath = Split-Path $_ -Parent
+            }
+            else {
+                $aDirPath = $_
+            }
+
+            if ($aDirPath -match ';') {
+                $aDirPath = '"{0}"' -f $aDirPath
+            }
+
+            $aDirPath
+        }
+        if (!$dirPaths) {
+            return
+        }
+
+        $Scope = $Scope + 'Process' | Select-Object -Unique
+
         foreach ($aScope in $Scope) {
             [string[]]$currentEnvPaths = [System.Environment]::GetEnvironmentVariable('Path', $scopeTargets.$aScope) -split ';'
-            $newEnvPath = ($currentEnvPaths + $paths | Where-Object { $_ } | Select-Object -Unique) -join ';'
+            $newEnvPath = ($currentEnvPaths + $dirPaths | Where-Object { $_ } | Select-Object -Unique) -join ';'
 
             if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
                 $setEnvArgs = @{
                     Name                 = 'Path'
                     Value                = $newEnvPath
                     $scopeParams.$aScope = $true
+                    Force                = $true
                 }
                 Set-CEnvironmentVariable @setEnvArgs
             }

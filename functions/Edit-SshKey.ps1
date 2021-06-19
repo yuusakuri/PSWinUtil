@@ -52,7 +52,7 @@
 
     Set-StrictMode -Version 'Latest'
 
-    # コマンドの引数に空文字を渡す場合にエスケープさせる
+    # Escape when specifying an empty string in the command argument
     $emptyParam = @{
         '' = '""'
     }
@@ -72,8 +72,7 @@
 
     $keyFullPath = ConvertTo-WUFullPath -LiteralPath $KeyPath -BasePath '~/.ssh'
 
-    if (!(Test-Path -LiteralPath $keyFullPath)) {
-        Write-Error "Cannot find path '$keyFullPath' because it does not exist." -Category ObjectNotFound
+    if (!(Assert-WUPathProperty -LiteralPath $keyFullPath -PSProvider FileSystem -PathType Leaf)) {
         return
     }
 

@@ -28,6 +28,10 @@
             Select-Object -Last 1 -ExpandProperty FullName
         }
 
+        if (!$assemblyPaths) {
+            return
+        }
+
         Add-Type -LiteralPath $assemblyPaths -ErrorAction SilentlyContinue
     }
 }

@@ -96,14 +96,13 @@
 
             $newEnvPath = $envPaths -join ';'
 
-            if ($pscmdlet.ShouldProcess($newEnvPath, "Set to the Path environment variable for $aScope")) {
-                $setEnvArgs = @{
-                    Name                 = 'Path'
-                    Value                = $newEnvPath
-                    $scopeParams.$aScope = $true
-                }
-                Set-CEnvironmentVariable @setEnvArgs
+            $setEnvArgs = @{
+                Name                 = 'Path'
+                Value                = $newEnvPath
+                $scopeParams.$aScope = $true
+                Force                = $true
             }
+            Set-CEnvironmentVariable @setEnvArgs
         }
     }
 }

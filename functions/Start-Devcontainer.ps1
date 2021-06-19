@@ -39,14 +39,10 @@
         return
     }
 
-    if (!(Test-Path -LiteralPath $HostPath)) {
-        $ex = New-Object System.Management.Automation.ItemNotFoundException "Cannot find path '$HostPath' because it does not exist."
-        $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
-        $errRecord = New-Object System.Management.Automation.ErrorRecord $ex, 'PathNotFound', $category, $HostPath
-        $psCmdlet.WriteError($errRecord)
+    if (!(Assert-WUPathProperty -LiteralPath $HostPath -PSProvider FileSystem -PathType Container)) {
         return
     }
-    # Resolve any relative paths
+
     $HostPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HostPath)
 
     $devcontainerJsonPath = "$HostPath/.devcontainer/devcontainer.json"

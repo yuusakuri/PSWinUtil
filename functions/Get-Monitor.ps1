@@ -37,7 +37,7 @@
     try {
         $xmlPath = Join-Path $tempDirPath 'MonitorTool.xml'
 
-        Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f $xmlPath) -Wait -NoNewWindow
+        Start-Process 'MultiMonitorTool.exe' ('/sxml "{0}"' -f (($xmlPath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation))) -Wait -NoNewWindow
 
         $xmlo = $null
         [xml]$xmlo = Get-Content -LiteralPath $xmlPath
