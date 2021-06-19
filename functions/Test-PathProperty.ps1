@@ -4,7 +4,7 @@
         Determines if the path properties match. Returns `$false` if any of the properties do not match.
 
         .DESCRIPTION
-        Returns `$false` if any of the properties do not match. However, it writes an error and returns `$false` for paths that are not allowed access.
+        Returns `$false` if any of the properties do not match.
 
         .OUTPUTS
         System.Boolean
@@ -72,15 +72,14 @@
     )
 
     begin {
-        function Test-WUPathPropertyFromLiteralPath {
+        function Test-WUPathPropertyFromPathInfo {
             param (
                 [Parameter(Mandatory,
                     Position = 0,
                     ValueFromPipelineByPropertyName)]
-                [Alias('PSPath')]
                 [ValidateNotNullOrEmpty()]
-                [string]
-                $LiteralPath,
+                [System.Management.Automation.PathInfo]
+                $PathInfo,
 
                 [ValidateSet('Any', 'FileSystem', 'Registry', 'Alias', 'Environment', 'Function', 'Variable', 'Certificate', 'WSMan')]
                 [string[]]
@@ -97,35 +96,29 @@
                 $Assert
             )
 
-            $aItem = $null
-            $aItem = Get-Item -LiteralPath $LiteralPath -ErrorAction Continue
-            if (!$aItem) {
-                return $false
-            }
-
             $psproviderMatches = !$PSProvider `
                 -or 'Any' -in $PSProvider `
-                -or $aItem.PSProvider.Name -in $PSProvider
+                -or $PathInfo.Provider.Name -in $PSProvider
             if (!$psproviderMatches) {
                 if ($Assert) {
-                    Write-Error ("The PSProvider of path '{0}' is '{1}'." -f $LiteralPath, $aItem.PSProvider.Name)
+                    Write-Error ("The PSProvider of path '{0}' is '{1}'." -f $PathInfo.Path, $PathInfo.Provider.Name)
                 }
                 return $false
             }
 
-            $pathTypeMatches = !$PathType -or (Test-Path -LiteralPath $LiteralPath -PathType $PathType)
+            $pathTypeMatches = !$PathType -or (Test-Path -LiteralPath $PathInfo.Path -PathType $PathType)
             if (!$pathTypeMatches) {
                 if ($Assert) {
-                    Write-Error "The PathType of path '$LiteralPath' is not '$PathType'."
+                    Write-Error ("The PathType of path '{0}' is not '$PathType'." -f $PathInfo.Path)
                 }
                 return $false
             }
 
             $extensionMatches = !$Extension `
-                -or ($aItem.Extension -and $aItem.Extension -in $Extension)
+                -or (($pathExtension = [IO.Path]::GetExtension($PathInfo.Path)) -in $Extension)
             if (!$extensionMatches) {
                 if ($Assert) {
-                    Write-Error ("The Extension of path '$LiteralPath' is '{0}'." -f $aItem.Extension)
+                    Write-Error ("The Extension of path '{0}' is '{1}'." -f $PathInfo.Path, $pathExtension)
                 }
                 return $false
             }
@@ -139,10 +132,10 @@
             'Path'
             'LiteralPath'
         )
-        $paramsOfTestWUPathElement = @{} + $PSBoundParameters
-        @() + $paramsOfTestWUPathElement.Keys | `
+        $paramsOfTestWUPathPropertyFromPathInfo = @{} + $PSBoundParameters
+        @() + $paramsOfTestWUPathPropertyFromPathInfo.Keys | `
             Where-Object { $_ -in $removeParamKeys } | `
-            ForEach-Object { $paramsOfTestWUPathElement.Remove($_) }
+            ForEach-Object { $paramsOfTestWUPathPropertyFromPathInfo.Remove($_) }
     }
     process {
         if ($psCmdlet.ParameterSetName -eq 'Path') {
@@ -152,15 +145,15 @@
                     continue
                 }
 
-                $fullPaths = @()
-                $fullPaths += Resolve-Path -Path $aPath -ErrorAction Continue | Select-Object -ExpandProperty Path
-                if (!$fullPaths) {
+                $pathInfos = @()
+                $pathInfos += Resolve-Path -Path $aPath -ErrorAction Continue
+                if (!$pathInfos) {
                     $isValidArray += $false
                     continue
                 }
 
-                foreach ($aFullPath in $fullPaths) {
-                    $isValidArray += Test-WUPathPropertyFromLiteralPath -LiteralPath $aFullPath @paramsOfTestWUPathElement
+                foreach ($aPathInfo in $pathInfos) {
+                    $isValidArray += Test-WUPathPropertyFromPathInfo -PathInfo $aPathInfo @paramsOfTestWUPathPropertyFromPathInfo
                 }
             }
         }
@@ -171,15 +164,15 @@
                     continue
                 }
 
-                $fullPaths = @()
-                $fullPaths += Resolve-Path -LiteralPath $aPath -ErrorAction Continue | Select-Object -ExpandProperty Path
-                if (!$fullPaths) {
+                $pathInfos = @()
+                $pathInfos += Resolve-Path -LiteralPath $aPath -ErrorAction Continue
+                if (!$pathInfos) {
                     $isValidArray += $false
                     continue
                 }
 
-                foreach ($aFullPath in $fullPaths) {
-                    $isValidArray += Test-WUPathPropertyFromLiteralPath -LiteralPath $aFullPath @paramsOfTestWUPathElement
+                foreach ($aPathInfo in $pathInfos) {
+                    $isValidArray += Test-WUPathPropertyFromPathInfo -PathInfo $aPathInfo @paramsOfTestWUPathPropertyFromPathInfo
                 }
             }
         }

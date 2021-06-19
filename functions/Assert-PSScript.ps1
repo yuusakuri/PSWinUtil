@@ -4,7 +4,7 @@
         Test the syntax and file extensions of powershell scripts. If it is not a valid script, write an error and return `$false`.
 
         .DESCRIPTION
-        Returns a boolean value indicating whether the syntax and file extensions of PowerShell scripts are valid. If it is not a valid script, write an error and return `$false`. However, it writes an error and returns `$false` for paths that are not allowed access.
+        Returns a boolean value indicating whether the syntax and file extensions of PowerShell scripts are valid. If it is not a valid script, write an error and return `$false`.
 
         .OUTPUTS
         System.Boolean

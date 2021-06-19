@@ -4,7 +4,7 @@
         Determines if the path properties match. Writes an error and returns `$false` if any of the properties do not match.
 
         .DESCRIPTION
-        Writes an error and returns `$false` if any of the properties do not match. However, it writes an error and returns `$false` for paths that are not allowed access.
+        Writes an error and returns `$false` if any of the properties do not match.
 
         .OUTPUTS
         System.Boolean
