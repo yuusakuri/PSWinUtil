@@ -60,18 +60,20 @@
         )
 
         if ($Optimize -or $PSModule) {
-            # PowerShell Gallery
+            # Install package provider 'NuGet'.
             if (!(Get-PackageProvider | Where-Object Name -EQ 'NuGet')) {
                 Install-PackageProvider -Name 'NuGet' -Force -Scope CurrentUser
-            }
-            if (!(Get-PSRepository | Where-Object { $_.Name -eq 'PSGallery' -and $_.InstallationPolicy -eq 'Trusted' })) {
-                Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted'
             }
 
             # Update PowerShellGet Module
             if (@(Get-Module 'PowerShellGet' -ListAvailable).Count -eq 1) {
-                Install-Module -Name PowerShellGet -Force -AllowClobber -Scope CurrentUser
+                Install-Module -Name PowerShellGet -Force -AllowClobber -Scope CurrentUser -WarningAction Ignore
                 Update-Module -Name PowerShellGet
+            }
+
+            # Set 'PSGallery' to trusted PowerShell repository.
+            if (!(Get-PSRepository | Where-Object { $_.Name -eq 'PSGallery' -and $_.InstallationPolicy -eq 'Trusted' })) {
+                Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted'
             }
 
             $PSModule |
