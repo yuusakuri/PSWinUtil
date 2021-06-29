@@ -71,10 +71,13 @@
                 Update-Module -Name PowerShellGet
             }
 
-            # Set 'PSGallery' to trusted PowerShell repository.
-            if (!(Get-PSRepository | Where-Object { $_.Name -eq 'PSGallery' -and $_.InstallationPolicy -eq 'Trusted' })) {
-                Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted'
-            }
+            # Set 'NuGet' and 'PSGallery' to trusted
+            Get-PackageSource | `
+                Where-Object ProviderName -Match 'NuGet|PowerShellGet' | `
+                Where-Object IsTrusted -EQ $false | `
+                ForEach-Object {
+                $_ | Set-PackageSource -Trusted
+            } | Out-String | Write-Verbose
 
             $PSModule |
             Where-Object { $_ } |
