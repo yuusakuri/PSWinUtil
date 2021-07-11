@@ -1,7 +1,7 @@
 ﻿function New-WUSshKey {
     <#
         .SYNOPSIS
-        Create SSH key.
+        Create SSH key using ssh-keygen.
 
         .DESCRIPTION
         Create an ssh key using ssh-keygen. This cmdlet use the new OpenSSH format rather than the more compatible PEM format. The new format has increased resistance to brute-force password cracking but is not supported by versions of OpenSSH prior to 6.5.

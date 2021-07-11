@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.5.9'
+    ModuleVersion     = '1.6.0'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
@@ -31,13 +31,21 @@
 
     # このモジュールの機能の説明
     Description       = @'
-PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey. It contains the following functions.
+PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey and NuGet. It contains the following functions.
 
 - Set Windows by rewriting the registry
-- Instantly find file and folder paths
-- Get media file properties such as videos and photos
-- Get and change monitor resolution and refresh rate
-- Add or remove paths for path environment variables
+- Add environment variables from PowerShell script file or object.
+- Add the specified paths to the path environment variable.
+- Determines if the path properties match. This function is useful for testing if the specified path is a file system and if the extensions match.
+- Search for file or folder paths in rapidly by using Everything. Useful for finding executable files.
+- Get whether the computer is Desktop, Tablet, or Server from ChassisTypes.
+- Get information about installed NuGet packages in the NuGet packages installation directory.
+- Get link targets of shortcut (.lnk) files.
+- Get properties about media files such as video files, audio files, and image files.
+- Load assemblies from NuGet packages, including its dependencies. It is possible to automatically install the required packages.
+- Change the display settings.
+- Create SSH key using ssh-keygen.
+- Test if a version is in the allowed range.
 '@
 
     # このモジュールに必要な Windows PowerShell エンジンの最小バージョン
@@ -78,21 +86,23 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
 
     # このモジュールからエクスポートする関数です。最適なパフォーマンスを得るには、ワイルドカードを使用せず、エクスポートする関数がない場合は、エントリを削除しないで空の配列を使用してください。
     FunctionsToExport = @(
-        'Add-WUAngleSharp',
         'Add-WUEnvironmentVariableFromFile',
         'Add-WUPathEnvironmentVariable',
         'Assert-WUPathProperty',
         'Assert-WUPSScript',
         'Convert-WUString',
         'ConvertTo-WUFullPath',
+        'ConvertTo-WUNuspec',
         'Edit-WUSshKey',
         'Find-WUPath',
         'Get-WUChassisType',
+        'Get-WUInstalledNuGetPackage',
         'Get-WULnkTarget',
         'Get-WUMediaProperty',
         'Get-WUMonitor',
         'Get-WURandomString',
         'Get-WUUriWithoutQuery',
+        'Import-WUNuGetPackageAssembly',
         'Install-WUApp',
         'Invoke-WUDownload',
         'Join-WUUri',
@@ -103,6 +113,7 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Start-WUScriptAsAdmin',
         'Test-WUPathProperty',
         'Test-WUPSScript',
+        'Test-WUVersion',
         'Disable-WUAdvertisingId',
         'Disable-WUAppLaunchTracking',
         'Disable-WUAppSuggestions',

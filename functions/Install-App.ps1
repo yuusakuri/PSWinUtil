@@ -16,13 +16,23 @@
         [string[]]
         $Pip3Package,
 
+        [string[]]
+        $NuGetPackage,
+
+        [string]
+        $Destination,
+
+        # Only available for `NuGetPackage` installation
+        [string]
+        $RequiredVersion,
+
         [switch]
         $Unsafe,
 
         [switch]
         $Force,
 
-        [ValidateSet('All', 'Scoop', 'Chocolatey', 'PSModule', 'Pip')]
+        [ValidateSet('All', 'Scoop', 'Chocolatey', 'PSModule', 'Pip', 'NuGet')]
         [string[]]
         $Optimize
     )
@@ -46,6 +56,38 @@
             -or 'All' -in $Optimize
     }
 
+    function Optimize-PackageManagement {
+        [CmdletBinding(SupportsShouldProcess)]
+        param (
+        )
+
+        # Install package provider 'NuGet'.
+        if (!(Get-PackageProvider | Where-Object Name -EQ 'NuGet')) {
+            Install-PackageProvider -Name 'NuGet' -Force -Scope CurrentUser
+        }
+
+        # Update PowerShellGet Module
+        if (@(Get-Module 'PowerShellGet' -ListAvailable).Count -eq 1) {
+            Install-Module -Name PowerShellGet -Force -AllowClobber -Scope CurrentUser -WarningAction Ignore
+            Update-Module -Name PowerShellGet
+        }
+
+        # Set 'PSGallery' and 'NuGet' to trusted
+        Get-PackageSource | `
+            Where-Object ProviderName -Match 'PowerShellGet|NuGet' | `
+            Where-Object IsTrusted -EQ $false | `
+            ForEach-Object {
+            $_ | Set-PackageSource -Trusted
+        } | Out-String | Write-Verbose
+
+        # for issue: https://github.com/PowerShell/PowerShellGetv2/issues/606
+        "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\PowerShellGet\NuGet.exe" |
+        Where-Object { !(Test-Path -LiteralPath $_ -PathType Leaf) } |
+        ForEach-Object {
+            (New-Object System.Net.WebClient).DownloadFile('https://dist.nuget.org/win-x86-commandline/latest/nuget.exe', $_)
+        }
+    }
+
     function Install-PowerShellModule {
         [CmdletBinding(SupportsShouldProcess)]
         param (
@@ -60,24 +102,7 @@
         )
 
         if ($Optimize -or $PSModule) {
-            # Install package provider 'NuGet'.
-            if (!(Get-PackageProvider | Where-Object Name -EQ 'NuGet')) {
-                Install-PackageProvider -Name 'NuGet' -Force -Scope CurrentUser
-            }
-
-            # Update PowerShellGet Module
-            if (@(Get-Module 'PowerShellGet' -ListAvailable).Count -eq 1) {
-                Install-Module -Name PowerShellGet -Force -AllowClobber -Scope CurrentUser -WarningAction Ignore
-                Update-Module -Name PowerShellGet
-            }
-
-            # Set 'NuGet' and 'PSGallery' to trusted
-            Get-PackageSource | `
-                Where-Object ProviderName -Match 'NuGet|PowerShellGet' | `
-                Where-Object IsTrusted -EQ $false | `
-                ForEach-Object {
-                $_ | Set-PackageSource -Trusted
-            } | Out-String | Write-Verbose
+            Optimize-PackageManagement
 
             $PSModule |
             Where-Object { $_ } |
@@ -411,6 +436,55 @@
         }
     }
 
+    function Install-NuGet {
+        [CmdletBinding(SupportsShouldProcess)]
+        param (
+            [string[]]
+            $NuGetPackage,
+
+            [string]
+            [ValidateNotNullOrEmpty()]
+            $Destination = (
+                $env:NUGET_PACKAGE_DIR, $PWD |
+                Where-Object { Test-Path -LiteralPath $_ -PathType Container } |
+                Select-Object -First 1
+            ),
+
+            [string]
+            $RequiredVersion,
+
+            [switch]
+            $Optimize
+        )
+
+        if ($Optimize -or $NuGetPackage) {
+            Optimize-PackageManagement
+
+            if (!(Get-Command -Name nuget -ErrorAction Ignore)) {
+                Install-Scoop -ScoopApp 'nuget'
+            }
+
+            if (!(Test-WUPathProperty -LiteralPath $Destination -PSProvider FileSystem -PathType Container)) {
+                New-Item -Path $Destination -ItemType 'Directory' -Force | Out-String | Write-Verbose
+                if (!(Test-WUPathProperty -LiteralPath $Destination -PSProvider FileSystem -PathType Container)) {
+                    return
+                }
+            }
+
+            $NuGetPackage |
+            Where-Object { $_ } |
+            ForEach-Object {
+                $cmd = 'nuget install "{0}"' -f $_
+                $cmd = '{0} -OutputDirectory "{1}"' -f $cmd, ($Destination | Convert-WUString -Type EscapeForPowerShellDoubleQuotation)
+                if ($RequiredVersion) {
+                    $cmd = '{0} -Version "{1}"' -f $cmd, $RequiredVersion
+                }
+                Invoke-Expression $cmd
+            }
+        }
+    }
+
+
     $params = @{} + $PSBoundParameters
     $keyNames = @(
         'PSModule'
@@ -419,7 +493,7 @@
     $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
     $removeKeyNames | ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'PSModule'
-    Install-PowerShellModule @params
+    Install-PowerShellModule @params | ForEach-Object { Write-Host $_ }
 
     $params = @{} + $PSBoundParameters
     $keyNames = @(
@@ -431,7 +505,7 @@
     $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
     $removeKeyNames | ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'Scoop'
-    Install-Scoop @params
+    Install-Scoop @params | ForEach-Object { Write-Host $_ }
 
     $params = @{} + $PSBoundParameters
     $keyNames = @(
@@ -442,7 +516,7 @@
     $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
     $removeKeyNames | ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'Chocolatey'
-    Install-Chocolatey @params
+    Install-Chocolatey @params | ForEach-Object { Write-Host $_ }
 
     $params = @{} + $PSBoundParameters
     $keyNames = @(
@@ -452,5 +526,16 @@
     $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
     $removeKeyNames | ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'Pip'
-    Install-Pip3 @params
+    Install-Pip3 @params | ForEach-Object { Write-Host $_ }
+
+    $params = @{} + $PSBoundParameters
+    $keyNames = @(
+        'NuGetPackage'
+        'Destination'
+        'RequiredVersion'
+    )
+    $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
+    $removeKeyNames | ForEach-Object { $params.Remove($_) }
+    $params.Optimize = & $shouldOptimize -Provider 'NuGet'
+    Install-NuGet @params | ForEach-Object { Write-Host $_ }
 }

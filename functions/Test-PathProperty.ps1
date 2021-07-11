@@ -1,7 +1,7 @@
 ﻿function Test-WUPathProperty {
     <#
         .SYNOPSIS
-        Determines if the path properties match. Returns `$false` if any of the properties do not match.
+        Determines if the path properties match. This function is useful for testing if the specified path is a file system and if the extensions match.
 
         .DESCRIPTION
         Returns `$false` if any of the properties do not match.

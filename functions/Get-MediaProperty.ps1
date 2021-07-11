@@ -1,10 +1,10 @@
 ﻿function Get-WUMediaProperty {
     <#
         .SYNOPSIS
-        Get information about media files such as video files, audio files, and image files.
+        Get properties about media files such as video files, audio files, and image files.
 
         .DESCRIPTION
-        Get information from multimedia streams. The information that can be obtained includes duration, bit rate, codec, frame rate, width, height, etc.
+        Get properties from multimedia streams. The properties that can be obtained includes duration, bit rate, codec, frame rate, width, height, etc.
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'Path')]
