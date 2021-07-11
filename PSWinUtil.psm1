@@ -71,11 +71,130 @@ function Set-WURegistryFromHash {
     }
 }
 
+function Get-WUAvailableDotnet {
+    [CmdletBinding()]
+    param (
+    )
+
+    $availableDotnets = @()
+
+    $availableDotnets += [PSCustomObject]@{
+        'name'    = '.NETCoreApp'
+        'version' = . {
+            if ((Get-Command -Name 'dotnet' -ErrorAction Ignore)) {
+                # .NET Core or .NET 5+ is installed.
+                dotnet --list-runtimes |
+                Where-Object { $_ -clike 'Microsoft.NETCore.App*' } |
+                ForEach-Object {
+                    [regex]::Matches(($_ -replace '^Microsoft.NETCore.App '), '^[\d.]+') |
+                    Where-Object { $_ } |
+                    Select-Object -ExpandProperty Value
+                } |
+                Sort-Object { [System.Version]$_ } |
+                Select-Object -Last 1
+            }
+            else {
+                $null
+            }
+        }
+    }
+
+    $availableDotnets += [PSCustomObject]@{
+        'name'    = '.NETFramework'
+        'version' = . {
+            dotnetversions -b |
+            ForEach-Object {
+                [regex]::Matches($_, '^[\d.]+') |
+                Where-Object { $_ } |
+                Select-Object -ExpandProperty Value
+            } |
+            Sort-Object { [System.Version]$_ } |
+            Select-Object -Last 1
+        }
+    }
+
+    $availableDotnets += [PSCustomObject]@{
+        'name'    = '.NETStandard'
+        'version' = . {
+            $dotnetStandardVersions = @(
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.0'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.5'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.1'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.5'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.2'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.5.1'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.3'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.6'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.4'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.6.1'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.5'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.6.11'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '1.6'
+                    '.NETCoreApp'   = '1.0'
+                    '.NETFramework' = '4.6.11'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '2.0'
+                    '.NETCoreApp'   = '2.0'
+                    '.NETFramework' = '4.6.11'
+                }
+                [PSCustomObject]@{
+                    '.NETStandard'  = '2.1'
+                    '.NETCoreApp'   = '3.0'
+                    '.NETFramework' = $null
+                }
+            )
+
+            $availableDotnets |
+            Where-Object { $_.version } |
+            Select-Object -First 1 |
+            ForEach-Object {
+                $aAvailableDotnet = $_
+                $dotnetStandardVersions |
+                Where-Object { $null -ne $_.($aAvailableDotnet.name) } |
+                Where-Object { [System.Version]$_.($aAvailableDotnet.name) -le [System.Version]$aAvailableDotnet.version } |
+                Select-Object -Last 1
+            } |
+            Select-Object -ExpandProperty '.NETStandard'
+        }
+    }
+
+    return $availableDotnets
+}
+
 # Public functions
 $functionScripts = Get-ChildItem -LiteralPath $PSWinUtilFunctionDir -Recurse -File
 foreach ($aFunctionScript in $functionScripts) {
     . $aFunctionScript.FullName
     Set-Alias -Name $aFunctionScript.BaseName -Value ($aFunctionScript.BaseName -replace '-', '-WU')
+}
+
+# Make NuGet package install directory
+if (!$env:NUGET_PACKAGE_DIR) {
+    $env:NUGET_PACKAGE_DIR = $env:USERPROFILE |
+    Join-Path -ChildPath 'NuGet\packages'
+}
+if (!(Test-WUPathProperty -LiteralPath $env:NUGET_PACKAGE_DIR -PSProvider FileSystem -PathType Container)) {
+    New-Item -Path $env:NUGET_PACKAGE_DIR -ItemType 'Directory' -Force | Out-String | Write-Verbose
 }
 
 # Resolve dependencies
@@ -95,6 +214,10 @@ $scoopDepends = @(
     @{
         CmdName = 'Set-CRegistryKeyValue'
         AppName = 'yuusakuri/carbon'
+    }
+    @{
+        CmdName = 'dotnetversions.exe'
+        AppName = 'yuusakuri/dotnetversions'
     }
 ) |
 Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
@@ -132,5 +255,7 @@ if ($chocoDepends -or $scoopDepends) {
 # Pass the path to the required executable.
 Add-WUPathEnvironmentVariable -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
 
-# Load assembly
-Add-WUAngleSharp
+# Load the assemblies
+Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
+
+Import-WUNuGetPackageAssembly -PackageID 'AngleSharp' -Install
