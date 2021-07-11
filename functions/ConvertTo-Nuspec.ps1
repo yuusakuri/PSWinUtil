@@ -43,7 +43,8 @@
         Write-Verbose "Cannot find nuspec file path '$nuspecPath'."
 
         try {
-            $zip = [IO.Compression.ZipFile]::OpenRead($NupkgPath)
+            Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($NupkgPath)
             $zip.Entries | Where-Object { $_.Name -like '*.nuspec' } | ForEach-Object { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($_, $nuspecPath, $true) }
             $zip.Dispose()
         }

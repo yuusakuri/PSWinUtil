@@ -254,8 +254,3 @@ if ($chocoDepends -or $scoopDepends) {
 
 # Pass the path to the required executable.
 Add-WUPathEnvironmentVariable -LiteralPath (Get-ChildItem -LiteralPath "$PSWinUtil\tools" -Directory).FullName -Scope Process
-
-# Load the assemblies
-Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
-
-Import-WUNuGetPackageAssembly -PackageID 'AngleSharp' -Install
