@@ -1,10 +1,10 @@
 ﻿function Get-WULnkTarget {
     <#
         .SYNOPSIS
-        Gets link targets of shortcut (.lnk) files.
+        Get link targets of shortcut (.lnk) files.
 
         .DESCRIPTION
-        Gets link targets of shortcut files. If a link target is not found, an error occurs, but processing continues and returns the link targets found.
+        Get link targets of shortcut files. If a link target is not found, an error occurs, but processing continues and returns the link targets found.
 
         .OUTPUTS
         System.String

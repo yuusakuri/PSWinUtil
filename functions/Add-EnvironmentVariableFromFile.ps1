@@ -1,10 +1,10 @@
 ﻿function Add-WUEnvironmentVariableFromFile {
     <#
         .SYNOPSIS
-        Add environment variables from a file or object.
+        Add environment variables from PowerShell script file or object.
 
         .DESCRIPTION
-        Add environment variables from a file or object. The supported formats are:
+        Add environment variables from PowerShell script file or object. The supported formats are:
 
         - PowerShell Hashtable (System.Collections.Hashtable) objects
         - PowerShell script file that returns Hashtable objects

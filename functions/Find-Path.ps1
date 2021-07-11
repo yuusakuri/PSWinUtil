@@ -1,7 +1,7 @@
 ﻿function Find-WUPath {
     <#
         .SYNOPSIS
-        Search for paths in all locations.
+        Search for file or folder paths in rapidly by using Everything. Useful for finding executable files.
 
         .DESCRIPTION
         Search the path everywhere using command path or es.exe.

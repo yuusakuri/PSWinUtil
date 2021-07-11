@@ -1,10 +1,10 @@
 ﻿function Add-WUPathEnvironmentVariable {
     <#
         .SYNOPSIS
-        Adds the specified path to the path environment variable.
+        Add the specified paths to the path environment variable.
 
         .DESCRIPTION
-        Adds the specified path to the path environment variable of the specified scope. The path must exist. Also, if the paths overlap, they will not be added.
+        Add the specified paths to the path environment variable of the specified scope. The path must exist. Also, if the paths overlap, they will not be added.
 
         .EXAMPLE
         PS C:\>Add-WUPathEnvironmentVariable -Path $env:USERPROFILE
