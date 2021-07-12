@@ -151,7 +151,21 @@
     $testWUVersionArgs = @{} + $PSBoundParameters
     [string[]]$testWUVersionArgs.Keys |
     Where-Object { !($_ -in $testWUVersionKeyNames) } |
-    ForEach-Object { $testWUVersionArgs.Remove(([string]$_)) }
+    ForEach-Object { $testWUVersionArgs.Remove($_) }
+
+    $importWUNuGetPackageAssemblyKeyNames = @(
+        'PackageDirectoryPath'
+        'MaximumVersion'
+        'MinimumVersion'
+        'ExclusiveMaximumVersion'
+        'ExclusiveMinimumVersion'
+        'RequiredVersion'
+        'VersionRangeNotation'
+    )
+    $importWUNuGetPackageAssemblyArgs = @{} + $PSBoundParameters
+    [string[]]$importWUNuGetPackageAssemblyArgs.Keys | `
+        Where-Object { !($_ -in $importWUNuGetPackageAssemblyKeyNames) } | `
+        ForEach-Object { $importWUNuGetPackageAssemblyArgs.Remove($_) }
 
     foreach ($aPackageID in $PackageID) {
         if (!$Force -and ($Script:DefinedTypes | Where-Object { $_ -like ('{0}*' -f $aPackageID) })) {
@@ -179,19 +193,6 @@
                 $Script:InstalledNuGetPackages = @()
                 $Script:InstalledNuGetPackages += Get-WUInstalledNuGetPackage -PackageDirectoryPath $PackageDirectoryPath
 
-                $importWUNuGetPackageAssemblyKeyNames = @(
-                    'PackageDirectoryPath'
-                    'MaximumVersion'
-                    'MinimumVersion'
-                    'ExclusiveMaximumVersion'
-                    'ExclusiveMinimumVersion'
-                    'RequiredVersion'
-                    'VersionRangeNotation'
-                )
-                $importWUNuGetPackageAssemblyArgs = @{} + $PSBoundParameters
-                [string[]]$importWUNuGetPackageAssemblyArgs.Keys | `
-                    Where-Object { !($_ -in $importWUNuGetPackageAssemblyKeyNames) } | `
-                    ForEach-Object { $importWUNuGetPackageAssemblyArgs.Remove(([string]$_)) }
                 Import-WUNuGetPackageAssembly -PackageID $aPackageID @importWUNuGetPackageAssemblyArgs -TargetFrameworkName $TargetFrameworkName
             }
             else {
