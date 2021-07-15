@@ -233,6 +233,7 @@ Where-Object { !(Get-Command -Name $_.CmdName -ErrorAction Ignore) }
 $installWuAppArgs = @{
     Optimize = @()
     Force    = $true
+    Unsafe   = $true
 }
 if ($chocoDepends) {
     $installWuAppArgs += @{
