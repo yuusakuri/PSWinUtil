@@ -49,6 +49,7 @@
     }
     finally {
         $tempDirPath |
+        Where-Object { $_ } |
         Where-Object { Test-Path -LiteralPath $_ } |
         Remove-Item -LiteralPath { $_ } -Recurse -Force
     }
