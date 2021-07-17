@@ -37,6 +37,7 @@
         [string]
         $PackageDirectoryPath = (
             $env:NUGET_PACKAGE_DIR, $PWD |
+            Where-Object { $_ } |
             Where-Object { Test-Path -LiteralPath $_ -PathType Container } |
             Select-Object -First 1
         )
