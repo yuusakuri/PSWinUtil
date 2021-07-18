@@ -239,6 +239,11 @@
                 Import-WUNuGetPackageAssembly -PackageID $_.id -PackageDirectoryPath $PackageDirectoryPath -VersionRangeNotation $_.version  -TargetFrameworkName $TargetFrameworkName -Install:$Install
             }
 
+            if (!$aAssemblyPaths) {
+                Write-Verbose "Assembly path for NuGet package '$aPackageID' not found."
+                continue
+            }
+
             foreach ($aAssemblyPath in $aAssemblyPaths) {
                 $isSucceeded = $false
                 for ($i = 0; $i -lt 2; $i++) {
