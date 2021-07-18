@@ -78,9 +78,8 @@
     ForEach-Object {
         $aVariableName = $_
         $aVersionString = Get-Variable -Name $aVariableName -ValueOnly
-
         if (!$aVersionString) {
-            continue
+            return
         }
 
         if (!($aVersionString -match '^[\d][\d\.]*$')) {
@@ -92,7 +91,6 @@
             # Ex. '1' to '1.0'
             $newVersionString = '{0}.0' -f $aVersionString
 
-            Write-Verbose "Convert the value '$aVersionString' of parameter '-$aVariableName' to '$newVersionString'"
             Set-Variable -Name $aVariableName -Value $newVersionString
             $aVersionString = Get-Variable -Name $aVariableName -ValueOnly
         }
