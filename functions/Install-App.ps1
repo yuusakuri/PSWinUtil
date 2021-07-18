@@ -14,7 +14,10 @@
         $PSModule,
 
         [string[]]
-        $Pip3Package,
+        $PipPackage,
+
+        [string[]]
+        $NpmPackage,
 
         [string[]]
         $NuGetPackage,
@@ -32,7 +35,7 @@
         [switch]
         $Force,
 
-        [ValidateSet('All', 'Scoop', 'Chocolatey', 'PSModule', 'Pip', 'NuGet')]
+        [ValidateSet('All', 'Scoop', 'Chocolatey', 'PSModule', 'pip', 'npm', 'NuGet')]
         [string[]]
         $Optimize
     )
@@ -365,7 +368,7 @@
                 return
             }
 
-            if (!(Get-Command -Name chocolatey -ErrorAction Ignore)) {
+            if (!(Get-Command -Name 'chocolatey' -ErrorAction Ignore)) {
                 # Prevent function name conflicts
                 $PSModuleAutoloadingPreference = 'ModuleQualified'
                 $moduleNames = @(
@@ -405,11 +408,11 @@
         }
     }
 
-    function Install-Pip3 {
+    function Install-Pip {
         [CmdletBinding(SupportsShouldProcess)]
         param (
             [string[]]
-            $Pip3Package,
+            $PipPackage,
 
             [switch]
             $Force,
@@ -418,19 +421,50 @@
             $Optimize
         )
 
-        if ($Optimize -or $Pip3Package) {
-            if (!(Get-Command -Name pip3 -ErrorAction Ignore)) {
+        if ($Optimize -or $PipPackage) {
+            if (!(Get-Command -Name 'pip' -ErrorAction Ignore)) {
                 Install-Scoop -ScoopApp 'python'
             }
 
-            $Pip3Package |
+            $PipPackage |
             Where-Object { $_ } |
             ForEach-Object {
                 if ($Force) {
-                    pip3 install --upgrade --force-reinstall $_
+                    pip install --upgrade --force-reinstall $_
                 }
                 else {
-                    pip3 install --upgrade $_
+                    pip install --upgrade $_
+                }
+            }
+        }
+    }
+
+    function Install-Npm {
+        [CmdletBinding(SupportsShouldProcess)]
+        param (
+            [string[]]
+            $NpmPackage,
+
+            [switch]
+            $Force,
+
+            [switch]
+            $Optimize
+        )
+
+        if ($Optimize -or $NpmPackage) {
+            if (!(Get-Command -Name 'npm' -ErrorAction Ignore)) {
+                Install-Scoop -ScoopApp 'nodejs'
+            }
+
+            $NpmPackage |
+            Where-Object { $_ } |
+            ForEach-Object {
+                if ($Force) {
+                    npm install --global --force $_
+                }
+                else {
+                    npm install --global $_
                 }
             }
         }
@@ -485,14 +519,14 @@
         }
     }
 
-
     $params = @{} + $PSBoundParameters
     $keyNames = @(
         'PSModule'
         'Force'
     )
-    $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-    $removeKeyNames | ForEach-Object { $params.Remove($_) }
+    [string[]]$params.Keys |
+    Where-Object { !($_ -in $keyNames) } |
+    ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'PSModule'
     Install-PowerShellModule @params | ForEach-Object { Write-Host $_ }
 
@@ -503,8 +537,9 @@
         'Unsafe'
         'Force'
     )
-    $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-    $removeKeyNames | ForEach-Object { $params.Remove($_) }
+    [string[]]$params.Keys |
+    Where-Object { !($_ -in $keyNames) } |
+    ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'Scoop'
     Install-Scoop @params | ForEach-Object { Write-Host $_ }
 
@@ -514,20 +549,33 @@
         'Unsafe'
         'Force'
     )
-    $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-    $removeKeyNames | ForEach-Object { $params.Remove($_) }
+    [string[]]$params.Keys |
+    Where-Object { !($_ -in $keyNames) } |
+    ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'Chocolatey'
     Install-Chocolatey @params | ForEach-Object { Write-Host $_ }
 
     $params = @{} + $PSBoundParameters
     $keyNames = @(
-        'Pip3Package'
+        'PipPackage'
         'Force'
     )
-    $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-    $removeKeyNames | ForEach-Object { $params.Remove($_) }
-    $params.Optimize = & $shouldOptimize -Provider 'Pip'
-    Install-Pip3 @params | ForEach-Object { Write-Host $_ }
+    [string[]]$params.Keys |
+    Where-Object { !($_ -in $keyNames) } |
+    ForEach-Object { $params.Remove($_) }
+    $params.Optimize = & $shouldOptimize -Provider 'pip'
+    Install-Pip @params | ForEach-Object { Write-Host $_ }
+
+    $params = @{} + $PSBoundParameters
+    $keyNames = @(
+        'NpmPackage'
+        'Force'
+    )
+    [string[]]$params.Keys |
+    Where-Object { !($_ -in $keyNames) } |
+    ForEach-Object { $params.Remove($_) }
+    $params.Optimize = & $shouldOptimize -Provider 'npm'
+    Install-Npm @params | ForEach-Object { Write-Host $_ }
 
     $params = @{} + $PSBoundParameters
     $keyNames = @(
@@ -535,8 +583,9 @@
         'Destination'
         'RequiredVersion'
     )
-    $removeKeyNames = $params.Keys | Where-Object { !($_ -in $keyNames) }
-    $removeKeyNames | ForEach-Object { $params.Remove($_) }
+    [string[]]$params.Keys |
+    Where-Object { !($_ -in $keyNames) } |
+    ForEach-Object { $params.Remove($_) }
     $params.Optimize = & $shouldOptimize -Provider 'NuGet'
     Install-NuGet @params | ForEach-Object { Write-Host $_ }
 }
