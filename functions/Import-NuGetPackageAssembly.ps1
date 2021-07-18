@@ -210,12 +210,9 @@
             $Script:AvailableDotnets |
             Where-Object { $_.name -eq $aTargetFrameworkType } |
             Where-Object { [System.Version]$aAssembly.targetFramework.version -le [System.Version]$_.version }
-        } |
-        Where-Object { $_.path } |
-        Where-Object { Test-Path -LiteralPath $_.path -PathType Leaf }
+        }
 
         if (!$availableAssemblies) {
-            # [What do mean _._ files in nuget packages?](https://github.com/dotnet/aspnetcore/issues/744)
             Write-Verbose "There are no assemblies available in NuGet package '$aPackageID'."
             continue
         }
@@ -230,7 +227,9 @@
         Select-Object -Last 1 |
         ForEach-Object {
             $aAssembly = $_
-            $aAssemblyPaths = $aAssembly.path
+
+            $aAssemblyPaths = @()
+            $aAssemblyPaths += $aAssembly.path | Where-Object { $_ } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 
             $aAssembly.dependencies |
             Where-Object { $_ } |
