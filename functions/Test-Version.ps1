@@ -79,6 +79,15 @@
         $aVariableName = $_
         $aVersionString = Get-Variable -Name $aVariableName -ValueOnly
 
+        if (!$aVersionString) {
+            continue
+        }
+
+        if (!($aVersionString -match '^[\d][\d\.]*$')) {
+            Write-Error "The version string '$aVersionString' specified in parameter '-$aVariableName' is invalid."
+            return
+        }
+
         if ($aVersionString -match '^\d+$') {
             # Ex. '1' to '1.0'
             $newVersionString = '{0}.0' -f $aVersionString
