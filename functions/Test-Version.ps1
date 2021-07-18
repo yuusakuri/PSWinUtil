@@ -73,17 +73,37 @@
         $VersionRangeNotation
     )
 
-    $PSBoundParameters.Keys |
-    Where-Object { $_ -in 'Version', 'MaximumVersion', 'MinimumVersion', 'RequiredVersion' } |
+    [string[]]$PSBoundParameters.Keys |
+    Where-Object { $_ -in 'Version', 'MaximumVersion', 'MinimumVersion', 'RequiredVersion', 'ExclusiveMaximumVersion', 'ExclusiveMinimumVersion' } |
     ForEach-Object {
         $aVariableName = $_
-        $aVersion = Get-Variable -Name $aVariableName -ValueOnly
+        $aVersionString = Get-Variable -Name $aVariableName -ValueOnly
 
-        if ($aVersion -match '^\d+$') {
-            $newVersionString = '{0}.0' -f $aVersion
+        if ($aVersionString -match '^\d+$') {
+            # Ex. '1' to '1.0'
+            $newVersionString = '{0}.0' -f $aVersionString
 
-            Write-Verbose "Convert the value '$aVersion' of parameter '-$aVariableName' to '$newVersionString'"
+            Write-Verbose "Convert the value '$aVersionString' of parameter '-$aVariableName' to '$newVersionString'"
             Set-Variable -Name $aVariableName -Value $newVersionString
+            $aVersionString = Get-Variable -Name $aVariableName -ValueOnly
+        }
+
+        if (!($aVariableName -eq 'Version')) {
+            $dotCountDifference = ($Version -replace '[^\.]').Length - ($aVersionString -replace '[^\.]').Length
+
+            if (!($dotCountDifference -eq 0)) {
+                # Ex. '1.0' and '1.0.1' to '1.0.0' and '1.0.1'
+                $isDotCountDifferenceNegative = $dotCountDifference -lt 0
+                $dotCountDifferenceAbsoluteValue = [Math]::Abs($dotCountDifference)
+                for ($i = 0; $i -lt $dotCountDifferenceAbsoluteValue; $i++) {
+                    if ($isDotCountDifferenceNegative) {
+                        Set-Variable -Name 'Version' -Value ('{0}.0' -f $Version)
+                    }
+                    else {
+                        Set-Variable -Name $aVariableName -Value ('{0}.0' -f $aVersionString)
+                    }
+                }
+            }
         }
     }
 
