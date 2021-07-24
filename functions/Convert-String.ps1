@@ -35,12 +35,13 @@
 
         # If FullWidthNumberToHalfWidthNumber is specified, convert full width number to half width number.
         # If FullWidthAlphabetToHalfWidthAlphabet is specified, convert full width alphabet to half width alphabet.
-        # If PascalCase is specified, converts the beginning of each string separated by spaces, underscores, or hyphens to uppercase, and removes spaces, underscores, and hyphens.
+        # If UpperCamelCase or LowerCamelCase is specified, converts the beginning of each string separated by spaces, underscores, or hyphens to uppercase, and removes spaces, underscores, and hyphens. However, the first letter of LowerCamelCase is lowercase.
         # If EscapeForPowerShellDoubleQuotation is specified, escape Quotation mark (U+0022), Dollar sign (U+0024), Grave accent (U+0060), Left double quotation mark (U+201C), Right double quotation mark (U+201D), Double low-9 quotation mark (U+201E) for PowerShell doubleQuotation.
         [Parameter(Mandatory)]
         [ValidateSet('FullWidthNumberToHalfWidthNumber',
             'FullWidthAlphabetToHalfWidthAlphabet',
-            'PascalCase',
+            'UpperCamelCase',
+            'LowerCamelCase',
             'EscapeForPowerShellDoubleQuotation')]
         [string]
         $Type
@@ -52,7 +53,7 @@
 
     process {
         foreach ($aString in $String) {
-            switch ($Type) {
+            switch -Regex ($Type) {
                 'FullWidthNumberToHalfWidthNumber' {
                     $aString `
                         -creplace [char]0xFF10, "0" `
@@ -123,18 +124,29 @@
                         -creplace [char]0xFF5A, "z"
                     break
                 }
-                'PascalCase' {
-                    $words = $aString -split ("`n|`r`n|\W|_|-")
+                'UpperCamelCase|LowerCamelCase' {
+                    [string[]]$words = $aString -split ("`n|`r`n|\W|_|-") |
+                    Where-Object { !($_ -match '^\s*$') }
 
                     $aNewString = ''
-                    foreach ($word in $words) {
-                        if ($word -eq '') {
-                            continue
+                    for ($i = 0; $i -lt $words.Count; $i++) {
+                        $aWord = $words[$i]
+
+                        if ($i -eq 0) {
+                            if ($Type -eq 'UpperCamelCase') {
+                                $newWord = '{0}{1}' -f $aWord.Substring(0, 1).ToUpper(), $aWord.Remove(0, 1)
+                            }
+                            if ($Type -eq 'LowerCamelCase') {
+                                $newWord = '{0}{1}' -f $aWord.Substring(0, 1).ToLower(), $aWord.Remove(0, 1)
+                            }
+                        }
+                        else {
+                            $newWord = '{0}{1}' -f $aWord.Substring(0, 1).ToUpper(), $aWord.Remove(0, 1)
                         }
 
-                        $newWord = '{0}{1}' -f $word.Substring(0, 1).ToUpper(), $word.Remove(0, 1)
                         $aNewString = '{0}{1}' -f $aNewString, $newWord
                     }
+
                     $aNewString
                     break
                 }
