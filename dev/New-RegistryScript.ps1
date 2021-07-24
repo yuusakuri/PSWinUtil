@@ -25,7 +25,7 @@ $PSWinUtilRegConfDir = $PSWinUtil | Join-Path -ChildPath "resources/registry"
 $PSWinUtilRegFunctionDir = $PSWinUtil | Join-Path -ChildPath "functions/registry"
 
 $writeFiles = @()
-$aliasNoun = PSWinUtil\Convert-WUString -String $Name -Type PascalCase
+$aliasNoun = PSWinUtil\Convert-WUString -String $Name -Type UpperCamelCase
 $functionNoun = $aliasNoun -replace '^', 'WU'
 
 $writeFiles += @{
