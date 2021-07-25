@@ -16,12 +16,13 @@
             active
             disconnected
             primary
-            colors
+            bitsPerPixel
             frequency
             orientation
             maximumResolution
             maximumVerticalResolution
             maximumHorizontalResolution
+            monitorIndex
             adapter
             deviceId
             deviceKey
@@ -179,9 +180,9 @@
                         foreach ($aDisplayMode in $displayModes) {
                             if ($aDisplayMode.Scaling -eq [SharpDX.DXGI.DisplayModeScaling]::Unspecified) {
                                 [PSCustomObject]@{
-                                    displayWidth   = $aDisplayMode.Width
-                                    displayHeight  = $aDisplayMode.Height
-                                    displayRefresh = $aDisplayMode.RefreshRate
+                                    horizontalResolution = $aDisplayMode.Width
+                                    verticalResolution   = $aDisplayMode.Height
+                                    frequency            = $aDisplayMode.RefreshRate
                                 }
                             }
                         }
@@ -209,7 +210,20 @@
         }
         foreach ($aMmonitorFromMultiMonitorToolProperty in $aMmonitorFromMultiMonitorTool.psobject.Properties) {
             switch ($aMmonitorFromMultiMonitorToolProperty.name) {
+                { $_ -in 'active', 'disconnected', 'primary' } {
+                    $monitor | Add-Member -MemberType NoteProperty -Name $aMmonitorFromMultiMonitorToolProperty.name -Value (Convert-StringToBool -String $aMmonitorFromMultiMonitorToolProperty.Value)
+                    break
+                }
+                'colors' {
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'bitsPerPixel' -Value (Convert-StringToBool -String $aMmonitorFromMultiMonitorToolProperty.Value)
+                    break
+                }
                 'name' {
+                    $monitorIndex = ''
+                    if ($aMmonitorFromMultiMonitorToolProperty.Value -match '(?<monitorIndex>\d+)') {
+                        $monitorIndex = $Matches['monitorIndex']
+                    }
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'monitorIndex' -Value $monitorIndex
                     break
                 }
                 'resolution' {
