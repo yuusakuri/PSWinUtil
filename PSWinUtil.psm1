@@ -10,6 +10,35 @@ function Test-WUAdmin {
     ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Convert-StringToBool {
+    [CmdletBinding()]
+    param (
+        # Specifies a path to one or more locations. Wildcards are permitted.
+        [Parameter(Position = 0,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName)]
+        [string]
+        $String
+    )
+    $trueStrings = @(
+        'yes'
+        'y'
+        'true'
+    )
+    $falseStrings = @(
+        'no'
+        'n'
+        'false'
+    )
+
+    if ($String -in $trueStrings) {
+        return $true
+    }
+    if ($String -in $falseStrings) {
+        return $false
+    }
+}
+
 function Get-WURegistryHash {
     $registryFileName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name -creplace '.+-(WU)?', ''
     return . (Join-Path $PSWinUtilRegConfDir $registryFileName)
