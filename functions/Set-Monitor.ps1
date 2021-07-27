@@ -7,7 +7,7 @@
         Changes the display refresh rate, resolution, and color depth to the specified values.
 
         .EXAMPLE
-        PS C:\>Set-WUMonitor -MonitorIndex 1 -RefreshRate 60
+        PS C:\>Set-WUMonitor -MonitorIndex 1 -Frequency 60
 
         Set the refresh rate of DISPLAY1 to 60.
 
@@ -15,14 +15,25 @@
         Get-WUMonitor
     #>
 
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess,
+        DefaultParameterSetName = 'MonitorIndex')]
     param (
-        # Specify the monitor number.
+        # Specify the monitor 1-based numbers.
         [Parameter(Position = 0,
+            ParameterSetName = 'MonitorIndex',
             ValueFromPipeline,
             ValueFromPipelineByPropertyName)]
-        [int]
+        [ValidateNotNullOrEmpty()]
+        [int[]]
         $MonitorIndex,
+
+        # Specify the monitor device name. Example: `\\.\DISPLAY1`
+        [Parameter(Position = 0,
+            ParameterSetName = 'DeviceName',
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName)]
+        [string[]]
+        $DeviceName,
 
         # Specify horizontal resolution.
         [int]
@@ -32,52 +43,66 @@
         [int]
         $VerticalResolution,
 
-        # Specify color bits.
+        # Specify color depth (bits per pixel).
         [int]
-        $ColorBits,
+        $BitsPerPixel,
 
-        # Specify refresh rate.
-        [Alias('Frequency')]
+        # Specify frequency (refresh rate).
+        [Alias('RefreshRate')]
         [int]
-        $RefreshRate
+        $Frequency
     )
 
-    Set-StrictMode -Version 'Latest'
+    begin {
+        Set-StrictMode -Version 'Latest'
 
-    [array]$monitors = Get-WUMonitor |
-    Where-Object {
-        if ($PSBoundParameters.ContainsKey('MonitorIndex')) {
-            return [regex]::Matches($_.name, '\d+').Value -eq [string]$MonitorIndex
+        $monitors = @()
+        $monitors += Get-WUMonitor
+        if (!$monitors) {
+            return
         }
-        return $true
     }
 
-    if (!$monitors) {
-        Write-Error 'Cannot find monitors that match the conditions.'
-        return
-    }
+    process {
+        $monitors |
+        Where-Object {
+            if ($PSBoundParameters.ContainsKey('MonitorIndex')) {
+                if (!($_.monitorIndex -in [string[]]$MonitorIndex)) {
+                    Write-Error ("Cannot find monitor where monitorIndex is {0}." -f (([string[]]$MonitorIndex) -join ' or ')) -ErrorAction $ErrorActionPreference
+                    return $false
+                }
+            }
+            if ($PSBoundParameters.ContainsKey('DeviceName')) {
+                if (!($_.deviceName -in $DeviceName)) {
+                    Write-Error ("Cannot find monitor where deviceName is {0}." -f (([string[]]$DeviceName) -join ' or ')) -ErrorAction $ErrorActionPreference
+                    return $false
+                }
+            }
+            return $true
+        } |
+        ForEach-Object {
+            $aMonitor = $_
 
-    foreach ($monitor in $monitors) {
-        $aMonitorIndex = [regex]::Matches($monitor.name, '\d+').Value
-        if (!$PSBoundParameters.ContainsKey('HorizontalResolution')) {
-            $HorizontalResolution = $monitor.resolution -replace ' X .+', ''
-        }
-        if (!$PSBoundParameters.ContainsKey('VerticalResolution')) {
-            $VerticalResolution = $monitor.resolution -replace '.+ X ', ''
-        }
-        if (!$PSBoundParameters.ContainsKey('ColorBits')) {
-            $ColorBits = $monitor.colors
-        }
-        if (!$PSBoundParameters.ContainsKey('frequency')) {
-            $RefreshRate = $monitor.frequency
-        }
+            if (!$PSBoundParameters.ContainsKey('HorizontalResolution')) {
+                $HorizontalResolution = $aMonitor.horizontalResolution
+            }
+            if (!$PSBoundParameters.ContainsKey('VerticalResolution')) {
+                $VerticalResolution = $aMonitor.verticalResolution
+            }
+            if (!$PSBoundParameters.ContainsKey('BitsPerPixel')) {
+                $BitsPerPixel = $aMonitor.bitsPerPixel
+            }
+            if (!$PSBoundParameters.ContainsKey('Frequency')) {
+                $Frequency = $aMonitor.frequency
+            }
 
-        $cmd = 'nircmd.exe setdisplay "monitor:{0}" "{1}" "{2}" "{3}" "{4}"' -f $aMonitorIndex, $HorizontalResolution, $VerticalResolution, $ColorBits, $RefreshRate
-        if ($PSCmdlet.ShouldProcess("DISPLAY$aMonitorIndex", "Change the horizontal resolution to $HorizontalResolution, the vertical resolution to $VerticalResolution, the color depth to $ColorBits, and the refresh rate to $RefreshRate.")) {
-            $result = ''
-            $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
-            Write-Verbose ('Command: {0}' -f $cmd)
-            Write-Verbose $result
+            $cmd = 'nircmd.exe setdisplay "monitor:{0}" "{1}" "{2}" "{3}" "{4}"' -f $aMonitor.monitorIndex, $HorizontalResolution, $VerticalResolution, $BitsPerPixel, $Frequency
+            if ($PSCmdlet.ShouldProcess(("DISPLAY{0}", "Change the horizontal resolution to $HorizontalResolution, the vertical resolution to $VerticalResolution, the color depth to $BitsPerPixel, and the refresh rate to $Frequency." -f $aMonitor.monitorIndex))) {
+                $result = ''
+                $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
+                Write-Debug ('Command: {0}' -f $cmd)
+                Write-Verbose $result
+            }
         }
     }
 }
