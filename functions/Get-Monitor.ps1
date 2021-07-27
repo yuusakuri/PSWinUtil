@@ -105,14 +105,14 @@
 
         try {
             $tempFilePath = ''
-            $tempFilePath = New-TemporaryFile |
-            Rename-Item -NewName { $_ -replace 'tmp$', 'xml' } -PassThru |
+            $tempFilePath = New-TemporaryFile -WhatIf:$false |
+            Rename-Item -NewName { $_ -replace 'tmp$', 'xml' } -PassThru -WhatIf:$false |
             Select-Object -ExpandProperty FullName
             if (!$tempFilePath) {
                 return
             }
 
-            Start-Process 'MultiMonitorTool.exe' -ArgumentList ('/sxml "{0}"' -f ($tempFilePath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation)) -Wait -NoNewWindow
+            Start-Process 'MultiMonitorTool.exe' -ArgumentList ('/sxml "{0}"' -f ($tempFilePath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation)) -Wait -NoNewWindow -WhatIf:$false
 
             try {
                 $monitorXml = Select-Xml -LiteralPath $tempFilePath -XPath 'monitors_list/item' -ErrorAction Stop | Select-Object -ExpandProperty Node
@@ -145,7 +145,7 @@
             $tempFilePath |
             Where-Object { $_ } |
             Where-Object { Test-Path -LiteralPath $_ } |
-            Remove-Item -LiteralPath { $_ } -Force
+            Remove-Item -LiteralPath { $_ } -Force -WhatIf:$false
         }
     }
 
@@ -173,7 +173,7 @@
 
         # [How to get supported display modes using SharpDX](https://discussiongenerator.com/2012/11/04/how-to-get-supported-display-modes-using-sharpdx/)
 
-        Import-WUNuGetPackageAssembly -Install -PackageID SharpDX.DXGI
+        Import-WUNuGetPackageAssembly -Install -PackageID SharpDX.DXGI -WhatIf:$false
 
         $dxgiFactory = New-Object 'SharpDX.DXGI.Factory1'
 
@@ -229,7 +229,7 @@
                     break
                 }
                 'colors' {
-                    $monitor | Add-Member -MemberType NoteProperty -Name 'bitsPerPixel' -Value (Convert-StringToBool -String $aMmonitorFromMultiMonitorToolProperty.Value)
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'bitsPerPixel' -Value $aMmonitorFromMultiMonitorToolProperty.Value
                     break
                 }
                 'name' {
@@ -242,14 +242,14 @@
                 }
                 'resolution' {
                     $monitor | Add-Member -MemberType NoteProperty -Name $aMmonitorFromMultiMonitorToolProperty.name -Value $aMmonitorFromMultiMonitorToolProperty.Value
-                    $monitor | Add-Member -MemberType NoteProperty -Name 'verticalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace ' X .+')
-                    $monitor | Add-Member -MemberType NoteProperty -Name 'horizontalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace '.+ X ')
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'verticalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace '.+ X ')
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'horizontalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace ' X .+')
                     break
                 }
                 'maximumResolution' {
                     $monitor | Add-Member -MemberType NoteProperty -Name $aMmonitorFromMultiMonitorToolProperty.name -Value $aMmonitorFromMultiMonitorToolProperty.Value
-                    $monitor | Add-Member -MemberType NoteProperty -Name 'maximumVerticalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace ' X .+')
-                    $monitor | Add-Member -MemberType NoteProperty -Name 'maximumHorizontalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace '.+ X ')
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'maximumVerticalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace '.+ X ')
+                    $monitor | Add-Member -MemberType NoteProperty -Name 'maximumHorizontalResolution' -Value ($aMmonitorFromMultiMonitorToolProperty.Value -replace ' X .+')
                     break
                 }
                 Default {
