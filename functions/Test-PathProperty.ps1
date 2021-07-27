@@ -72,6 +72,8 @@
     )
 
     begin {
+        Set-StrictMode -Version 'Latest'
+
         function Test-WUPathPropertyFromPathInfo {
             param (
                 [Parameter(Mandatory,
@@ -140,7 +142,7 @@
     process {
         if ($psCmdlet.ParameterSetName -eq 'Path') {
             foreach ($aPath in $Path) {
-                if (!$Assert -and !(Test-Path -LiteralPath $aPath)) {
+                if (!$Assert -and !(Test-Path -Path $aPath)) {
                     $isValidArray += $false
                     continue
                 }

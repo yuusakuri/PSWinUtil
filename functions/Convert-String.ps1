@@ -53,7 +53,7 @@
 
     process {
         foreach ($aString in $String) {
-            switch -Regex ($Type) {
+            switch ($Type) {
                 'FullWidthNumberToHalfWidthNumber' {
                     $aString `
                         -creplace [char]0xFF10, "0" `
@@ -124,7 +124,7 @@
                         -creplace [char]0xFF5A, "z"
                     break
                 }
-                'UpperCamelCase|LowerCamelCase' {
+                { $_ -in 'UpperCamelCase', 'LowerCamelCase' } {
                     [string[]]$words = $aString -split ("`n|`r`n|\W|_|-") |
                     Where-Object { !($_ -match '^\s*$') }
 

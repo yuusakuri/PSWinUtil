@@ -50,6 +50,8 @@
     )
 
     begin {
+        Set-StrictMode -Version 'Latest'
+
         $Scope = $Scope + 'Process' | Select-Object -Unique
 
         if ($psCmdlet.ParameterSetName -eq 'FilePath') {
@@ -58,7 +60,7 @@
                 'Hashtable'
                 'Scope'
             )
-            $paramsOfAddWUEnvironmentVariableFromFile = @{ Scope = $Scope } + $PSBoundParameters
+            $paramsOfAddWUEnvironmentVariableFromFile = @{  } + $PSBoundParameters
             @() + $paramsOfAddWUEnvironmentVariableFromFile.Keys | `
                 Where-Object { $_ -in $removeParamKeys } | `
                 ForEach-Object { $paramsOfAddWUEnvironmentVariableFromFile.Remove($_) }
@@ -78,18 +80,22 @@
                     continue
                 }
 
-                $hashtables = $null
-
+                $hashtables = @{}
                 $isPathPSScript = Test-WUPSScript -LiteralPath $aPath -AllowedExtension '.ps1'
                 if ($isPathPSScript) {
-                    $hashtables = [hashtable[]](. $aPath)
-                    if (!$hashtables -or !$hashTables.Keys) {
-                        Write-Error "Could not get hashtables from powershell script '$aPath'."
+                    try {
+                        $hashtables += . $aPath
+                    }
+                    catch {
+                    }
+
+                    if ($hashTables.Keys.Count -eq 0) {
+                        Write-Error "Could not get hashtables from powershell script '$aPath'." -ErrorAction $ErrorActionPreference
                         continue
                     }
                 }
                 else {
-                    Write-Error "File '$aPath' is not supported."
+                    Write-Error "File '$aPath' is not supported." -ErrorAction $ErrorActionPreference
                     continue
                 }
 
@@ -99,10 +105,21 @@
         elseif ($psCmdlet.ParameterSetName -eq 'Hashtable') {
             foreach ($aHashtable in $Hashtable) {
                 foreach ($aName in [string[]]$aHashtable.Keys) {
+                    if ($null -eq $aHashtable.$aName) {
+                        $value = ''
+                    }
+                    elseif ($aHashtable.$aName.GetType().Name -eq 'String') {
+                        $value = $aHashtable.$aName
+                    }
+                    else {
+                        Write-Error "The value of '$aName' environment variable must be of type 'System.String'."
+                        continue
+                    }
+
                     foreach ($aScope in $Scope) {
                         $paramsOfSetCEnvironmentVariable = @{
                             Name                 = $aName
-                            Value                = $aHashtable.$aName
+                            Value                = $value
                             $scopeParams.$aScope = $true
                             Force                = $true
                         }

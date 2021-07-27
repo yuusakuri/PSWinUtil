@@ -506,6 +506,8 @@
                 }
             }
 
+            # Install-Package -Name $_ -Destination $Destination -ProviderName NuGet @installPackageArgs
+            # The above code is slow.
             $NuGetPackage |
             Where-Object { $_ } |
             ForEach-Object {

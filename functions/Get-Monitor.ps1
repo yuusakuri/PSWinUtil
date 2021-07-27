@@ -48,11 +48,21 @@
     param (
     )
 
+    Set-StrictMode -Version 'Latest'
+
     <# Other ways to get monitor information
         Get-CimInstance -ClassName Win32_VideoController
+
         Get-CimInstance -ClassName Win32_PnPEntity | Where-Object Service -eq Monitor
+
         Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams
+
         MonitorInfoView.exe /sxml $xmlPath
+
+        dumpedid.exe
+
+        Import-WUNuGetPackageAssembly -PackageID 'MonitorDetails' -Install
+        (New-Object 'MonitorDetails.Reader').GetMonitorDetails()
     #>
 
     function Get-WUMonitorFromMultiMonitorTool {
@@ -120,8 +130,12 @@
                 Where-Object { !($_.Name -eq '#whitespace') } |
                 ForEach-Object {
                     $name = Convert-WUString -String $_.Name -Type 'LowerCamelCase'
+                    $value = $null
+                    if (($_ | Get-Member -MemberType Properties | Where-Object { $_.Name -eq '#text' })) {
+                        $value = $_.'#text'
+                    }
 
-                    $monitor | Add-Member -MemberType NoteProperty -Name $name -Value $_.'#text'
+                    $monitor | Add-Member -MemberType NoteProperty -Name $name -Value $value
                 }
 
                 $monitor

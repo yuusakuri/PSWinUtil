@@ -39,53 +39,59 @@
         $Force
     )
 
-    $DestinationFullPath = ''
-    $DestinationFullPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
-    if (!$DestinationFullPath) {
-        return
+    begin {
+        Set-StrictMode -Version 'Latest'
     }
 
-    if ((Test-Path -LiteralPath $DestinationFullPath -PathType Container)) {
-        if (!(Assert-WUPathProperty -LiteralPath $DestinationFullPath -PSProvider FileSystem -PathType Container)) {
-            return
-        }
-        $outDirPath = $DestinationFullPath
-        $outName = ''
-    }
-    else {
-        $outDirPath = Split-Path $DestinationFullPath -Parent
-        $outName = Split-Path $DestinationFullPath -Leaf
-
-        if (!$outDirPath) {
-            Write-Error "Failed to get the parent directory of path '$DestinationFullPath'."
+    process {
+        $DestinationFullPath = ''
+        $DestinationFullPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
+        if (!$DestinationFullPath) {
             return
         }
 
-        if ((Test-Path -LiteralPath $outDirPath -PathType Container)) {
-            if (!(Assert-WUPathProperty -LiteralPath $outDirPath -PSProvider FileSystem -PathType Container)) {
+        if ((Test-Path -LiteralPath $DestinationFullPath -PathType Container)) {
+            if (!(Assert-WUPathProperty -LiteralPath $DestinationFullPath -PSProvider FileSystem -PathType Container)) {
                 return
             }
+            $outDirPath = $DestinationFullPath
+            $outName = ''
         }
         else {
-            New-Item -Path $outDirPath -ItemType 'Directory' -Force | Out-String | Write-Verbose
-            if (!(Assert-WUPathProperty -LiteralPath $outDirPath -PSProvider FileSystem -PathType Container)) {
+            $outDirPath = Split-Path $DestinationFullPath -Parent
+            $outName = Split-Path $DestinationFullPath -Leaf
+
+            if (!$outDirPath) {
+                Write-Error "Failed to get the parent directory of path '$DestinationFullPath'."
                 return
             }
+
+            if ((Test-Path -LiteralPath $outDirPath -PathType Container)) {
+                if (!(Assert-WUPathProperty -LiteralPath $outDirPath -PSProvider FileSystem -PathType Container)) {
+                    return
+                }
+            }
+            else {
+                New-Item -Path $outDirPath -ItemType 'Directory' -Force | Out-String | Write-Verbose
+                if (!(Assert-WUPathProperty -LiteralPath $outDirPath -PSProvider FileSystem -PathType Container)) {
+                    return
+                }
+            }
         }
-    }
 
-    $cmd = '& aria2c --auto-file-renaming=false -x {0} ' -f $MaxConnectionPerServer
-    $cmd = '{0} -d "{1}"' -f $cmd, (Convert-WUString -String $outDirPath -Type EscapeForPowerShellDoubleQuotation)
-    if ($outName) {
-        $cmd = '{0} -o "{1}"' -f $cmd, (Convert-WUString -String $outName -Type EscapeForPowerShellDoubleQuotation)
-    }
-    if ($Force) {
-        $cmd = '{0} --allow-overwrite=true' -f $cmd
-    }
-    $cmd = '{0} "{1}"' -f $cmd, (Convert-WUString -String $Uri -Type EscapeForPowerShellDoubleQuotation)
+        $cmd = '& aria2c --auto-file-renaming=false -x {0} ' -f $MaxConnectionPerServer
+        $cmd = '{0} -d "{1}"' -f $cmd, (Convert-WUString -String $outDirPath -Type EscapeForPowerShellDoubleQuotation)
+        if ($outName) {
+            $cmd = '{0} -o "{1}"' -f $cmd, (Convert-WUString -String $outName -Type EscapeForPowerShellDoubleQuotation)
+        }
+        if ($Force) {
+            $cmd = '{0} --allow-overwrite=true' -f $cmd
+        }
+        $cmd = '{0} "{1}"' -f $cmd, (Convert-WUString -String $Uri -Type EscapeForPowerShellDoubleQuotation)
 
-    Write-Host "Downloading from '$Uri' to '$outDirPath'"
-    if ($pscmdlet.ShouldProcess($cmd, 'Execute')) {
-        Invoke-Expression $cmd
+        Write-Host "Downloading from '$Uri' to '$outDirPath'"
+        if ($pscmdlet.ShouldProcess($cmd, 'Execute')) {
+            Invoke-Expression $cmd
+        }
     }
 }

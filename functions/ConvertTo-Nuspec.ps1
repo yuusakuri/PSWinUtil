@@ -32,15 +32,17 @@
         $NupkgPath
     )
 
+    Set-StrictMode -Version 'Latest'
+
     if (!(Assert-WUPathProperty -LiteralPath $NupkgPath -PSProvider FileSystem -PathType Leaf -Extension '.nupkg')) {
         return
     }
 
     $NupkgPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($NupkgPath)
-    $nuspecPath = ($NupkgPath -replace '\.[\d.]*.nupkg$', '.nuspec')
+    $nuspecPath = $NupkgPath -replace '\.[\d.]*.nupkg$', '.nuspec'
 
     if (!(Test-WUPathProperty -LiteralPath $nuspecPath -PSProvider FileSystem -PathType Leaf)) {
-        Write-Verbose "Cannot find nuspec file path '$nuspecPath'."
+        Write-Verbose "Extract the nuspec file from nupkg file '$NupkgPath'."
 
         try {
             Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
@@ -54,7 +56,14 @@
         }
     }
 
-    Write-Verbose "Read xml from nuspec file '$nuspecPath'."
+    try {
+        $nuspecXml = Select-Xml -LiteralPath $nuspecPath -XPath '/' -ErrorAction Stop | Select-Object -ExpandProperty Node
+    }
+    catch {
+        Write-Verbose $_
+        Write-Error "Failed to get xml of nuspec file '$nuspecPath'." -ErrorAction $ErrorActionPreference
+        return
+    }
 
-    return [xml](Get-Content -LiteralPath $nuspecPath)
+    return $nuspecXml
 }

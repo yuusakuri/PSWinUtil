@@ -69,7 +69,7 @@
     )
 
     begin {
-        $isValidScriptArray = @()
+        Set-StrictMode -Version 'Latest'
 
         function Test-WUPSScriptSyntax {
             [CmdletBinding(DefaultParameterSetName = 'Command')]
@@ -104,7 +104,10 @@
 
             return !$Errors.Count
         }
+
+        $isValidScriptArray = @()
     }
+
     process {
         if ($psCmdlet.ParameterSetName -eq 'Path') {
             foreach ($aPath in $Path) {
@@ -142,6 +145,7 @@
             $isValidScriptArray += Test-WUPSScriptSyntax -Command $Command -Assert:$Assert
         }
     }
+
     end {
         return $isValidScriptArray
     }

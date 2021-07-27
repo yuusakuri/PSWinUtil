@@ -76,7 +76,7 @@
             if (!(Test-Path -LiteralPath $BasePath -PathType Container)) {
                 if ((Test-Path -LiteralPath $BasePath -PathType Leaf)) {
                     $shouldClose = $true
-                    Write-Error "BasePath '$BasePath' is not a Directory"
+                    Write-Error "BasePath '$BasePath' is not a Directory."
                     return
                 }
 

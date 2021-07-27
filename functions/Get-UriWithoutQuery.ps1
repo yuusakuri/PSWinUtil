@@ -28,6 +28,10 @@
         $Uri
     )
 
+    begin {
+        Set-StrictMode -Version 'Latest'
+    }
+
     process {
         foreach ($aUri in $Uri) {
             [uri]($aUri -replace '\?.+')

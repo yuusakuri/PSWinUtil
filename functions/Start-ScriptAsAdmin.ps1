@@ -80,6 +80,8 @@
         $WindowStyle = 'Normal'
     )
 
+    Set-StrictMode -Version 'Latest'
+
     if (!(Assert-WUPSScript -LiteralPath $PSScriptPath -AllowedExtension '.ps1')) {
         continue
     }
@@ -118,16 +120,24 @@
     $escapedScriptPath = $PSScriptPath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation
 
     if ($Arguments) {
-        $tempDirPath = (Carbon\New-CTempDirectory -Prefix 'PSWinUtil-').FullName
+        $tempFilePath = ''
+        $tempFilePath = New-TemporaryFile |
+        Rename-Item -NewName { $_ -replace 'tmp$', 'xml' } -PassThru |
+        Select-Object -ExpandProperty FullName
+        if (!$tempFilePath) {
+            return
+        }
 
-        $ArgumentsPath = "$tempDirPath/Arguments.xml"
-        $Arguments | Export-Clixml -LiteralPath $ArgumentsPath -Force
+        $Arguments | Export-Clixml -LiteralPath $tempFilePath -Force
 
-        $powershellArgs += "-Command `"`$Arguments = Import-Clixml -LiteralPath $ArgumentsPath; '$tempDirPath' | Where-Object { Test-Path -LiteralPath `$_ } | Remove-Item -LiteralPath { `$_ } -Recurse -Force; . '$escapedScriptPath' @Arguments`""
+        $powershellArgs += '-Command & {{ $argments = @{{  }} + (Import-Clixml -LiteralPath "{0}");  Write-Output "{0}" | Where-Object {{ Test-Path -LiteralPath $_ }} | Remove-Item -LiteralPath {{ $_ }} -Recurse -Force; . "{1}" @argments }}' -f `
+        ($tempFilePath | Convert-WUString -Type EscapeForPowerShellDoubleQuotation),
+        $escapedScriptPath
     }
     else {
-        $powershellArgs += "-Command `". '$escapedScriptPath'`""
+        $powershellArgs += '-Command & {{ . "{0}" }}' -f $escapedScriptPath
     }
 
+    Write-Debug (@(@('PowerShell argments:') + $powershellArgs) -join [System.Environment]::NewLine)
     Start-Process (Get-Process -Id $PID).Path -ArgumentList $powershellArgs @startProcessArgs -Verb RunAs
 }

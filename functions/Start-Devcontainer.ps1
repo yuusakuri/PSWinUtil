@@ -35,45 +35,52 @@
         $WorkspacePath
     )
 
-    if (!(Get-Command 'code')) {
-        return
-    }
+    begin {
+        Set-StrictMode -Version 'Latest'
 
-    if (!(Assert-WUPathProperty -LiteralPath $HostPath -PSProvider FileSystem -PathType Container)) {
-        return
-    }
-
-    $HostPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HostPath)
-
-    $devcontainerJsonPath = "$HostPath/.devcontainer/devcontainer.json"
-    if (!(Test-Path -LiteralPath $devcontainerJsonPath -PathType Leaf)) {
-        Write-Error "Cannot find file path '$devcontainerJsonPath' because it does not exist."
-        return
-    }
-
-    if (!$WorkspacePath) {
-        $WorkspacePath = Get-Content -LiteralPath $devcontainerJsonPath |
-        ConvertFrom-Json |
-        Select-Object -ExpandProperty workspaceFolder -ErrorAction Ignore
-
-        if (!$WorkspacePath) {
-            $WorkspacePath = '/'
+        if (!(Get-Command 'code')) {
+            return
         }
     }
 
-    # encode host path
-    # https://github.com/microsoft/vscode-remote-release/issues/2133
-    $encodedHostPath = ''
-    $HostPath.ToCharArray() | ForEach-Object { $encodedHostPath = '{0}{1:x}' -f $encodedHostPath, [int]$_ }
+    process {
+        if (!(Assert-WUPathProperty -LiteralPath $HostPath -PSProvider FileSystem -PathType Container)) {
+            return
+        }
 
-    $cmd = 'code --folder-uri "vscode-remote://dev-container+{0}{1}"' -f `
-        $encodedHostPath, `
-        $WorkspacePath
+        $HostPath = $psCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HostPath)
 
-    if ($PSCmdlet.ShouldProcess($cmd, "Execute")) {
-        $result = ''
-        $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
-        Write-Verbose ('Command: {0}' -f $cmd)
-        Write-Verbose $result
+        $devcontainerJsonPath = Join-Path $HostPath ".devcontainer/devcontainer.json"
+        if (!(Test-Path -LiteralPath $devcontainerJsonPath -PathType Leaf)) {
+            Write-Error "Cannot find file path '$devcontainerJsonPath' because it does not exist."
+            return
+        }
+
+        if (!$WorkspacePath) {
+            $WorkspacePath = Get-Content -LiteralPath $devcontainerJsonPath |
+            ConvertFrom-Json |
+            Where-Object { $_ | Get-Member -MemberType Properties | Where-Object { $_.Name -eq 'workspaceFolder' } } |
+            Select-Object -ExpandProperty workspaceFolder -ErrorAction Ignore
+
+            if (!$WorkspacePath) {
+                $WorkspacePath = '/'
+            }
+        }
+
+        # encode host path
+        # https://github.com/microsoft/vscode-remote-release/issues/2133
+        $encodedHostPath = ''
+        $HostPath.ToCharArray() | ForEach-Object { $encodedHostPath = '{0}{1:x}' -f $encodedHostPath, [int]$_ }
+
+        $cmd = 'code --folder-uri "vscode-remote://dev-container+{0}{1}"' -f `
+            $encodedHostPath, `
+            $WorkspacePath
+
+        if ($PSCmdlet.ShouldProcess($cmd, "Execute")) {
+            $result = ''
+            $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
+            Write-Debug ('Command: {0}' -f $cmd)
+            Write-Verbose $result
+        }
     }
 }

@@ -36,6 +36,10 @@ function Join-WUUri {
         $ChildPath
     )
 
+    begin {
+        Set-StrictMode -Version 'Latest'
+    }
+
     process {
         foreach ($aUri in $Uri) {
             [uri]$uriWithoutQuery = Get-WUUriWithoutQuery -Uri $aUri

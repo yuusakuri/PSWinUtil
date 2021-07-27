@@ -46,6 +46,8 @@
     # [Support multiple .NET versions](https://docs.microsoft.com/en-us/nuget/create-packages/supporting-multiple-target-frameworks)
     # [Target frameworks in SDK-style projects](https://docs.microsoft.com/en-us/dotnet/standard/frameworks)
 
+    Set-StrictMode -Version 'Latest'
+
     function Convert-WUTargetFramework {
         [CmdletBinding(DefaultParameterSetName = 'Path')]
         param (
@@ -90,6 +92,10 @@
                     $TargetFrameworkMonikerVersion = ($TargetFrameworkVersion -replace '\.')
                     break
                 }
+                default {
+                    $TargetFrameworkMonikerName = ''
+                    $TargetFrameworkMonikerVersion = ''
+                }
             }
 
             $TargetFrameworkMonikerFullName = '{0}{1}' -f $TargetFrameworkMonikerName, $TargetFrameworkMonikerVersion
@@ -98,7 +104,7 @@
             $TargetFrameworkMonikerFullName = $TargetFrameworkMoniker
 
             if (!($TargetFrameworkMonikerFullName -match '^(?<tfmName>(net|netcoreapp|netstandard))(?<tfmVersion>[\d.]+)')) {
-                Write-Verbose "The specified tfm '$TargetFrameworkMonikerFullName' is not supported."
+                Write-Debug "The specified TFM '$TargetFrameworkMonikerFullName' is not supported."
                 return
             }
 
@@ -134,6 +140,10 @@
                     $TargetFrameworkVersion = $tfmVersion
                     break
                 }
+                default {
+                    $TargetFrameworkName = ''
+                    $TargetFrameworkVersion = ''
+                }
             }
 
             $TargetFrameworkFullName = '{0}{1}' -f $TargetFrameworkName, $TargetFrameworkVersion
@@ -151,13 +161,14 @@
         return
     }
 
-    Write-Verbose "NuGet package directory path is '$PackageDirectoryPath'."
+    Write-Debug "NuGet package directory path is '$PackageDirectoryPath'."
 
     Get-ChildItem -LiteralPath $PackageDirectoryPath -Directory |
     Get-ChildItem -LiteralPath { $_.FullName } -File |
     Where-Object { $_.Extension -eq '.nupkg' } |
     ForEach-Object {
         $aNupkgFile = $_
+
         $nuspecXml = $null
         $nuspecXml = ConvertTo-WUNuspec -NupkgPath $aNupkgFile.FullName
         if (!$nuspecXml) {
@@ -165,9 +176,19 @@
         }
         $packageRootPath = Split-Path $aNupkgFile.FullName -Parent
 
-        $dependencies = $nuspecXml.package.metadata.dependencies |
+        $metadata = $dependencies = $nuspecXml |
+        Select-Object -ExpandProperty ChildNodes | Where-Object { $_.Name -eq 'package' } |
+        Select-Object -ExpandProperty ChildNodes | Where-Object { $_.Name -eq 'metadata' }
+        if (!$metadata) {
+            Write-Verbose ("Metadata does not exist in nuspec file in nupkg file '{0}'." -f $aNupkgFile.FullName)
+            continue
+        }
+
+        $dependencies = $metadata |
+        Select-Object -ExpandProperty ChildNodes | Where-Object { $_.Name -eq 'dependencies' } |
         Where-Object { $_ } |
         Select-Object -ExpandProperty group
+
         if ($dependencies) {
             $assemblies = $dependencies |
             ForEach-Object {
@@ -192,7 +213,8 @@
                     Where-Object { $_.Extension -eq '.dll' } |
                     Select-Object -ExpandProperty FullName
 
-                    dependencies    = $aFrameworkDependencies.dependency |
+                    dependencies    = $aFrameworkDependencies |
+                    Select-Object -ExpandProperty ChildNodes | Where-Object { $_.Name -eq 'dependency' } |
                     Where-Object { $_ } |
                     ForEach-Object {
                         [PSCustomObject]@{
@@ -234,9 +256,9 @@
         }
 
         [PSCustomObject]@{
-            id         = $nuspecXml.package.metadata.id
+            id         = $metadata.id
 
-            version    = $nuspecXml.package.metadata.version
+            version    = $metadata.version
 
             assemblies = $assemblies
 

@@ -68,6 +68,8 @@
     )
 
     begin {
+        Set-StrictMode -Version 'Latest'
+
         $isValidArray = @()
 
         $removeParamKeys = @(

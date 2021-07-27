@@ -110,6 +110,8 @@
         $Force
     )
 
+    Set-StrictMode -Version 'Latest'
+
     function Rename-TargetFramework {
         param (
             [string]
@@ -128,15 +130,15 @@
         return
     }
 
-    if ($null -eq $Script:AvailableDotnets) {
+    if (!(Test-Path 'Variable:AvailableDotnets')) {
         $Script:AvailableDotnets = @()
         $Script:AvailableDotnets += Get-WUAvailableDotnet
     }
-    if ($null -eq $Script:DefinedTypes) {
+    if (!(Test-Path 'Variable:DefinedTypes')) {
         $Script:DefinedTypes = @()
         $Script:DefinedTypes += [AppDomain]::CurrentDomain.GetAssemblies() | Select-Object -ExpandProperty DefinedTypes | Select-Object -ExpandProperty FullName | Where-Object { $_ -match '^[\w.]+$' }
     }
-    if ($null -eq $Script:InstalledNuGetPackages) {
+    if (!(Test-Path 'Variable:Script:InstalledNuGetPackages')) {
         $Script:InstalledNuGetPackages = @()
         $Script:InstalledNuGetPackages += Get-WUInstalledNuGetPackage -PackageDirectoryPath $PackageDirectoryPath
     }
@@ -174,11 +176,11 @@
             continue
         }
 
-        $aInstalledPackage = $Script:InstalledNuGetPackages |
+        $aMatchedInstalledPackage = $Script:InstalledNuGetPackages |
         Where-Object { $_.id -eq $aPackageID } |
         Where-Object { Test-WUVersion -Version $_.version @testWUVersionArgs }
 
-        if (!$aInstalledPackage) {
+        if (!$aMatchedInstalledPackage) {
             if ($Install) {
                 Install-WUApp -Optimize 'NuGet'
 
@@ -202,7 +204,7 @@
             continue
         }
 
-        $availableAssemblies = $aInstalledPackage.assemblies | Where-Object {
+        $availableAssemblies = $aMatchedInstalledPackage.assemblies | Where-Object {
             # Returns True if the target framework type and version are available
             $aAssembly = $_
             $aTargetFrameworkType = Rename-TargetFramework -Name $aAssembly.targetFramework.name
@@ -236,7 +238,7 @@
             Where-Object { $_.id -ne $aPackageID } |
             ForEach-Object {
                 Write-Verbose ("Resolve the dependency for NuGet package '$aPackageID'. PackageID: '{0}', VersionRangeNotation: '{1}'" -f $_.id, $_.version)
-                Import-WUNuGetPackageAssembly -PackageID $_.id -PackageDirectoryPath $PackageDirectoryPath -VersionRangeNotation $_.version  -TargetFrameworkName $TargetFrameworkName -Install:$Install
+                Import-WUNuGetPackageAssembly -PackageID $_.id -PackageDirectoryPath $PackageDirectoryPath -VersionRangeNotation $_.version -TargetFrameworkName $TargetFrameworkName -Install:$Install
             }
 
             if (!$aAssemblyPaths) {

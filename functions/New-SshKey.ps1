@@ -56,62 +56,71 @@
         $Force
     )
 
-    Set-StrictMode -Version 'Latest'
+    begin {
+        Set-StrictMode -Version 'Latest'
 
-    # Escape when specifying an empty string in the command argument
-    $emptyParam = @{
-        '' = '""'
-    }
-    if ($emptyParam.ContainsKey($Comment)) {
-        $Comment = $emptyParam.$Comment
-    }
-    if ($emptyParam.ContainsKey($Passphrase)) {
-        $Passphrase = $emptyParam.$Passphrase
-    }
-    elseif ($Passphrase.Length -lt 5) {
-        Write-Error 'Passphrase must be a minimum of 5 characters.'
-        return
-    }
-
-    # Get the full path of the key file and create the parent directory
-    $KeyFullPath = ConvertTo-WUFullPath -LiteralPath $KeyPath -BasePath '~/.ssh' -Parents
-    if (!$KeyFullPath) {
-        return
+        # Escape when specifying an empty string in the command argument
+        $emptyParam = @{
+            '' = '""'
+        }
+        if ($emptyParam.ContainsKey($Comment)) {
+            $Comment = $emptyParam.$Comment
+        }
+        if ($emptyParam.ContainsKey($Passphrase)) {
+            $Passphrase = $emptyParam.$Passphrase
+        }
+        elseif ($Passphrase.Length -lt 5) {
+            Write-Error 'Passphrase must be a minimum of 5 characters.'
+            return
+        }
     }
 
-    # Test the parent directory of the key file
-    $keyParentPath = Split-Path $KeyFullPath -Parent
-    if (!$keyParentPath) {
-        Write-Error "Failed to get the parent directory of path '$KeyFullPath'."
-        return
-    }
-
-    if (!(Test-Path -LiteralPath $keyParentPath) -or !(Assert-WUPathProperty -LiteralPath $keyParentPath -PSProvider FileSystem -PathType Container)) {
-        return
-    }
-
-    if ((Test-Path -LiteralPath $KeyFullPath)) {
-        # If the key path already exists
-        if (!$Force) {
-            Write-Error "Path '$KeyFullPath' already exists. Specify -Force to delete the item and create a new key file."
+    process {
+        # Get the full path of the key file and create the parent directory
+        $KeyFullPath = ConvertTo-WUFullPath -LiteralPath $KeyPath -BasePath '~/.ssh' -Parents
+        if (!$KeyFullPath) {
             return
         }
 
-        Remove-Item -LiteralPath $KeyFullPath -Force
-    }
-
-    $cmd = '& ssh-keygen -qo'
-    $cmd = '{0} -t "{1}" -b "{2}" -C "{3}" -N "{4}" -f "{5}"' -f $cmd, $Type, $Bits, (Convert-WUString -String $Comment -Type EscapeForPowerShellDoubleQuotation), (Convert-WUString -String $Passphrase -Type EscapeForPowerShellDoubleQuotation), (Convert-WUString -String $KeyFullPath -Type EscapeForPowerShellDoubleQuotation)
-
-    if ($pscmdlet.ShouldProcess($cmd, 'Execute')) {
-        $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
-        Write-Verbose $result
-
-        if (!(Test-Path -LiteralPath $KeyFullPath)) {
-            Write-Error 'Failed to create ssh key.'
+        # Test the parent directory of the key file
+        $keyParentPath = Split-Path $KeyFullPath -Parent
+        if (!$keyParentPath) {
+            Write-Error "Failed to get the parent directory of path '$KeyFullPath'."
+            return
+        }
+        if (!(Test-Path -LiteralPath $keyParentPath) -or !(Assert-WUPathProperty -LiteralPath $keyParentPath -PSProvider FileSystem -PathType Container)) {
             return
         }
 
-        return (Get-Item -LiteralPath $keyFullPath)
+        if ((Test-Path -LiteralPath $KeyFullPath)) {
+            # If the key path already exists
+            if (!$Force) {
+                Write-Error "Path '$KeyFullPath' already exists. Specify -Force to delete the item and create a new key file."
+                return
+            }
+
+            try {
+                Remove-Item -LiteralPath $KeyFullPath -Force -ErrorAction Stop
+            }
+            catch {
+                Write-Error $_ -ErrorAction $ErrorActionPreference
+                return
+            }
+        }
+
+        $cmd = '& ssh-keygen -qo'
+        $cmd = '{0} -t "{1}" -b "{2}" -C "{3}" -N "{4}" -f "{5}"' -f $cmd, $Type, $Bits, (Convert-WUString -String $Comment -Type EscapeForPowerShellDoubleQuotation), (Convert-WUString -String $Passphrase -Type EscapeForPowerShellDoubleQuotation), (Convert-WUString -String $KeyFullPath -Type EscapeForPowerShellDoubleQuotation)
+
+        if ($pscmdlet.ShouldProcess($cmd, 'Execute')) {
+            $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
+            Write-Verbose $result
+
+            if (!(Test-Path -LiteralPath $KeyFullPath)) {
+                Write-Error 'Failed to create ssh key.'
+                return
+            }
+
+            return (Get-Item -LiteralPath $keyFullPath)
+        }
     }
 }

@@ -61,6 +61,7 @@
 
     end {
         $mediaProperties = @()
+
         foreach ($aPath in $paths) {
             $mediaJsonStr = $null
             $mediaJsonStr = ffprobe.exe -v quiet -print_format json -show_format -show_streams $aPath
