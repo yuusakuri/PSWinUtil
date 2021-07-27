@@ -11,6 +11,11 @@
 
         Set the refresh rate of DISPLAY1 to 60.
 
+        .EXAMPLE
+        PS C:\>Get-WUMonitor | Where-Object { $_.primary -eq $true } | Set-WUMonitor -Frequency 60
+
+        Set the refresh rate of primary monitor to 60.
+
         .LINK
         Get-WUMonitor
     #>
@@ -30,7 +35,6 @@
         # Specify the monitor device name. Example: `\\.\DISPLAY1`
         [Parameter(Position = 0,
             ParameterSetName = 'DeviceName',
-            ValueFromPipeline,
             ValueFromPipelineByPropertyName)]
         [string[]]
         $DeviceName,
@@ -59,27 +63,34 @@
         $monitors = @()
         $monitors += Get-WUMonitor
         if (!$monitors) {
+            Write-Error "Cannot find any monitor information."
             return
         }
     }
 
     process {
-        $monitors |
+        $matchingMonitors = @()
+        $matchingMonitors += $monitors |
         Where-Object {
             if ($PSBoundParameters.ContainsKey('MonitorIndex')) {
                 if (!($_.monitorIndex -in [string[]]$MonitorIndex)) {
-                    Write-Error ("Cannot find monitor where monitorIndex is {0}." -f (([string[]]$MonitorIndex) -join ' or ')) -ErrorAction $ErrorActionPreference
                     return $false
                 }
             }
             if ($PSBoundParameters.ContainsKey('DeviceName')) {
                 if (!($_.deviceName -in $DeviceName)) {
-                    Write-Error ("Cannot find monitor where deviceName is {0}." -f (([string[]]$DeviceName) -join ' or ')) -ErrorAction $ErrorActionPreference
                     return $false
                 }
             }
             return $true
-        } |
+        }
+
+        if (!$matchingMonitors) {
+            Write-Error "No matching monitor found." -ErrorAction $ErrorActionPreference
+            return
+        }
+
+        $matchingMonitors |
         ForEach-Object {
             $aMonitor = $_
 
@@ -95,13 +106,16 @@
             if (!$PSBoundParameters.ContainsKey('Frequency')) {
                 $Frequency = $aMonitor.frequency
             }
+            $monitorIndexForSetdisplay = ([int]$aMonitor.monitorIndex) - 1
 
-            $cmd = 'nircmd.exe setdisplay "monitor:{0}" "{1}" "{2}" "{3}" "{4}"' -f $aMonitor.monitorIndex, $HorizontalResolution, $VerticalResolution, $BitsPerPixel, $Frequency
-            if ($PSCmdlet.ShouldProcess(("DISPLAY{0}", "Change the horizontal resolution to $HorizontalResolution, the vertical resolution to $VerticalResolution, the color depth to $BitsPerPixel, and the refresh rate to $Frequency." -f $aMonitor.monitorIndex))) {
+            $cmd = 'nircmd.exe setdisplay "monitor:{0}" "{1}" "{2}" "{3}" "{4}"' -f $monitorIndexForSetdisplay, $HorizontalResolution, $VerticalResolution, $BitsPerPixel, $Frequency
+            if ($PSCmdlet.ShouldProcess(("DISPLAY{0}", "Change the horizontal resolution to $HorizontalResolution, the vertical resolution to $VerticalResolution, the color depth to $BitsPerPixel, and the refresh rate to $Frequency." -f $monitorIndexForSetdisplay))) {
                 $result = ''
                 $result = (Invoke-Expression $cmd | ForEach-Object ToString) -join [System.Environment]::NewLine
                 Write-Debug ('Command: {0}' -f $cmd)
-                Write-Verbose $result
+                if ($result) {
+                    Write-Verbose $result
+                }
             }
         }
     }
