@@ -11,12 +11,12 @@
         Returns a boolean value indicating whether the path properties match.
 
         .EXAMPLE
-        PS C:\>Test-WUPathProperty -LiteralPath $env:APPDATA -PSProvider FileSystem
+        PS C:\>Assert-WUPathProperty -LiteralPath $env:APPDATA -PSProvider FileSystem
 
         In this example, `$true` is returned because the PSProvider of path `$env:APPDATA` is FileSystem.
 
         .EXAMPLE
-        PS C:\>Test-WUPathProperty -LiteralPath $env:APPDATA -PSProvider FileSystem -PathType Leaf
+        PS C:\>Assert-WUPathProperty -LiteralPath $env:APPDATA -PSProvider FileSystem -PathType Leaf
 
         In this example, an error is written and `$false` is returned because the PathType of path `$env:APPDATA` is Container.
 
