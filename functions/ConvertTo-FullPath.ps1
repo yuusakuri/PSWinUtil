@@ -9,12 +9,12 @@
         .EXAMPLE
         PS C:\>ConvertTo-WUFullPath -Path 'power*ise.exe' -BasePath 'C:\Windows\System32\WindowsPowerShell\v1.0'
 
-        Returns C:\Windows\System32\WindowsPowerShell\v1.0\powershell_ise.exe
+        Returns `C:\Windows\System32\WindowsPowerShell\v1.0\powershell_ise.exe`.
 
         .EXAMPLE
-        PS C:\> ConvertTo-WUFullPath 'ttttttt' -BasePath '/'
+        PS C:\>ConvertTo-WUFullPath 'NON_EXISTENT_PATH' -BasePath '/'
 
-        Returns C:\ttttttt
+        Returns `C:\NON_EXISTENT_PATH`.
     #>
 
     [CmdletBinding(

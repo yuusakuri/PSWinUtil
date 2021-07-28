@@ -7,19 +7,28 @@
         Convert strings for a specific purpose.
 
         .EXAMPLE
-        PS C:\>Convert-WUString -String ('{0}{1}' -f [char]0xFF11, [char]0xFF12) -Type FullWidthNumberToHalfWidthNumber
-        12
+        PS C:\>$beforeString = '{0}{1}' -f [char]0xFF11, [char]0xFF12
+        PS C:\>$afterString  = Convert-WUString -String $beforeString -Type FullWidthNumberToHalfWidthNumber
+        PS C:\>Write-Host ('before: {0}' -f $beforeString)
+        PS C:\>Write-Host ('after : {0}' -f $afterString)
 
         .EXAMPLE
-        PS C:\>Convert-WUString -String ('{0}{1}' -f [char]0xFF21, [char]0xFF41) -Type FullWidthAlphabetToHalfWidthAlphabet
-        Aa
+        PS C:\>$beforeString = '{0}{1}' -f [char]0xFF21, [char]0xFF41
+        PS C:\>$afterString  = Convert-WUString -String $beforeString -Type FullWidthAlphabetToHalfWidthAlphabet
+        PS C:\>Write-Host ('before: {0}' -f $beforeString)
+        PS C:\>Write-Host ('after : {0}' -f $afterString)
 
         .EXAMPLE
-        PS C:\>Convert-WUString -String 'apple_orange-CHERRY melon' -Type FullWidthNumberToHalfWidthNumber
-        AppleOrangeCHERRYMelon
+        PS C:\>$beforeString = 'apple_orange-CHERRY melon'
+        PS C:\>$afterString  = Write-Output $beforeString | Convert-WUString -Type UpperCamelCase
+        PS C:\>Write-Host ('before: {0}' -f $beforeString)
+        PS C:\>Write-Host ('after : {0}' -f $afterString)
 
         .EXAMPLE
-        PS C:\>Convert-WUString -String ('a`$a{0}{1}{2}"' -f [char]0x201C, [char]0x201D, [char]0x201E) -Type EscapeForPowerShellDoubleQuotation
+        PS C:\>$beforeString = 'a`$a{0}{1}{2}"' -f [char]0x201C, [char]0x201D, [char]0x201E
+        PS C:\>$afterString  = Write-Output $beforeString | Convert-WUString -Type EscapeForPowerShellDoubleQuotation
+        PS C:\>Write-Host ('before: {0}' -f $beforeString)
+        PS C:\>Write-Host ('after : {0}' -f $afterString)
     #>
 
     [CmdletBinding()]

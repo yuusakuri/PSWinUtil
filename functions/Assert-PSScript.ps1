@@ -11,17 +11,17 @@
         Returns a boolean value indicating whether the syntax and file extensions of PowerShell scripts are valid.
 
         .EXAMPLE
-        PS C:\>Test-WUPSScript -LiteralPath 'PATH_TO_PSSCRIPT' -AllowedExtension '.ps1'
+        PS C:\>Assert-WUPSScript -LiteralPath 'PATH_TO_PSSCRIPT' -AllowedExtension '.ps1'
 
         This example returns `$true` if the file extension is `.ps1` and has a valid syntax, otherwise it writes an error and returns `$false`.
 
         .EXAMPLE
-        PS C:\>Test-WUPSScript -Command '{"'
+        PS C:\>Assert-WUPSScript -Command '{"'
 
         This example writes an error and returns `$false`.
 
         .EXAMPLE
-        PS C:\>(New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/yuusakuri/PSWinUtil/master/functions/Find-Path.ps1') | Test-WUPSScript
+        PS C:\>(New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/yuusakuri/PSWinUtil/master/functions/Find-Path.ps1') | Assert-WUPSScript
 
         This example returns `$true`.
 

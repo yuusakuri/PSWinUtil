@@ -12,14 +12,14 @@
         Returns the key file path if the change was successful.
 
         .EXAMPLE
-        PS C:\>Edit-WUSshKey -Path test_rsa -NewPassphrase '' -CurrentPassphrase 'aaaaaa'
+        PS C:\>Edit-WUSshKey -Path test_rsa -NewPassphrase '' -CurrentPassphrase 'PASSPHRASE'
 
-        In this example, change the key file passphrase from 'aaaaaa' to none.
+        Change the key file passphrase from 'PASSPHRASE' to none.
 
         .EXAMPLE
         PS C:\>Edit-WUSshKey -Path test_rsa -Comment 'comment' -CurrentPassphrase ''
 
-        In this example, change the comment in the key file with an empty passphrase to 'comment'.
+        Change the comment in the key file with an empty passphrase to 'comment'.
 
         .LINK
         New-WUSshKey

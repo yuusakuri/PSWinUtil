@@ -10,6 +10,11 @@
         System.String
 
         Returns this computer type. The range of values is 'Desktop', 'Laptop', 'Tablet' or 'Server'.
+
+        .EXAMPLE
+        PS C:\>Get-ChassisType
+
+        Returns this computer Chassis type.
     #>
 
     [CmdletBinding()]

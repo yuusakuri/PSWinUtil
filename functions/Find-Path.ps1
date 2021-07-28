@@ -12,29 +12,29 @@
         Returns the path found by searching.
 
         .EXAMPLE
-        PS C:\> Find-WUPath 'powershell.exe'
+        PS C:\>Find-WUPath 'powershell.exe'
 
-        In this example, Finds and returns the path where the leaf contains powershell.exe.
-
-        .EXAMPLE
-        PS C:\> Find-WUPath 'powershell.exe' -Strict
-
-        In this example, Finds and returns the path where the leaf exactly matches powershell.exe.
+        Return the paths where the leaf contains powershell.exe.
 
         .EXAMPLE
-        PS C:\> Find-WUPath 'PowerShell\v1.0\powershell.exe' -Strict
+        PS C:\>Find-WUPath 'powershell.exe' -Program
 
-        In this example, Searches for and returns a path whose leaf exactly matches powershell.exe and whose parent path contains PowerShell\v1.0.
-
-        .EXAMPLE
-        PS C:\> Find-WUPath 'powershell.exe' -Strict -Exclude 'Windows'
-
-        This example searches for a path whose path does not match'Windows' and whose filename is powershell.exe.
+        Find the program file first from all commands and shortcut file.
 
         .EXAMPLE
-        PS C:\> Find-WUPath 'powershell.exe' -Program
+        PS C:\>Find-WUPath 'powershell.exe' -Strict
 
-        In this example, powershell.exe is searched for in the order of command, start menu shortcut file link destination, es.exe, and the path containing powershell.exe in the leaf is returned.
+        Return the paths where the leaf exactly matches `powershell.exe`.
+
+        .EXAMPLE
+        PS C:\>Find-WUPath 'PowerShell\v1.0\powershell.exe' -Strict
+
+        Returns the paths where the leaf exactly matches `powershell.exe` and the parent path contains `PowerShell\v1.0`.
+
+        .EXAMPLE
+        PS C:\>Find-WUPath 'powershell.exe' -Strict -Exclude 'Windows'
+
+        Return the paths whose path does not match 'Windows' and whose filename is `powershell.exe`.
     #>
 
     [CmdletBinding()]
@@ -62,7 +62,7 @@
         [switch]
         $Strict,
 
-        # Searches the command from the leaf of the path specified by -Name and returns the path if found. If not found, searches all locations by using es.exe.
+        # First, find the program file that matches the value specified for parameter `Name` in all commands that are installed on the computer and the shortcut file in the Start menu. If there is no match, use es.exe to find one.
         [switch]
         $Program
     )

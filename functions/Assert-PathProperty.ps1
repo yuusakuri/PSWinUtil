@@ -13,12 +13,12 @@
         .EXAMPLE
         PS C:\>Assert-WUPathProperty -LiteralPath $env:APPDATA -PSProvider FileSystem
 
-        In this example, `$true` is returned because the PSProvider of path `$env:APPDATA` is FileSystem.
+        Returns `$true`.
 
         .EXAMPLE
         PS C:\>Assert-WUPathProperty -LiteralPath $env:APPDATA -PSProvider FileSystem -PathType Leaf
 
-        In this example, an error is written and `$false` is returned because the PathType of path `$env:APPDATA` is Container.
+        Writes an error that PathType of path `$env:APPDATA` is not `Leaf` and Returns `$false`.
 
         .LINK
         Test-WUPathProperty
