@@ -54,7 +54,11 @@
         # Specify frequency (refresh rate).
         [Alias('RefreshRate')]
         [int]
-        $Frequency
+        $Frequency,
+
+        # Set the resolution and refresh rate to the highest values.
+        [switch]
+        $HighestQuality
     )
 
     begin {
@@ -94,17 +98,27 @@
         ForEach-Object {
             $aMonitor = $_
 
-            if (!$PSBoundParameters.ContainsKey('HorizontalResolution')) {
-                $HorizontalResolution = $aMonitor.horizontalResolution
+            if ($HighestQuality) {
+                $bestDisplayMode = $aMonitor.supportedDisplayModes |
+                Select-Object -Last 1
+
+                $HorizontalResolution = $bestDisplayMode.horizontalResolution
+                $VerticalResolution = $bestDisplayMode.verticalResolution
+                $Frequency = $bestDisplayMode.frequency
             }
-            if (!$PSBoundParameters.ContainsKey('VerticalResolution')) {
-                $VerticalResolution = $aMonitor.verticalResolution
+            else {
+                if (!$PSBoundParameters.ContainsKey('HorizontalResolution')) {
+                    $HorizontalResolution = $aMonitor.horizontalResolution
+                }
+                if (!$PSBoundParameters.ContainsKey('VerticalResolution')) {
+                    $VerticalResolution = $aMonitor.verticalResolution
+                }
+                if (!$PSBoundParameters.ContainsKey('Frequency')) {
+                    $Frequency = $aMonitor.frequency
+                }
             }
             if (!$PSBoundParameters.ContainsKey('BitsPerPixel')) {
                 $BitsPerPixel = $aMonitor.bitsPerPixel
-            }
-            if (!$PSBoundParameters.ContainsKey('Frequency')) {
-                $Frequency = $aMonitor.frequency
             }
             $monitorIndexForSetdisplay = ([int]$aMonitor.monitorIndex) - 1
 
