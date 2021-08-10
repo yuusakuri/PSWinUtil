@@ -100,52 +100,96 @@ function Set-WURegistryFromHash {
     }
 }
 
-function Get-WUAvailableDotnet {
+function Get-WUInstalledDotnetVersion {
     [CmdletBinding()]
     param (
     )
 
-    $availableDotnets = @()
+    function Get-WUInstalledDotnetVersionFromDotnetRuntimeInfo {
+        param (
+            $RuntimeInfo
+        )
 
-    $availableDotnets += [PSCustomObject]@{
-        'name'    = '.NETCoreApp'
-        'version' = . {
-            if ((Get-Command -Name 'dotnet' -ErrorAction Ignore)) {
-                # .NET Core or .NET 5+ is installed.
-                dotnet --list-runtimes |
-                Where-Object { $_ -clike 'Microsoft.NETCore.App*' } |
-                ForEach-Object {
-                    [regex]::Matches(($_ -replace '^Microsoft.NETCore.App '), '^[\d.]+') |
-                    Where-Object { $_ } |
-                    Select-Object -ExpandProperty Value
-                } |
-                Sort-Object { [System.Version]$_ } |
-                Select-Object -Last 1
-            }
-            else {
-                $null
-            }
-        }
-    }
+        $RuntimeInfo |
+        ForEach-Object {
+            $aFrameworkRuntimes = $_
 
-    $availableDotnets += [PSCustomObject]@{
-        'name'    = '.NETFramework'
-        'version' = . {
-            dotnetversions -b |
+            $aFrameworkRuntimes.versionRangeNotation |
             ForEach-Object {
-                [regex]::Matches($_, '^[\d.]+') |
-                Where-Object { $_ } |
-                Select-Object -ExpandProperty Value
-            } |
-            Sort-Object { [System.Version]$_ } |
-            Select-Object -Last 1
+                $aVersionRangeNotation = $_
+
+                [PSCustomObject]@{
+                    frameworkName        = $aFrameworkRuntimes.frameworkName
+                    versionRangeNotation = $aVersionRangeNotation
+                    version              = . {
+                        if (!$aFrameworkRuntimes.installedVersion) {
+                            return ''
+                        }
+
+                        $aFrameworkRuntimes.installedVersion |
+                        Where-Object { Test-WUVersion -Version $_ -VersionRangeNotation $aVersionRangeNotation } |
+                        Select-Object -Last 1
+                    }
+                }
+            }
         }
     }
 
-    $availableDotnets += [PSCustomObject]@{
-        'name'    = '.NETStandard'
-        'version' = . {
-            $dotnetStandardVersions = @(
+    $installedDotnetVersions = @()
+
+    $runtimeInfos = @(
+        @{
+            frameworkName        = '.NETCoreApp'
+            versionRangeNotation = @(
+                # compatibility
+                '[1.0,2.0)' # 1.x
+                '[2.0,3.0)' # 2.x
+                '[3.0,4.0)' # 3.x
+                '[5.0,6.0)' # 5.x
+            )
+            installedVersion     = . {
+                if ((Get-Command -Name 'dotnet' -ErrorAction Ignore)) {
+                    dotnet --list-runtimes |
+                    ForEach-Object {
+                        if ($_ -match 'Microsoft.NETCore.App\s+(?<version>\d+[\d.]+)') {
+                            $Matches['version']
+                        }
+                    }
+                }
+            }
+        }
+        @{
+            frameworkName        = '.NETFramework'
+            versionRangeNotation = @(
+                # compatibility
+                '[1.0,1.1)' # 1.0
+                '[1.1,1.2)' # 1.1
+                '[2.0,4.0)' # 2.x or 3.x
+                '[4.0,5.0)' # 4.x
+            )
+            installedVersion     = . {
+                if ((Get-Command -Name 'dotnetversions')) {
+                    dotnetversions -b |
+                    ForEach-Object {
+                        if ($_ -match '(?<version>\d+[\d.]+)') {
+                            $Matches['version']
+                        }
+                    }
+                }
+            }
+        }
+    )
+
+    $installedDotnetVersions += Get-WUInstalledDotnetVersionFromDotnetRuntimeInfo -RuntimeInfo $runtimeInfos
+
+    $runtimeInfos += @{
+        frameworkName        = '.NETStandard'
+        versionRangeNotation = @(
+            # All versions are backward compatible.
+            '[1.0,2.2)' # all
+        )
+        installedVersion     = . {
+            $dotnetStandardSupportInfos = @(
                 [PSCustomObject]@{
                     '.NETStandard'  = '1.0'
                     '.NETCoreApp'   = '1.0'
@@ -193,21 +237,35 @@ function Get-WUAvailableDotnet {
                 }
             )
 
-            $availableDotnets |
-            Where-Object { $_.version } |
-            Select-Object -First 1 |
-            ForEach-Object {
-                $aAvailableDotnet = $_
-                $dotnetStandardVersions |
-                Where-Object { $null -ne $_.($aAvailableDotnet.name) } |
-                Where-Object { [System.Version]$_.($aAvailableDotnet.name) -le [System.Version]$aAvailableDotnet.version } |
-                Select-Object -Last 1
+            $dotnetStandardSupportInfos |
+            Where-Object {
+                $aDotnetStandardSupportInfo = $_
+
+                $frameworkNames = '.NETCoreApp', '.NETFramework'
+                foreach ($aFrameworkName in $frameworkNames) {
+                    $isSupported = !($null -eq $aDotnetStandardSupportInfo.$aFrameworkName)
+                    if (!$isSupported) {
+                        continue
+                    }
+
+                    $isAvailable = $installedDotnetVersions |
+                    Where-Object { $_.frameworkName -eq $aFrameworkName } |
+                    Where-Object { $_.version } |
+                    Where-Object { Test-WUVersion -Version $aDotnetStandardSupportInfo.$aFrameworkName -VersionRangeNotation $_.versionRangeNotation } |
+                    Where-Object { Test-WUVersion -Version $aDotnetStandardSupportInfo.$aFrameworkName -MaximumVersion $_.version }
+                    if ($isAvailable) {
+                        $true
+                        break
+                    }
+                }
             } |
             Select-Object -ExpandProperty '.NETStandard'
         }
     }
 
-    return $availableDotnets
+    $installedDotnetVersions += Get-WUInstalledDotnetVersionFromDotnetRuntimeInfo -RuntimeInfo ($runtimeInfos | Select-Object -Last 1)
+
+    return $installedDotnetVersions
 }
 
 # Public functions

@@ -130,9 +130,9 @@
         return
     }
 
-    if (!(Test-Path 'Variable:AvailableDotnets')) {
-        $Script:AvailableDotnets = @()
-        $Script:AvailableDotnets += Get-WUAvailableDotnet
+    if (!(Test-Path 'Variable:InstalledDotnetVersions')) {
+        $Script:InstalledDotnetVersions = @()
+        $Script:InstalledDotnetVersions += Get-WUInstalledDotnetVersion
     }
     if (!(Test-Path 'Variable:DefinedTypes')) {
         $Script:DefinedTypes = @()
@@ -209,9 +209,11 @@
             $aAssembly = $_
             $aTargetFrameworkType = Rename-TargetFramework -Name $aAssembly.targetFramework.name
 
-            $Script:AvailableDotnets |
-            Where-Object { $_.name -eq $aTargetFrameworkType } |
-            Where-Object { [System.Version]$aAssembly.targetFramework.version -le [System.Version]$_.version }
+            $Script:InstalledDotnetVersions |
+            Where-Object { $_.frameworkName -eq $aTargetFrameworkType } |
+            Where-Object { Test-WUVersion -Version $aAssembly.targetFramework.version -VersionRangeNotation $_.versionRangeNotation } |
+            Where-Object { $_.version } |
+            Where-Object { Test-WUVersion -Version $aAssembly.targetFramework.version -MaximumVersion $_.version }
         }
 
         if (!$availableAssemblies) {
