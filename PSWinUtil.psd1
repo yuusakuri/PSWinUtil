@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.6.9'
+    ModuleVersion     = '1.6.10'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
@@ -96,7 +96,6 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Edit-WUSshKey',
         'Find-WUPath',
         'Get-WUChassisType',
-        'Get-WUInstalledDotnetVersion',
         'Get-WUInstalledNuGetPackage',
         'Get-WULnkTarget',
         'Get-WUMediaProperty',
@@ -226,4 +225,5 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # このモジュールからエクスポートされたコマンドの既定のプレフィックス。既定のプレフィックスをオーバーライドする場合は、Import-Module -Prefix を使用します。
     # DefaultCommandPrefix = 'u'
 
+}
 }
