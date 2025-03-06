@@ -12,7 +12,7 @@
     RootModule        = 'PSWinUtil.psm1'
 
     # このモジュールのバージョン番号です。
-    ModuleVersion     = '1.6.10'
+    ModuleVersion     = '2.0.0'
 
     # サポートされている PSEditions
     # CompatiblePSEditions = @()
@@ -31,19 +31,16 @@
 
     # このモジュールの機能の説明
     Description       = @'
-PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey and NuGet. It contains the following functions.
+PSWinUtil is a PowerShell module for Windows users. It contains the following functions.
 
 - Set Windows by rewriting the registry
 - Add environment variables from PowerShell script file or object.
 - Add the specified paths to the path environment variable.
 - Determines if the path properties match. This function is useful for testing if the specified path is a file system and if the extensions match.
-- Search for file or folder paths in rapidly by using Everything. Useful for finding executable files.
 - Get whether the computer is Desktop, Tablet, or Server from ChassisTypes.
 - Get information about installed NuGet packages in the NuGet packages installation directory.
 - Get link targets of shortcut (.lnk) files.
-- Get properties about media files such as video files, audio files, and image files.
 - Load assemblies from NuGet packages, including its dependencies. It is possible to automatically install the required packages.
-- Change the display settings.
 - Create SSH key using ssh-keygen.
 - Test if a version is in the allowed range.
 '@
@@ -67,7 +64,9 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
     # ProcessorArchitecture = ''
 
     # このモジュールをインポートする前にグローバル環境にインポートされている必要があるモジュール
-    # RequiredModules = @()
+    RequiredModules = @(
+        'Carbon'
+    )
 
     # このモジュールをインポートする前に読み込まれている必要があるアセンブリ
     # RequiredAssemblies = @()
@@ -91,26 +90,19 @@ PSWinUtil is a PowerShell module for Windows users. Dependencies are automatical
         'Assert-WUPathProperty',
         'Assert-WUPSScript',
         'Convert-WUString',
+        'Convert-WUStringToBool',
         'ConvertTo-WUFullPath',
         'ConvertTo-WUNuspec',
         'Edit-WUSshKey',
-        'Find-WUPath',
         'Get-WUChassisType',
-        'Get-WUInstalledDotnetVersion',
         'Get-WUInstalledNuGetPackage',
         'Get-WULnkTarget',
-        'Get-WUMediaProperty',
-        'Get-WUMonitor',
         'Get-WURandomString',
         'Get-WUUriWithoutQuery',
         'Import-WUNuGetPackageAssembly',
-        'Install-WUApp',
-        'Invoke-WUDownload',
         'Join-WUUri',
         'New-WUSshKey',
         'Remove-WUPathEnvironmentVariable',
-        'Set-WUMonitor',
-        'Start-WUDevcontainer',
         'Start-WUScriptAsAdmin',
         'Test-WUPathProperty',
         'Test-WUPSScript',

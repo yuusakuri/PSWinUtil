@@ -1,16 +1,22 @@
 # PSWinUtil
 
-PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey. It contains the following functions.
+PSWinUtil is a PowerShell module for Windows users. It contains the following functions.
 
 - Set Windows by rewriting the registry
-- Instantly find file and folder paths
-- Get media file properties such as videos and photos
-- Get and change monitor resolution and refresh rate
-- Add or remove paths for path environment variables
+- Add environment variables from PowerShell script file or object.
+- Add the specified paths to the path environment variable.
+- Determines if the path properties match. This function is useful for testing if the specified path is a file system and if the extensions match.
+- Get whether the computer is Desktop, Tablet, or Server from ChassisTypes.
+- Get information about installed NuGet packages in the NuGet packages installation directory.
+- Get link targets of shortcut (.lnk) files.
+- Load assemblies from NuGet packages, including its dependencies. It is possible to automatically install the required packages.
+- Create SSH key using ssh-keygen.
+- Test if a version is in the allowed range.
 
 ## Requirements
 
-PowerShell 5.0 (or later)
+Windows PowerShell 5.1 (or later)
+Carbon 2.15.1 (or later)
 
 ## Installing
 
@@ -24,6 +30,7 @@ scoop install yuusakuri/pswinutil
 ### Option 2: PowerShellGet
 
 ```powershell
+Install-Module -Name Carbon -Scope CurrentUser
 Install-Module -Name PSWinUtil -Scope CurrentUser
 ```
 

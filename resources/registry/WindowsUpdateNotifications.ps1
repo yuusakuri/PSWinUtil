@@ -17,7 +17,7 @@
             Type      = 'REG_DWORD'
             Data      = @{
                 Enable  = 1
-                Disable = 1
+                Disable = 0
             }
         }
     }
