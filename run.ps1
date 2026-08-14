@@ -114,6 +114,10 @@ $assertAsciiFile = {
         throw "A UTF-8 BOM is not allowed: $($File.FullName)"
     }
 
+    if ($bytes -contains 0x0D) {
+        throw "A carriage return is not allowed: $($File.FullName)"
+    }
+
     foreach ($byte in $bytes) {
         if ($byte -gt 0x7F) {
             throw "A non-ASCII byte is not allowed: $($File.FullName)"
@@ -301,12 +305,14 @@ $invokeBuild = {
         Get-ChildItem -LiteralPath $outputModuleDirectory -File -Recurse |
             Where-Object { $_.Extension -in @('.ps1', '.psd1', '.psm1', '.ps1xml') }
     )
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     foreach ($generatedPowerShellFile in $generatedPowerShellFiles) {
         $generatedPowerShellText = [System.IO.File]::ReadAllText($generatedPowerShellFile.FullName)
+        $generatedPowerShellText = $generatedPowerShellText.Replace("`r`n", "`n").Replace("`r", "`n")
         [System.IO.File]::WriteAllText(
             $generatedPowerShellFile.FullName,
             $generatedPowerShellText,
-            [System.Text.Encoding]::ASCII
+            $utf8NoBom
         )
     }
 }

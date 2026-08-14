@@ -38,4 +38,4 @@ jobs:
           }
 
       - name: Run verification
-        run: .\run.ps1 ci
+        run: powershell.exe -ExecutionPolicy Bypass -File .\run.ps1 ci

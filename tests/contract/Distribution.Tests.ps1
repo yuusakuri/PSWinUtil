@@ -10,5 +10,4 @@ Describe 'Distribution contents' {
             Test-Path -LiteralPath (Join-Path -Path $script:OutputModuleDirectory -ChildPath 'PSWinUtil.psm1') -PathType Leaf
         ) | Should -Not -Contain $false
     }
-
 }
