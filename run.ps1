@@ -68,6 +68,7 @@ $importRequiredModule = {
 
 $getSourceFiles = {
     $rootFileNames = @(
+        'install.ps1'
         'run.ps1'
         'build.requirements.psd1'
         'PSScriptFormatterSettings.psd1'

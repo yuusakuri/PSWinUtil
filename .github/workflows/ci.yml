@@ -19,23 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install development modules
-        run: |
-          $ErrorActionPreference = 'Stop'
-          [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-
-          Install-PackageProvider -Name NuGet -Scope CurrentUser -Force
-          Install-Module -Name PowerShellGet -Repository PSGallery -Scope CurrentUser -Force -AllowClobber
-          Install-Module -Name Microsoft.PowerShell.PSResourceGet -Repository PSGallery -RequiredVersion 1.2.0 -Scope CurrentUser -Force -AllowClobber
-          Import-Module -Name Microsoft.PowerShell.PSResourceGet -RequiredVersion 1.2.0 -Force
-
-          $requirements = Import-PowerShellDataFile -Path './build.requirements.psd1'
-          foreach ($moduleName in $requirements.Keys) {
-              if ($moduleName -eq 'Microsoft.PowerShell.PSResourceGet') {
-                  continue
-              }
-
-              Install-PSResource -Name $moduleName -Version $requirements[$moduleName] -Scope CurrentUser -TrustRepository -Quiet
-          }
+        run: .\install.ps1
 
       - name: Run verification
         run: powershell.exe -ExecutionPolicy Bypass -File .\run.ps1 ci
