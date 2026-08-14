@@ -43,6 +43,7 @@ Describe 'Public command help' {
             'OutVariable'
             'OutBuffer'
             'PipelineVariable'
+            'ProgressAction'
             'WhatIf'
             'Confirm'
         )
