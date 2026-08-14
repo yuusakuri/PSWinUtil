@@ -75,7 +75,8 @@ function New-WUSshKey {
         [switch]$Force
     )
 
-    $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop
+    $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop |
+        Select-Object -First 1
     $keyPath = ConvertTo-WUFullPath -Path $Path
     $publicKeyPath = "$keyPath.pub"
     $keyExists = Test-Path -LiteralPath $keyPath
@@ -99,11 +100,22 @@ function New-WUSshKey {
         Remove-Item -LiteralPath $publicKeyPath -Force
     }
 
+    $nativeComment = $Comment
+    $nativePassphrase = $Passphrase
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        if ($nativeComment.Length -eq 0) {
+            $nativeComment = '""'
+        }
+        if ($nativePassphrase.Length -eq 0) {
+            $nativePassphrase = '""'
+        }
+    }
+
     $arguments = @('-q', '-t', $Type)
     if ($PSBoundParameters.ContainsKey('Bits')) {
         $arguments += @('-b', [string]$Bits)
     }
-    $arguments += @('-C', $Comment, '-N', $Passphrase, '-f', $keyPath)
+    $arguments += @('-C', $nativeComment, '-N', $nativePassphrase, '-f', $keyPath)
 
     $commandOutput = @(& $sshKeygen.Source @arguments 2>&1)
     $exitCode = $LASTEXITCODE

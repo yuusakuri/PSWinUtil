@@ -64,13 +64,28 @@ function Edit-WUSshKey {
 
     $fullKeyPath = ConvertTo-WUFullPath -Path $KeyPath
     Assert-WUPathProperty -Path $fullKeyPath -Leaf -Readable -Writable
-    $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop
+    $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop |
+        Select-Object -First 1
 
-    $action = 'Change SSH key passphrase'
-    $arguments = @('-q', '-p', '-P', $CurrentPassphrase, '-N', $NewPassphrase, '-f', $fullKeyPath)
-    if ($PSCmdlet.ParameterSetName -eq 'Comment') {
+    $nativeCurrentPassphrase = $CurrentPassphrase
+    if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeCurrentPassphrase.Length -eq 0) {
+        $nativeCurrentPassphrase = '""'
+    }
+
+    if ($PSCmdlet.ParameterSetName -eq 'Passphrase') {
+        $action = 'Change SSH key passphrase'
+        $nativeNewPassphrase = $NewPassphrase
+        if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeNewPassphrase.Length -eq 0) {
+            $nativeNewPassphrase = '""'
+        }
+        $arguments = @('-q', '-p', '-P', $nativeCurrentPassphrase, '-N', $nativeNewPassphrase, '-f', $fullKeyPath)
+    } else {
         $action = 'Change SSH key comment'
-        $arguments = @('-q', '-c', '-P', $CurrentPassphrase, '-C', $Comment, '-f', $fullKeyPath)
+        $nativeComment = $Comment
+        if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeComment.Length -eq 0) {
+            $nativeComment = '""'
+        }
+        $arguments = @('-q', '-c', '-P', $nativeCurrentPassphrase, '-C', $nativeComment, '-f', $fullKeyPath)
     }
 
     if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $action)) {

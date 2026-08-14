@@ -18,6 +18,7 @@ Describe 'New-WUSshKey' {
         }
         Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
             [pscustomobject]@{ Source = 'Invoke-WUTestSshKeygen' }
+            [pscustomobject]@{ Source = 'unused-ssh-keygen.exe' }
         }
     }
 
@@ -57,6 +58,7 @@ Describe 'Edit-WUSshKey' {
         }
         Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
             [pscustomobject]@{ Source = 'Invoke-WUTestSshKeygen' }
+            [pscustomobject]@{ Source = 'unused-ssh-keygen.exe' }
         }
     }
 
