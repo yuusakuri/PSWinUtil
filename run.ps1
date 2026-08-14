@@ -61,8 +61,7 @@ $importRequiredModule = {
     $requiredVersion = [string]$requirements[$Name]
     try {
         Import-Module -Name $Name -RequiredVersion $requiredVersion -Force -ErrorAction Stop
-    }
-    catch {
+    } catch {
         throw "Install $Name $requiredVersion before running this command. $($_.Exception.Message)"
     }
 }
