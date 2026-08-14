@@ -1,4 +1,28 @@
 function Compare-WUPath {
+    <#
+    .SYNOPSIS
+    Compares two PATH environment variable items.
+
+    .DESCRIPTION
+    Compares two paths without case sensitivity after trimming surrounding spaces and a trailing backslash. Drive roots keep their trailing backslash.
+
+    .PARAMETER ReferencePath
+    Specifies the first path to compare.
+
+    .PARAMETER DifferencePath
+    Specifies the second path to compare.
+
+    .EXAMPLE
+    Compare-WUPath -ReferencePath 'C:\Tools' -DifferencePath 'c:\tools\'
+
+    Returns true because the paths have the same normalized value.
+
+    .INPUTS
+    None
+
+    .OUTPUTS
+    System.Boolean
+    #>
     [CmdletBinding()]
     [OutputType([bool])]
     param(

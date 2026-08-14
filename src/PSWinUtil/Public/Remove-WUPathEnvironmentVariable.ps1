@@ -23,6 +23,11 @@ function Remove-WUPathEnvironmentVariable {
     .OUTPUTS
     None
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSShouldProcess',
+        '',
+        Justification = 'Set-WUEnvironmentVariable evaluates ShouldProcess for the delegated change.'
+    )]
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(
@@ -42,6 +47,12 @@ function Remove-WUPathEnvironmentVariable {
 
     begin {
         $pathsToRemove = @()
+        $shouldProcessParameters = @{}
+        foreach ($parameterName in @('WhatIf', 'Confirm')) {
+            if ($PSBoundParameters.ContainsKey($parameterName)) {
+                $shouldProcessParameters[$parameterName] = $PSBoundParameters[$parameterName]
+            }
+        }
     }
 
     process {
@@ -49,7 +60,8 @@ function Remove-WUPathEnvironmentVariable {
     }
 
     end {
-        $currentValue = Get-WUEnvironmentVariableValue -Name 'Path' -Scope $Scope
+        $target = [System.EnvironmentVariableTarget]$Scope
+        $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
         $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
         $remainingPaths = @()
         $removedPath = $false
@@ -74,9 +86,10 @@ function Remove-WUPathEnvironmentVariable {
         }
 
         $updatedValue = Join-WUPathEnvironmentVariable -Path $remainingPaths
-        $targetDescription = "$Scope Path environment variable"
-        if ($PSCmdlet.ShouldProcess($targetDescription, 'Remove paths')) {
-            Set-WUEnvironmentVariableValue -Name 'Path' -Value $updatedValue -Scope $Scope -Confirm:$false
-        }
+        Set-WUEnvironmentVariable `
+            -Name 'Path' `
+            -Value $updatedValue `
+            -Scope $Scope `
+            @shouldProcessParameters
     }
 }

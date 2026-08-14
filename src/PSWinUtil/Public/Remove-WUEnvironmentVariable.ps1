@@ -23,6 +23,11 @@ function Remove-WUEnvironmentVariable {
     .OUTPUTS
     None
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSShouldProcess',
+        '',
+        Justification = 'Set-WUEnvironmentVariable evaluates ShouldProcess for the delegated change.'
+    )]
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(
@@ -40,17 +45,22 @@ function Remove-WUEnvironmentVariable {
         [string]$Scope = 'Process'
     )
 
+    begin {
+        $shouldProcessParameters = @{}
+        foreach ($parameterName in @('WhatIf', 'Confirm')) {
+            if ($PSBoundParameters.ContainsKey($parameterName)) {
+                $shouldProcessParameters[$parameterName] = $PSBoundParameters[$parameterName]
+            }
+        }
+    }
+
     process {
         foreach ($currentName in $Name) {
-            $currentValue = Get-WUEnvironmentVariableValue -Name $currentName -Scope $Scope
-            if ($null -eq $currentValue) {
-                continue
-            }
-
-            $targetDescription = "$Scope environment variable '$currentName'"
-            if ($PSCmdlet.ShouldProcess($targetDescription, 'Remove environment variable')) {
-                Set-WUEnvironmentVariableValue -Name $currentName -Remove -Scope $Scope -Confirm:$false
-            }
+            Set-WUEnvironmentVariable `
+                -Name $currentName `
+                -Value $null `
+                -Scope $Scope `
+                @shouldProcessParameters
         }
     }
 }

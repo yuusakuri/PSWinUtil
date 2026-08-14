@@ -45,6 +45,17 @@ Describe 'User environment variable integration' {
         ) | Should -Be 'user value'
     }
 
+    It 'gets a User environment variable' {
+        [System.Environment]::SetEnvironmentVariable(
+            $script:EnvironmentName,
+            'user value',
+            $script:EnvironmentTarget
+        )
+
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User |
+            Should -Be 'user value'
+    }
+
     It 'removes a User environment variable' {
         [System.Environment]::SetEnvironmentVariable(
             $script:EnvironmentName,
@@ -54,9 +65,26 @@ Describe 'User environment variable integration' {
 
         Remove-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User
 
-        [System.Environment]::GetEnvironmentVariable(
+        $actualValue = [System.Environment]::GetEnvironmentVariable(
             $script:EnvironmentName,
             $script:EnvironmentTarget
-        ) | Should -BeNullOrEmpty
+        )
+        ($null -eq $actualValue) | Should -BeTrue
+    }
+
+    It 'removes a User environment variable with a null value' {
+        [System.Environment]::SetEnvironmentVariable(
+            $script:EnvironmentName,
+            'value to remove',
+            $script:EnvironmentTarget
+        )
+
+        Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value $null -Scope User
+
+        $actualValue = [System.Environment]::GetEnvironmentVariable(
+            $script:EnvironmentName,
+            $script:EnvironmentTarget
+        )
+        ($null -eq $actualValue) | Should -BeTrue
     }
 }

@@ -45,6 +45,17 @@ Describe 'Machine environment variable integration' {
         ) | Should -Be 'machine value'
     }
 
+    It 'gets a Machine environment variable' {
+        [System.Environment]::SetEnvironmentVariable(
+            $script:EnvironmentName,
+            'machine value',
+            $script:EnvironmentTarget
+        )
+
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine |
+            Should -Be 'machine value'
+    }
+
     It 'removes a Machine environment variable' {
         [System.Environment]::SetEnvironmentVariable(
             $script:EnvironmentName,
@@ -54,9 +65,26 @@ Describe 'Machine environment variable integration' {
 
         Remove-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine
 
-        [System.Environment]::GetEnvironmentVariable(
+        $actualValue = [System.Environment]::GetEnvironmentVariable(
             $script:EnvironmentName,
             $script:EnvironmentTarget
-        ) | Should -BeNullOrEmpty
+        )
+        ($null -eq $actualValue) | Should -BeTrue
+    }
+
+    It 'removes a Machine environment variable with a null value' {
+        [System.Environment]::SetEnvironmentVariable(
+            $script:EnvironmentName,
+            'value to remove',
+            $script:EnvironmentTarget
+        )
+
+        Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value $null -Scope Machine
+
+        $actualValue = [System.Environment]::GetEnvironmentVariable(
+            $script:EnvironmentName,
+            $script:EnvironmentTarget
+        )
+        ($null -eq $actualValue) | Should -BeTrue
     }
 }
