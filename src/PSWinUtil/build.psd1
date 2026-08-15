@@ -3,5 +3,7 @@
     OutputDirectory = '../../output'
     UnversionedOutputDirectory = $true
     Encoding = 'ASCII'
-    CopyPaths = @()
+    CopyPaths = @(
+        'data'
+    )
 }

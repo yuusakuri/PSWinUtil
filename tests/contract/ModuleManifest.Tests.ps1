@@ -20,6 +20,71 @@ Describe 'Built module manifest' {
 
         @($manifest.RequiredModules).Count | Should -Be 0
     }
+
+    It 'exports every registry command' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $exportedCommands = @(
+            (Get-Module -Name 'PSWinUtil' -ErrorAction Stop).ExportedFunctions.Keys
+        )
+        $expectedCommands = @(
+            'Get-WURegistryProperty'
+            'Set-WURegistryProperty'
+            'Remove-WURegistryProperty'
+            'Get-WURegistrySetting'
+            'Set-WUAdvertisingIdMode'
+            'Enable-WUAppLaunchTracking'
+            'Disable-WUAppLaunchTracking'
+            'Enable-WUAppSuggestions'
+            'Disable-WUAppSuggestions'
+            'Enable-WUDarkMode'
+            'Disable-WUDarkMode'
+            'Enable-WUEdgeFirstRunExperience'
+            'Disable-WUEdgeFirstRunExperience'
+            'Enable-WUFileHistory'
+            'Disable-WUFileHistory'
+            'Enable-WULockScreen'
+            'Disable-WULockScreen'
+            'Enable-WULockWorkstation'
+            'Disable-WULockWorkstation'
+            'Enable-WULongPaths'
+            'Disable-WULongPaths'
+            'Enable-WUWidgets'
+            'Disable-WUWidgets'
+            'Enable-WURequireSignInOnWakeup'
+            'Disable-WURequireSignInOnWakeup'
+            'Enable-WUSaveZoneInformation'
+            'Disable-WUSaveZoneInformation'
+            'Enable-WUSmartScreenInShell'
+            'Disable-WUSmartScreenInShell'
+            'Enable-WUUac'
+            'Disable-WUUac'
+            'Enable-WUWebsiteAccessToLanguageList'
+            'Disable-WUWebsiteAccessToLanguageList'
+            'Enable-WUWindowsHelloForBusiness'
+            'Disable-WUWindowsHelloForBusiness'
+            'Enable-WUWindowsMediaPlayerFirstUseDialogBoxes'
+            'Disable-WUWindowsMediaPlayerFirstUseDialogBoxes'
+            'Enable-WUWindowsSecurityAllNotifications'
+            'Disable-WUWindowsSecurityAllNotifications'
+            'Enable-WUWindowsSecurityNonCriticalNotifications'
+            'Disable-WUWindowsSecurityNonCriticalNotifications'
+            'Set-WUWindowsUpdateNotificationLevel'
+        )
+
+        foreach ($expectedCommand in $expectedCommands) {
+            $exportedCommands | Should -Contain $expectedCommand
+        }
+    }
+
+    It 'contains the public registry type names' {
+        $modulePath = Join-Path `
+            -Path (Split-Path -Path $script:ManifestPath -Parent) `
+            -ChildPath 'PSWinUtil.psm1'
+        $moduleText = [System.IO.File]::ReadAllText($modulePath)
+
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.RegistryProperty'"
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.RegistrySetting'"
+    }
 }
 
 Describe 'Public command help' {
@@ -57,6 +122,69 @@ Describe 'Public command help' {
             $command = Get-Command -Name $functionName -Module 'PSWinUtil'
             foreach ($parameterName in $command.Parameters.Keys) {
                 if ($parameterName -in $commonParameterNames) {
+                    continue
+                }
+
+                $parameterHelp = @(
+                    $help.Parameters.Parameter |
+                        Where-Object { $_.Name -eq $parameterName }
+                )
+                $parameterHelp.Count | Should -Be 1
+                $parameterHelp[0].Description | Should -Not -BeNullOrEmpty
+            }
+        }
+    }
+}
+
+Describe 'Private command help' {
+    BeforeAll {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $script:Module = Get-Module -Name 'PSWinUtil' -ErrorAction Stop
+        $script:ExportedFunctionNames = @($script:Module.ExportedFunctions.Keys)
+        $script:PrivateFunctionNames = @(
+            & $script:Module {
+                Get-Command -CommandType Function |
+                    Where-Object { $_.ModuleName -eq 'PSWinUtil' } |
+                    Select-Object -ExpandProperty Name
+                } |
+                    Where-Object { $_ -notin $script:ExportedFunctionNames }
+        )
+    }
+
+    It 'is complete for every internal function' {
+        foreach ($functionName in $script:PrivateFunctionNames) {
+            $help = & $script:Module {
+                param($Name)
+
+                Get-Help -Name $Name -Full
+            } $functionName
+
+            $help.Synopsis | Should -Not -BeNullOrEmpty
+            @($help.Description).Count | Should -BeGreaterThan 0
+            @($help.Examples.Example).Count | Should -BeGreaterThan 0
+
+            $command = & $script:Module {
+                param($Name)
+
+                Get-Command -Name $Name -CommandType Function
+            } $functionName
+            foreach ($parameterName in $command.Parameters.Keys) {
+                if ($parameterName -in @(
+                        'Verbose'
+                        'Debug'
+                        'ErrorAction'
+                        'WarningAction'
+                        'InformationAction'
+                        'ErrorVariable'
+                        'WarningVariable'
+                        'InformationVariable'
+                        'OutVariable'
+                        'OutBuffer'
+                        'PipelineVariable'
+                        'ProgressAction'
+                        'WhatIf'
+                        'Confirm'
+                    )) {
                     continue
                 }
 
