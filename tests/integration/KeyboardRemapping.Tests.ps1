@@ -1,3 +1,7 @@
+$runMachineIntegration = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
@@ -36,7 +40,7 @@ Describe 'Keyboard remapping commands' {
         Set-WURegistryProperty @restoreParameters
     }
 
-    It 'adds, gets, and removes one mapping' -Skip:(-not $script:IsAdministrator) {
+    It 'adds, gets, and removes one mapping' -Skip:(-not $runMachineIntegration) {
         $existingCount = @(Get-WUKeyboardRemapping).Count
 
         $mapping = Set-WUKeyboardRemapping -SourceScanCode $script:TestSourceScanCode -DestinationScanCode 0x7E01 -PassThru
@@ -50,7 +54,7 @@ Describe 'Keyboard remapping commands' {
             Should -Be 0
     }
 
-    It 'does not add a mapping with WhatIf' -Skip:(-not $script:IsAdministrator) {
+    It 'does not add a mapping with WhatIf' -Skip:(-not $runMachineIntegration) {
         Set-WUKeyboardRemapping -SourceScanCode $script:TestSourceScanCode -DestinationScanCode 0x7E01 -WhatIf
 
         @(Get-WUKeyboardRemapping | Where-Object { $_.SourceScanCode -eq $script:TestSourceScanCode }).Count |

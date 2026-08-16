@@ -1,3 +1,7 @@
+$runMachineIntegration = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
@@ -5,9 +9,6 @@ BeforeAll {
 
     $script:UserRunPath = 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run'
     $script:MachineRunPath = 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run'
-    $script:IsAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator
-    )
 }
 
 Describe 'Startup entry commands' {
@@ -33,7 +34,7 @@ Describe 'Startup entry commands' {
 
         $entry.Name | Should -Be $script:EntryName
         $entry.Scope | Should -Be 'User'
-        $entry.CommandLine | Should -Match [regex]::Escape('notepad.exe" --test "two words"')
+        $entry.CommandLine | Should -Match ([regex]::Escape('notepad.exe" --test "two words"'))
 
         Unregister-WUStartupEntry -Name $script:EntryName
         Get-WUStartupEntry -Name $script:EntryName -Scope User | Should -BeNullOrEmpty
@@ -45,7 +46,7 @@ Describe 'Startup entry commands' {
         Get-WUStartupEntry -Name $script:EntryName -Scope User | Should -BeNullOrEmpty
     }
 
-    It 'registers and unregisters a machine startup entry' -Skip:(-not $script:IsAdministrator) {
+    It 'registers and unregisters a machine startup entry' -Skip:(-not $runMachineIntegration) {
         Register-WUStartupEntry -Name $script:EntryName -FilePath $script:ExecutablePath -Scope Machine
 
         $entry = Get-WUStartupEntry -Name $script:EntryName -Scope Machine
