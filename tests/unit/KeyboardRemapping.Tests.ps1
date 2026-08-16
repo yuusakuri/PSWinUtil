@@ -231,7 +231,7 @@ Describe 'Remove-WUKeyboardRemapping' {
         $results = InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $script:StoredValue } {
             @(ConvertFrom-WUScancodeMap -Value $Value)
         }
-        $results.Count | Should -Be 1
+        @($results).Count | Should -Be 1
         $results[0].SourceScanCode | Should -Be 0xE05B
         Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
     }

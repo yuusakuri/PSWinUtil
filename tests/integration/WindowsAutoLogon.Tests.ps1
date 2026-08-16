@@ -1,13 +1,14 @@
+$isAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+$runDestructiveIntegration = $isAdministrator -and $env:PSWINUTIL_RUN_AUTOLOGON_INTEGRATION -eq '1'
+
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
     Import-Module -Name $manifestPath -Force -ErrorAction Stop
 
     $script:WinlogonPath = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
-    $script:IsAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator
-    )
-    $script:RunDestructiveTest = $script:IsAdministrator -and $env:PSWINUTIL_RUN_AUTOLOGON_INTEGRATION -eq '1'
 }
 
 Describe 'Windows auto logon commands' {
@@ -20,7 +21,7 @@ Describe 'Windows auto logon commands' {
         $result.PSObject.Properties.Name | Should -Not -Contain 'Secret'
     }
 
-    It 'sets and removes auto logon data in a dedicated test environment' -Skip:(-not $script:RunDestructiveTest) {
+    It 'sets and removes auto logon data in a dedicated test environment' -Skip:(-not $runDestructiveIntegration) {
         $propertyNames = @('AutoAdminLogon', 'DefaultUserName', 'DefaultDomainName')
         $savedProperties = @{}
         foreach ($propertyName in $propertyNames) {
