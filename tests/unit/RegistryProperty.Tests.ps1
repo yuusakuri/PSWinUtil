@@ -1,0 +1,140 @@
+BeforeAll {
+    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
+    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
+    Import-Module -Name $manifestPath -Force -ErrorAction Stop
+
+    $script:RegistryPath = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest'
+}
+
+Describe 'Compare-WURegistryValue' {
+    It 'compares scalar and array values without text conversion' {
+        InModuleScope -ModuleName PSWinUtil {
+            Compare-WURegistryValue -ReferenceValue 1 -DifferenceValue 1 |
+                Should -BeTrue
+            Compare-WURegistryValue `
+                -ReferenceValue @('first', 'second') `
+                -DifferenceValue @('first', 'second') |
+                Should -BeTrue
+            Compare-WURegistryValue `
+                -ReferenceValue @('first', 'second') `
+                -DifferenceValue @('second', 'first') |
+                Should -BeFalse
+        }
+    }
+}
+
+Describe 'Set-WURegistryProperty unit behavior' {
+    BeforeEach {
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil
+        Mock -CommandName Test-Path -ModuleName PSWinUtil -MockWith { $false }
+        Mock -CommandName New-Item -ModuleName PSWinUtil
+        Mock -CommandName New-ItemProperty -ModuleName PSWinUtil
+    }
+
+    It 'creates a missing key and property' {
+        Set-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Enabled' `
+            -Value 1 `
+            -Type DWord
+
+        Should -Invoke -CommandName New-Item -ModuleName PSWinUtil -Times 1 -Exactly
+        Should -Invoke -CommandName New-ItemProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'Enabled' -and $Value -eq 1 -and $PropertyType -eq 'DWord'
+        }
+    }
+
+    It 'preserves the Binary value type before writing' {
+        Set-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Bytes' `
+            -Value @(1, 2) `
+            -Type Binary
+
+        Should -Invoke -CommandName New-ItemProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Value -is [byte[]]
+        }
+    }
+
+    It 'does not write an identical value and type' {
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
+            [pscustomobject]@{
+                Path = $Path
+                Name = $Name
+                Value = 1
+                Type = 'DWord'
+            }
+        }
+
+        Set-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Enabled' `
+            -Value 1 `
+            -Type DWord
+
+        Should -Invoke -CommandName New-Item -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName New-ItemProperty -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'does not create a key or property with WhatIf' {
+        Set-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Enabled' `
+            -Value 1 `
+            -Type DWord `
+            -WhatIf
+
+        Should -Invoke -CommandName New-Item -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName New-ItemProperty -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+}
+
+Describe 'Remove-WURegistryProperty unit behavior' {
+    BeforeEach {
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil
+        Mock -CommandName Remove-ItemProperty -ModuleName PSWinUtil
+    }
+
+    It 'does not remove a missing property' {
+        Remove-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Missing'
+
+        Should -Invoke -CommandName Remove-ItemProperty -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'removes an existing property' {
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
+            [pscustomobject]@{
+                Path = $Path
+                Name = $Name
+                Value = 1
+                Type = 'DWord'
+            }
+        }
+
+        Remove-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Enabled'
+
+        Should -Invoke -CommandName Remove-ItemProperty -ModuleName PSWinUtil -Times 1 -Exactly
+    }
+
+    It 'does not remove an existing property with WhatIf' {
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
+            [pscustomobject]@{
+                Path = $Path
+                Name = $Name
+                Value = 1
+                Type = 'DWord'
+            }
+        }
+
+        Remove-WURegistryProperty `
+            -Path $script:RegistryPath `
+            -Name 'Enabled' `
+            -WhatIf
+
+        Should -Invoke -CommandName Remove-ItemProperty -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+}

@@ -1,0 +1,176 @@
+function Test-WUPathProperty {
+    <#
+    .SYNOPSIS
+    Tests file system path properties.
+
+    .DESCRIPTION
+    Returns a Boolean value for each path. A path can be tested for existence, item type, readability, and writability. A missing path or an unmet condition returns false.
+
+    .PARAMETER Path
+    Specifies one or more file system paths to test.
+
+    .PARAMETER Exists
+    Tests whether the path exists. This is the default condition when no other condition is specified.
+
+    .PARAMETER Leaf
+    Tests whether the path is a file.
+
+    .PARAMETER Container
+    Tests whether the path is a directory.
+
+    .PARAMETER Readable
+    Tests whether the current process can read the file or enumerate the directory.
+
+    .PARAMETER Writable
+    Tests whether the current process can open the file for writing or create and remove a temporary file in the directory.
+
+    .EXAMPLE
+    Test-WUPathProperty -Path '.\settings.json' -Leaf -Readable
+
+    Returns true when settings.json exists as a readable file.
+
+    .EXAMPLE
+    Test-WUPathProperty -Path '.\missing' -Exists
+
+    Returns false when the path does not exist.
+
+    .INPUTS
+    System.String
+
+    .OUTPUTS
+    System.Boolean
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(
+            Mandatory = $true,
+            Position = 0,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true
+        )]
+        [Alias('FullName')]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$Path,
+
+        [Parameter()]
+        [switch]$Exists,
+
+        [Parameter()]
+        [switch]$Leaf,
+
+        [Parameter()]
+        [switch]$Container,
+
+        [Parameter()]
+        [switch]$Readable,
+
+        [Parameter()]
+        [switch]$Writable
+    )
+
+    begin {
+        if ($Leaf -and $Container) {
+            throw 'Leaf and Container cannot be specified together.'
+        }
+    }
+
+    process {
+        foreach ($currentPath in $Path) {
+            $fullPath = ConvertTo-WUFullPath -Path $currentPath
+            try {
+                $pathExists = Test-Path -LiteralPath $fullPath -ErrorAction Stop
+            } catch {
+                $pathExists = $false
+            }
+            if ($Exists -and -not $pathExists) {
+                $false
+                continue
+            }
+            if (-not $pathExists) {
+                $false
+                continue
+            }
+
+            $isLeaf = Test-Path -LiteralPath $fullPath -PathType Leaf
+            $isContainer = Test-Path -LiteralPath $fullPath -PathType Container
+            if (($Leaf -and -not $isLeaf) -or ($Container -and -not $isContainer)) {
+                $false
+                continue
+            }
+
+            if ($Readable) {
+                $readSucceeded = $false
+                try {
+                    if ($isLeaf) {
+                        $stream = [System.IO.File]::Open(
+                            $fullPath,
+                            [System.IO.FileMode]::Open,
+                            [System.IO.FileAccess]::Read,
+                            [System.IO.FileShare]::ReadWrite
+                        )
+                        $stream.Dispose()
+                    } else {
+                        $enumerator = [System.IO.Directory]::EnumerateFileSystemEntries($fullPath).GetEnumerator()
+                        try {
+                            $null = $enumerator.MoveNext()
+                        } finally {
+                            if ($enumerator -is [System.IDisposable]) {
+                                $enumerator.Dispose()
+                            }
+                        }
+                    }
+                    $readSucceeded = $true
+                } catch {
+                    $readSucceeded = $false
+                }
+                if (-not $readSucceeded) {
+                    $false
+                    continue
+                }
+            }
+
+            if ($Writable) {
+                $writeSucceeded = $false
+                $probePath = $null
+                try {
+                    if ($isLeaf) {
+                        $stream = [System.IO.File]::Open(
+                            $fullPath,
+                            [System.IO.FileMode]::Open,
+                            [System.IO.FileAccess]::Write,
+                            [System.IO.FileShare]::ReadWrite
+                        )
+                        $stream.Dispose()
+                    } else {
+                        $probePath = Join-Path -Path $fullPath -ChildPath ([System.IO.Path]::GetRandomFileName())
+                        $stream = [System.IO.File]::Open(
+                            $probePath,
+                            [System.IO.FileMode]::CreateNew,
+                            [System.IO.FileAccess]::Write,
+                            [System.IO.FileShare]::None
+                        )
+                        $stream.Dispose()
+                    }
+                    $writeSucceeded = $true
+                } catch {
+                    $writeSucceeded = $false
+                } finally {
+                    if ($null -ne $probePath -and [System.IO.File]::Exists($probePath)) {
+                        try {
+                            [System.IO.File]::Delete($probePath)
+                        } catch {
+                            $writeSucceeded = $false
+                        }
+                    }
+                }
+                if (-not $writeSucceeded) {
+                    $false
+                    continue
+                }
+            }
+
+            $true
+        }
+    }
+}

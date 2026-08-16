@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-powershell:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install development modules
+        run: .\install.ps1
+
+      - name: Run verification
+        run: powershell.exe -ExecutionPolicy Bypass -File .\run.ps1 ci
