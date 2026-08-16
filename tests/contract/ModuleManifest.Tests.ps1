@@ -21,7 +21,7 @@ Describe 'Built module manifest' {
         @($manifest.RequiredModules).Count | Should -Be 0
     }
 
-    It 'exports every registry command' {
+    It 'exports every implemented setup command' {
         Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
         $exportedCommands = @(
             (Get-Module -Name 'PSWinUtil' -ErrorAction Stop).ExportedFunctions.Keys
@@ -69,6 +69,15 @@ Describe 'Built module manifest' {
             'Enable-WUWindowsSecurityNonCriticalNotifications'
             'Disable-WUWindowsSecurityNonCriticalNotifications'
             'Set-WUWindowsUpdateNotificationLevel'
+            'Get-WUStartupEntry'
+            'Register-WUStartupEntry'
+            'Unregister-WUStartupEntry'
+            'Get-WUWindowsAutoLogon'
+            'Enable-WUWindowsAutoLogon'
+            'Disable-WUWindowsAutoLogon'
+            'Get-WUKeyboardRemapping'
+            'Set-WUKeyboardRemapping'
+            'Remove-WUKeyboardRemapping'
         )
 
         foreach ($expectedCommand in $expectedCommands) {
@@ -76,14 +85,15 @@ Describe 'Built module manifest' {
         }
     }
 
-    It 'contains the public registry type names' {
-        $modulePath = Join-Path `
-            -Path (Split-Path -Path $script:ManifestPath -Parent) `
-            -ChildPath 'PSWinUtil.psm1'
+    It 'contains the public structured output type names' {
+        $modulePath = Join-Path -Path (Split-Path -Path $script:ManifestPath -Parent) -ChildPath 'PSWinUtil.psm1'
         $moduleText = [System.IO.File]::ReadAllText($modulePath)
 
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.RegistryProperty'"
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.RegistrySetting'"
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.StartupEntry'"
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.WindowsAutoLogon'"
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.KeyboardRemapping'"
     }
 }
 
