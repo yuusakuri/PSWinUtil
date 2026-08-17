@@ -78,6 +78,11 @@ Describe 'Built module manifest' {
             'Get-WUKeyboardRemapping'
             'Set-WUKeyboardRemapping'
             'Remove-WUKeyboardRemapping'
+            'Set-WUNativeCommandEncoding'
+            'Start-WUAndroidEmulator'
+            'Get-WUAndroidCommandLineToolsUrl'
+            'Invoke-WUDefaultBrowserDownload'
+            'Install-WUAndroidCommandLineTools'
         )
 
         foreach ($expectedCommand in $expectedCommands) {
