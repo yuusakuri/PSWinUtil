@@ -168,7 +168,12 @@ function Add-Content {
 
     process {
         if ($approved) {
-            $steppablePipeline.Process($_)
+            try {
+                $steppablePipeline.Process($_)
+            } catch {
+                $steppablePipeline.Dispose()
+                throw
+            }
         }
     }
 
@@ -176,7 +181,11 @@ function Add-Content {
         if (-not $approved) {
             return
         }
-        $steppablePipeline.End()
+        try {
+            $steppablePipeline.End()
+        } finally {
+            $steppablePipeline.Dispose()
+        }
         if ($normalizeOutput) {
             foreach ($filePath in @(Get-WUContentFilePath -BoundParameter $PSBoundParameters)) {
                 Convert-WUTextFileToUtf8Lf -Path $filePath

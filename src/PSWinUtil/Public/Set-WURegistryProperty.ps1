@@ -95,9 +95,13 @@ function Set-WURegistryProperty {
         $null = New-Item -Path $Path -Force -ErrorAction Stop
     }
     if ($Name.Length -eq 0) {
-        $registryKey = Get-Item -LiteralPath $Path -ErrorAction Stop
-        $valueKind = [Microsoft.Win32.RegistryValueKind]::$Type
-        $registryKey.SetValue('', $normalizedValue, $valueKind)
+        $registryKey = Open-WURegistryKeyForWrite -Path $Path
+        try {
+            $valueKind = [Microsoft.Win32.RegistryValueKind]::$Type
+            $registryKey.SetValue('', $normalizedValue, $valueKind)
+        } finally {
+            $registryKey.Dispose()
+        }
     } else {
         $null = New-ItemProperty `
             -LiteralPath $Path `

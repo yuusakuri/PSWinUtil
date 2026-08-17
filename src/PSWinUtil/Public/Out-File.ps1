@@ -4,7 +4,9 @@ function Out-File {
     Sends formatted output to UTF-8 without BOM and LF by default.
 
     .DESCRIPTION
-    Proxies Microsoft.PowerShell.Utility Out-File with the Windows PowerShell 5.1 parameters. Output uses UTF-8 when Encoding is omitted or UTF8 is specified, then the completed file is normalized to UTF-8 without BOM and LF. Other explicit encodings keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Utility\Out-File.
+    Proxies Microsoft.PowerShell.Utility Out-File with the Windows PowerShell 5.1 parameters. Output uses UTF-8 without BOM and LF when Encoding is omitted or UTF8 is specified. Other explicit encodings keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Utility\Out-File.
+
+    Windows PowerShell 5.1 language redirection resolves this function but keeps its own target file handle after the function finishes. Use an explicit pipeline to Out-File when the same script must access the file immediately. Redirection operators are not covered by this function guarantee.
 
     .PARAMETER FilePath
     Specifies the output file path.
@@ -131,25 +133,118 @@ function Out-File {
         }
         $normalizeOutput = $PSBoundParameters.Encoding -ieq 'UTF8'
 
-        if ($normalizeOutput -and $Append -and -not $NoClobber -and (Test-Path -LiteralPath $selectedPath -PathType Leaf)) {
-            $existingPath = ConvertTo-WUFullPath -Path $selectedPath
-            Convert-WUTextFileToUtf8Lf -Path $existingPath
-        }
+        if ($normalizeOutput) {
+            $fullPath = ConvertTo-WUFullPath -Path $selectedPath
+            $targetExists = [System.IO.File]::Exists($fullPath)
+            if ($NoClobber -and -not $Append -and $targetExists) {
+                throw "The file '$selectedPath' already exists."
+            }
+            if ($Append -and $targetExists) {
+                Convert-WUTextFileToUtf8Lf -Path $fullPath
+            }
 
-        $null = $PSBoundParameters.Remove('WhatIf')
-        $PSBoundParameters.Confirm = $false
-        $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
-            'Microsoft.PowerShell.Utility\Out-File',
-            [System.Management.Automation.CommandTypes]::Cmdlet
-        )
-        $commandScript = { & $wrappedCommand @PSBoundParameters }
-        $steppablePipeline = $commandScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
-        $steppablePipeline.Begin($PSCmdlet)
+            $originalAttributes = $null
+            if ($targetExists) {
+                $originalAttributes = [System.IO.File]::GetAttributes($fullPath)
+                $isReadOnly = ($originalAttributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0
+                if ($isReadOnly -and -not $Force) {
+                    throw "The file '$selectedPath' is read-only. Use Force to write it."
+                }
+                if ($isReadOnly) {
+                    $writableAttributes = $originalAttributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
+                    [System.IO.File]::SetAttributes($fullPath, $writableAttributes)
+                }
+            }
+
+            $fileMode = [System.IO.FileMode]::Create
+            if ($Append) {
+                $fileMode = [System.IO.FileMode]::Append
+            }
+            try {
+                $fileStream = [System.IO.FileStream]::new(
+                    $fullPath,
+                    $fileMode,
+                    [System.IO.FileAccess]::Write,
+                    [System.IO.FileShare]::Read
+                )
+                $streamWriter = [System.IO.StreamWriter]::new(
+                    $fileStream,
+                    [System.Text.UTF8Encoding]::new($false)
+                )
+                $streamWriter.NewLine = "`n"
+            } catch {
+                if ($null -ne $originalAttributes) {
+                    [System.IO.File]::SetAttributes($fullPath, $originalAttributes)
+                }
+                throw
+            }
+
+            $formatParameters = @{ Stream = $true }
+            if ($PSBoundParameters.ContainsKey('Width')) {
+                $formatParameters.Width = $Width
+            }
+            $outStringCommand = $ExecutionContext.InvokeCommand.GetCommand(
+                'Microsoft.PowerShell.Utility\Out-String',
+                [System.Management.Automation.CommandTypes]::Cmdlet
+            )
+            $formatScript = { & $outStringCommand @formatParameters }
+            $formatPipeline = $formatScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
+            $formatPipeline.Begin($true)
+
+            $writeLines = {
+                param([object[]]$Line)
+
+                foreach ($currentLine in $Line) {
+                    if ($NoNewline) {
+                        $streamWriter.Write([string]$currentLine)
+                    } else {
+                        $streamWriter.WriteLine([string]$currentLine)
+                    }
+                }
+            }
+            $closeOutput = {
+                if ($null -ne $formatPipeline) {
+                    $formatPipeline.Dispose()
+                    $formatPipeline = $null
+                }
+                if ($null -ne $streamWriter) {
+                    $streamWriter.Dispose()
+                    $streamWriter = $null
+                }
+                if ($null -ne $originalAttributes) {
+                    [System.IO.File]::SetAttributes($fullPath, $originalAttributes)
+                    $originalAttributes = $null
+                }
+            }
+        } else {
+            $null = $PSBoundParameters.Remove('WhatIf')
+            $PSBoundParameters.Confirm = $false
+            $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
+                'Microsoft.PowerShell.Utility\Out-File',
+                [System.Management.Automation.CommandTypes]::Cmdlet
+            )
+            $commandScript = { & $wrappedCommand @PSBoundParameters }
+            $steppablePipeline = $commandScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
+            $steppablePipeline.Begin($PSCmdlet)
+        }
     }
 
     process {
         if ($approved) {
-            $steppablePipeline.Process($_)
+            try {
+                if ($normalizeOutput) {
+                    & $writeLines -Line @($formatPipeline.Process($_))
+                } else {
+                    $steppablePipeline.Process($_)
+                }
+            } catch {
+                if ($normalizeOutput) {
+                    & $closeOutput
+                } else {
+                    $steppablePipeline.Dispose()
+                }
+                throw
+            }
         }
     }
 
@@ -157,10 +252,18 @@ function Out-File {
         if (-not $approved) {
             return
         }
-        $steppablePipeline.End()
         if ($normalizeOutput) {
-            $fullPath = ConvertTo-WUFullPath -Path $selectedPath
-            Convert-WUTextFileToUtf8Lf -Path $fullPath
+            try {
+                & $writeLines -Line @($formatPipeline.End())
+            } finally {
+                & $closeOutput
+            }
+        } else {
+            try {
+                $steppablePipeline.End()
+            } finally {
+                $steppablePipeline.Dispose()
+            }
         }
     }
 }

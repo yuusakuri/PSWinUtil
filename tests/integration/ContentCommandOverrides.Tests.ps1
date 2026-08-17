@@ -35,12 +35,4 @@ Describe 'Content command override integration' {
             & $script:AssertUtf8LfFile -Path $path
         }
     }
-
-    It 'applies the Out-File override to redirection' {
-        $path = Join-Path -Path $TestDrive -ChildPath 'redirect.txt'
-
-        @('first', 'second') > $path
-
-        & $script:AssertUtf8LfFile -Path $path
-    }
 }

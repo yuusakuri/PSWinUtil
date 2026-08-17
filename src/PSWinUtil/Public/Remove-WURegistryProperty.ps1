@@ -50,8 +50,12 @@ function Remove-WURegistryProperty {
     }
 
     if ($Name.Length -eq 0) {
-        $registryKey = Get-Item -LiteralPath $Path -ErrorAction Stop
-        $registryKey.DeleteValue('', $false)
+        $registryKey = Open-WURegistryKeyForWrite -Path $Path
+        try {
+            $registryKey.DeleteValue('', $false)
+        } finally {
+            $registryKey.Dispose()
+        }
     } else {
         Remove-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop
     }
