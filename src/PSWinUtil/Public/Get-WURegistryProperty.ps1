@@ -10,7 +10,7 @@ function Get-WURegistryProperty {
     Specifies a registry provider path.
 
     .PARAMETER Name
-    Specifies the registry property name.
+    Specifies the registry property name. An empty string selects the default value.
 
     .EXAMPLE
     Get-WURegistryProperty `
@@ -32,7 +32,7 @@ function Get-WURegistryProperty {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [AllowEmptyString()]
         [string]$Name
     )
 

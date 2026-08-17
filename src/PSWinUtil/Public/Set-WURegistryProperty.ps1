@@ -10,7 +10,7 @@ function Set-WURegistryProperty {
     Specifies a registry provider path.
 
     .PARAMETER Name
-    Specifies the registry property name.
+    Specifies the registry property name. An empty string selects the default value.
 
     .PARAMETER Value
     Specifies the registry property value.
@@ -43,7 +43,7 @@ function Set-WURegistryProperty {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [AllowEmptyString()]
         [string]$Name,
 
         [Parameter(Mandatory = $true)]
@@ -82,7 +82,11 @@ function Set-WURegistryProperty {
         return
     }
 
-    $targetDescription = "${Path}::$Name"
+    $propertyDescription = $Name
+    if ($Name.Length -eq 0) {
+        $propertyDescription = '(default)'
+    }
+    $targetDescription = "${Path}::$propertyDescription"
     if (-not $PSCmdlet.ShouldProcess($targetDescription, 'Set registry property')) {
         return
     }
@@ -90,13 +94,19 @@ function Set-WURegistryProperty {
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
         $null = New-Item -Path $Path -Force -ErrorAction Stop
     }
-    $null = New-ItemProperty `
-        -LiteralPath $Path `
-        -Name $Name `
-        -Value $normalizedValue `
-        -PropertyType $Type `
-        -Force `
-        -ErrorAction Stop
+    if ($Name.Length -eq 0) {
+        $registryKey = Get-Item -LiteralPath $Path -ErrorAction Stop
+        $valueKind = [Microsoft.Win32.RegistryValueKind]::$Type
+        $registryKey.SetValue('', $normalizedValue, $valueKind)
+    } else {
+        $null = New-ItemProperty `
+            -LiteralPath $Path `
+            -Name $Name `
+            -Value $normalizedValue `
+            -PropertyType $Type `
+            -Force `
+            -ErrorAction Stop
+    }
 
     if ($PassThru) {
         Get-WURegistryProperty -Path $Path -Name $Name

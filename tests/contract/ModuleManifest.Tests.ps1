@@ -83,6 +83,14 @@ Describe 'Built module manifest' {
             'Get-WUAndroidCommandLineToolsUrl'
             'Invoke-WUDefaultBrowserDownload'
             'Install-WUAndroidCommandLineTools'
+            'Set-WUJapaneseKeyboardLayout'
+            'Enable-WUDeviceSetupSuggestions'
+            'Disable-WUDeviceSetupSuggestions'
+            'Set-WUTaskbarAlignment'
+            'Set-WUTaskbarSearchMode'
+            'Enable-WUClassicContextMenu'
+            'Disable-WUClassicContextMenu'
+            'Set-WUJapaneseImeHalfWidthInput'
         )
 
         foreach ($expectedCommand in $expectedCommands) {
@@ -99,6 +107,7 @@ Describe 'Built module manifest' {
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.StartupEntry'"
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.WindowsAutoLogon'"
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.KeyboardRemapping'"
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.JapaneseKeyboardLayout'"
     }
 }
 

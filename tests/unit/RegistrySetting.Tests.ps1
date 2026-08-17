@@ -153,6 +153,10 @@ Describe 'Registry setting schema' {
 
             $settings.ContainsKey('DarkMode') | Should -BeTrue
             $settings.ContainsKey('WindowsUpdateNotificationLevel') | Should -BeTrue
+            $settings.ContainsKey('DeviceSetupSuggestions') | Should -BeTrue
+            $settings.ContainsKey('TaskbarAlignment') | Should -BeTrue
+            $settings.ContainsKey('TaskbarSearchMode') | Should -BeTrue
+            $settings.ContainsKey('JapaneseImeHalfWidthInput') | Should -BeTrue
         }
     }
 }

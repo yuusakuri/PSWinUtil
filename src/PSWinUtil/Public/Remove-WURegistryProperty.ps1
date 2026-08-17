@@ -10,7 +10,7 @@ function Remove-WURegistryProperty {
     Specifies a registry provider path.
 
     .PARAMETER Name
-    Specifies the registry property name.
+    Specifies the registry property name. An empty string selects the default value.
 
     .EXAMPLE
     Remove-WURegistryProperty `
@@ -32,7 +32,7 @@ function Remove-WURegistryProperty {
         [string]$Path,
 
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
+        [AllowEmptyString()]
         [string]$Name
     )
 
@@ -40,10 +40,19 @@ function Remove-WURegistryProperty {
         return
     }
 
-    $targetDescription = "${Path}::$Name"
+    $propertyDescription = $Name
+    if ($Name.Length -eq 0) {
+        $propertyDescription = '(default)'
+    }
+    $targetDescription = "${Path}::$propertyDescription"
     if (-not $PSCmdlet.ShouldProcess($targetDescription, 'Remove registry property')) {
         return
     }
 
-    Remove-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop
+    if ($Name.Length -eq 0) {
+        $registryKey = Get-Item -LiteralPath $Path -ErrorAction Stop
+        $registryKey.DeleteValue('', $false)
+    } else {
+        Remove-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop
+    }
 }

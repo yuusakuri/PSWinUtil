@@ -294,4 +294,76 @@
             }
         )
     }
+    DeviceSetupSuggestions = @{
+        ScoobeSystemSettingEnabled = @(
+            @{
+                Path = 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement'
+                Name = 'ScoobeSystemSettingEnabled'
+                Type = 'DWord'
+                Options = @{
+                    Enable = @{ Action = 'Set'; Value = 1 }
+                    Disable = @{ Action = 'Set'; Value = 0 }
+                }
+            }
+        )
+    }
+    TaskbarAlignment = @{
+        TaskbarAl = @(
+            @{
+                Path = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+                Name = 'TaskbarAl'
+                Type = 'DWord'
+                Options = @{
+                    Left = @{ Action = 'Set'; Value = 0 }
+                    Center = @{ Action = 'Set'; Value = 1 }
+                }
+            }
+        )
+    }
+    TaskbarSearchMode = @{
+        SearchboxTaskbarMode = @(
+            @{
+                Path = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
+                Name = 'SearchboxTaskbarMode'
+                Type = 'DWord'
+                Options = @{
+                    Hidden = @{ Action = 'Set'; Value = 0 }
+                    Icon = @{ Action = 'Set'; Value = 1 }
+                    SearchBox = @{ Action = 'Set'; Value = 2 }
+                }
+            }
+        )
+    }
+    JapaneseImeHalfWidthInput = @{
+        SpaceInputMode = @(
+            @{
+                Path = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\IME\15.0\IMJP\Settings'
+                Name = 'SpaceInputMode'
+                Type = 'DWord'
+                Options = @{
+                    Set = @{ Action = 'Set'; Value = 0 }
+                }
+            }
+        )
+        NumInputMode = @(
+            @{
+                Path = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\IME\15.0\IMJP\Settings'
+                Name = 'NumInputMode'
+                Type = 'DWord'
+                Options = @{
+                    Set = @{ Action = 'Set'; Value = 0 }
+                }
+            }
+        )
+        AlphabetInputMode = @(
+            @{
+                Path = 'Registry::HKEY_CURRENT_USER\SOFTWARE\Microsoft\IME\15.0\IMJP\Settings'
+                Name = 'AlphabetInputMode'
+                Type = 'DWord'
+                Options = @{
+                    Set = @{ Action = 'Set'; Value = 0 }
+                }
+            }
+        )
+    }
 }

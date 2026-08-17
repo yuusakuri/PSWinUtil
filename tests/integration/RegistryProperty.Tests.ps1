@@ -53,6 +53,29 @@ Describe 'Registry property commands' {
         $storedProperty.Type | Should -Be 'DWord'
     }
 
+    It 'sets, gets, and removes the default registry value' {
+        Set-WURegistryProperty `
+            -Path $script:RegistryTestPath `
+            -Name '' `
+            -Value 'default text' `
+            -Type String
+
+        $storedProperty = Get-WURegistryProperty `
+            -Path $script:RegistryTestPath `
+            -Name ''
+        $storedProperty.Name | Should -Be ''
+        $storedProperty.Value | Should -Be 'default text'
+        $storedProperty.Type | Should -Be 'String'
+
+        Remove-WURegistryProperty `
+            -Path $script:RegistryTestPath `
+            -Name ''
+
+        Get-WURegistryProperty `
+            -Path $script:RegistryTestPath `
+            -Name '' | Should -BeNullOrEmpty
+    }
+
     It 'preserves MultiString values' {
         Set-WURegistryProperty `
             -Path $script:RegistryTestPath `
