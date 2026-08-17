@@ -4,7 +4,7 @@ function Out-File {
     Sends formatted output to UTF-8 without BOM and LF by default.
 
     .DESCRIPTION
-    Proxies Microsoft.PowerShell.Utility Out-File with the Windows PowerShell 5.1 parameters. Output uses UTF-8 without BOM and LF when Encoding is omitted or UTF8 is specified. Other explicit encodings keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Utility\Out-File.
+    Proxies Microsoft.PowerShell.Utility Out-File with the Windows PowerShell 5.1 parameters. Output uses UTF-8 without BOM and LF when Encoding is omitted or UTF8 is specified. Other explicit encodings keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Utility\Out-File. PSWinUtil exports this function only in Windows PowerShell Desktop.
 
     Windows PowerShell 5.1 language redirection resolves this function but keeps its own target file handle after the function finishes. Use an explicit pipeline to Out-File when the same script must access the file immediately. Redirection operators are not covered by this function guarantee.
 
