@@ -91,6 +91,10 @@ Describe 'Built module manifest' {
             'Enable-WUClassicContextMenu'
             'Disable-WUClassicContextMenu'
             'Set-WUJapaneseImeHalfWidthInput'
+            'Get-Content'
+            'Set-Content'
+            'Add-Content'
+            'Out-File'
         )
 
         foreach ($expectedCommand in $expectedCommands) {
@@ -137,14 +141,32 @@ Describe 'Public command help' {
             'Confirm'
         )
         foreach ($functionName in $script:PublicFunctionNames) {
-            $help = Get-Help -Name $functionName -Full
+            $help = Get-Help -Name "PSWinUtil\$functionName" -Full
 
             $help.Synopsis | Should -Not -BeNullOrEmpty
             @($help.Description).Count | Should -BeGreaterThan 0
-            @($help.Examples.Example).Count | Should -BeGreaterThan 0
+            $examplesProperty = @(
+                $help.PSObject.Properties |
+                    Where-Object { $_.Name -ieq 'Examples' }
+            )
+            if ($examplesProperty.Count -ne 1) {
+                throw "Public command help does not contain Examples: $functionName"
+            }
+            $exampleProperty = @(
+                $examplesProperty[0].Value.PSObject.Properties |
+                    Where-Object { $_.Name -ieq 'Example' }
+            )
+            $exampleCount = 0
+            if ($exampleProperty.Count -eq 1) {
+                $exampleCount = @($exampleProperty[0].Value).Count
+            }
+            $exampleCount | Should -BeGreaterThan 0
 
             $command = Get-Command -Name $functionName -Module 'PSWinUtil'
             foreach ($parameterName in $command.Parameters.Keys) {
+                if ($command.Parameters[$parameterName].IsDynamic) {
+                    continue
+                }
                 if ($parameterName -in $commonParameterNames) {
                     continue
                 }
@@ -153,7 +175,7 @@ Describe 'Public command help' {
                     $help.Parameters.Parameter |
                         Where-Object { $_.Name -eq $parameterName }
                 )
-                $parameterHelp.Count | Should -Be 1
+                $parameterHelp.Count | Should -Be 1 -Because "$functionName must document $parameterName"
                 $parameterHelp[0].Description | Should -Not -BeNullOrEmpty
             }
         }
