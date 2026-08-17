@@ -14,7 +14,9 @@ BeforeAll {
     }
 }
 
-Describe 'Content command override integration' {
+$contentCommandOverridesAvailable = $PSVersionTable.PSEdition -eq 'Desktop'
+
+Describe 'Content command override integration' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'uses the proxy for unqualified content commands' {
         foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
             (Get-Command -Name $commandName).ModuleName | Should -Be 'PSWinUtil'

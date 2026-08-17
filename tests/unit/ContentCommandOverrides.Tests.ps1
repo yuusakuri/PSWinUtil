@@ -17,7 +17,9 @@ BeforeAll {
     }
 }
 
-Describe 'Content command precedence' {
+$contentCommandOverridesAvailable = $PSVersionTable.PSEdition -eq 'Desktop'
+
+Describe 'Content command precedence' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'uses the PSWinUtil functions before the built-in cmdlets' {
         foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
             $selectedCommand = Get-Command -Name $commandName
@@ -49,7 +51,7 @@ Describe 'Content command precedence' {
     }
 }
 
-Describe 'Get-Content UTF-8 default' {
+Describe 'Get-Content UTF-8 default' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'reads UTF-8 without BOM when Encoding is omitted' {
         $path = Join-Path -Path $TestDrive -ChildPath 'read.txt'
         [System.IO.File]::WriteAllText($path, $script:UnicodeText, $script:Utf8NoBom)
@@ -65,7 +67,7 @@ Describe 'Get-Content UTF-8 default' {
     }
 }
 
-Describe 'Set-Content UTF-8 and LF default' {
+Describe 'Set-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'writes UTF-8 without BOM and LF' {
         $path = Join-Path -Path $TestDrive -ChildPath 'set.txt'
 
@@ -94,7 +96,7 @@ Describe 'Set-Content UTF-8 and LF default' {
     }
 }
 
-Describe 'Add-Content UTF-8 and LF default' {
+Describe 'Add-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'converts existing Unicode content and appends UTF-8 with LF' {
         $path = Join-Path -Path $TestDrive -ChildPath 'add.txt'
         [System.IO.File]::WriteAllText($path, "first`r`n", [System.Text.Encoding]::Unicode)
@@ -106,7 +108,7 @@ Describe 'Add-Content UTF-8 and LF default' {
     }
 }
 
-Describe 'Out-File UTF-8 and LF default' {
+Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'writes formatted text as UTF-8 without BOM and LF' {
         $path = Join-Path -Path $TestDrive -ChildPath 'out.txt'
 

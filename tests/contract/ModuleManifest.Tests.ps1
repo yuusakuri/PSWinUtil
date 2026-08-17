@@ -91,14 +91,30 @@ Describe 'Built module manifest' {
             'Enable-WUClassicContextMenu'
             'Disable-WUClassicContextMenu'
             'Set-WUJapaneseImeHalfWidthInput'
-            'Get-Content'
-            'Set-Content'
-            'Add-Content'
-            'Out-File'
         )
+
+        if ($PSVersionTable.PSEdition -eq 'Desktop') {
+            $expectedCommands += @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')
+        }
 
         foreach ($expectedCommand in $expectedCommands) {
             $exportedCommands | Should -Contain $expectedCommand
+        }
+    }
+
+    It 'exports content command overrides only in Windows PowerShell' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $exportedCommands = @(
+            (Get-Module -Name 'PSWinUtil' -ErrorAction Stop).ExportedFunctions.Keys
+        )
+
+        foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
+            if ($PSVersionTable.PSEdition -eq 'Desktop') {
+                $exportedCommands | Should -Contain $commandName
+            } else {
+                $exportedCommands | Should -Not -Contain $commandName
+                (Get-Command -Name $commandName).ModuleName | Should -Not -Be 'PSWinUtil'
+            }
         }
     }
 
