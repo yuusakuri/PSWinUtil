@@ -91,6 +91,7 @@ Describe 'Built module manifest' {
             'Enable-WUClassicContextMenu'
             'Disable-WUClassicContextMenu'
             'Set-WUJapaneseImeHalfWidthInput'
+            'Get-WUFileTreeWithContent'
         )
 
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
@@ -128,6 +129,7 @@ Describe 'Built module manifest' {
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.WindowsAutoLogon'"
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.KeyboardRemapping'"
         $moduleText | Should -Match "PSTypeName = 'PSWinUtil.JapaneseKeyboardLayout'"
+        $moduleText | Should -Match "PSTypeName = 'PSWinUtil.FileTreeContent'"
     }
 }
 
