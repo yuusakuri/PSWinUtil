@@ -133,4 +133,31 @@ Describe 'Out-File UTF-8 and LF default' {
 
         Test-Path -LiteralPath $path | Should -BeFalse
     }
+
+    It 'writes without line separators with NoNewline' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'out-no-newline.txt'
+
+        @('first', 'second') | Out-File -LiteralPath $path -NoNewline
+
+        [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be 'firstsecond'
+    }
+
+    It 'keeps an explicit non-UTF8 encoding' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'out-unicode.txt'
+
+        $script:UnicodeText | Out-File -LiteralPath $path -Encoding Unicode
+
+        [byte[]]$bytes = [System.IO.File]::ReadAllBytes($path)
+        $bytes[0] | Should -Be 0xFF
+        $bytes[1] | Should -Be 0xFE
+    }
+
+    It 'does not replace an existing file with NoClobber' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'out-no-clobber.txt'
+        [System.IO.File]::WriteAllText($path, 'existing', $script:Utf8NoBom)
+
+        { 'new' | Out-File -LiteralPath $path -NoClobber } | Should -Throw
+
+        [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be 'existing'
+    }
 }

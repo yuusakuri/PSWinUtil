@@ -95,11 +95,12 @@ Describe 'Set-WURegistryProperty unit behavior' {
 
     It 'sets the default value through the registry key API' {
         $script:DefaultValueArguments = $null
-        Mock -CommandName Get-Item -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Open-WURegistryKeyForWrite -ModuleName PSWinUtil -MockWith {
             $registryKey = [pscustomobject]@{}
             $registryKey | Add-Member -MemberType ScriptMethod -Name SetValue -Value {
                 $script:DefaultValueArguments = @($args)
             }
+            $registryKey | Add-Member -MemberType ScriptMethod -Name Dispose -Value {}
             $registryKey
         }
 
@@ -176,11 +177,12 @@ Describe 'Remove-WURegistryProperty unit behavior' {
                 Type = 'String'
             }
         }
-        Mock -CommandName Get-Item -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Open-WURegistryKeyForWrite -ModuleName PSWinUtil -MockWith {
             $registryKey = [pscustomobject]@{}
             $registryKey | Add-Member -MemberType ScriptMethod -Name DeleteValue -Value {
                 $script:DeletedDefaultValueArguments = @($args)
             }
+            $registryKey | Add-Member -MemberType ScriptMethod -Name Dispose -Value {}
             $registryKey
         }
 

@@ -144,10 +144,19 @@ function Get-Content {
     }
 
     process {
-        $steppablePipeline.Process($_)
+        try {
+            $steppablePipeline.Process($_)
+        } catch {
+            $steppablePipeline.Dispose()
+            throw
+        }
     }
 
     end {
-        $steppablePipeline.End()
+        try {
+            $steppablePipeline.End()
+        } finally {
+            $steppablePipeline.Dispose()
+        }
     }
 }
