@@ -4,16 +4,16 @@ function Install-WUAndroidCommandLineTools {
     Installs the current Android command-line tools package.
 
     .DESCRIPTION
-    Gets the current official Windows package URL, downloads the package with the default browser, and installs it under cmdline-tools\latest in an existing Android SDK directory. Running this command confirms acceptance of the Android SDK license shown on the official Android Studio download page. The command validates the extracted package before replacing an existing installation. The downloaded archive and temporary extraction directory are removed after the operation.
+    Gets the current official Windows package URL, downloads the package directly over HTTP, and installs it under cmdline-tools\latest in an existing Android SDK directory. Running this command automatically accepts the Android SDK license shown on the official Android Studio download page. The command validates the extracted package before replacing an existing installation. The downloaded archive and temporary extraction directory are removed after the operation.
 
     .PARAMETER AndroidHome
     Specifies an existing Android SDK directory. The default value is ANDROID_HOME.
 
     .PARAMETER DownloadDirectory
-    Specifies the existing directory used by the default browser for downloads. The default value is the current user Downloads directory.
+    Specifies the existing directory used for the temporary package download. The default value is the current user Downloads directory.
 
     .PARAMETER TimeoutSeconds
-    Specifies the maximum number of seconds to wait for the browser download. The default value is 300.
+    Specifies the maximum number of seconds for the HTTP download. The default value is 300.
 
     .PARAMETER PassThru
     Returns the installed cmdline-tools\latest directory.
@@ -87,14 +87,14 @@ function Install-WUAndroidCommandLineTools {
             throw "The package file name could not be determined from URL: $packageUrl"
         }
 
+        $downloadName = "PSWinUtil-$([guid]::NewGuid().ToString('N'))-$packageFileName"
+        $downloadedPath = Join-Path -Path $fullDownloadDirectory -ChildPath $downloadName
         $downloadParameters = @{
             Uri = $packageUri
-            FileName = $packageFileName
-            DownloadDirectory = $fullDownloadDirectory
+            Path = $downloadedPath
             TimeoutSeconds = $TimeoutSeconds
-            Force = $true
         }
-        $downloadedPath = Invoke-WUDefaultBrowserDownloadInternal @downloadParameters
+        $downloadedPath = Invoke-WUHttpFileDownload @downloadParameters
 
         $temporaryName = "PSWinUtil-AndroidTools-$([guid]::NewGuid().ToString('N'))"
         $temporaryDirectory = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath $temporaryName

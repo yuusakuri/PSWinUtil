@@ -17,6 +17,9 @@ Describe 'Install-WUAndroidCommandLineTools' {
             'https://dl.google.com/android/repository/commandlinetools-win-123456_latest.zip'
         }
         Mock -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -MockWith {
+            throw 'The browser download helper must not be used.'
+        }
+        Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
             $zipSource = Join-Path -Path $TestDrive -ChildPath "ZipSource-$([guid]::NewGuid().ToString('N'))"
             $sdkManagerDirectory = Join-Path -Path $zipSource -ChildPath 'cmdline-tools\bin'
             $null = New-Item -Path $sdkManagerDirectory -ItemType Directory -Force
@@ -24,10 +27,9 @@ Describe 'Install-WUAndroidCommandLineTools' {
                 (Join-Path -Path $sdkManagerDirectory -ChildPath 'sdkmanager.bat'),
                 '@echo off'
             )
-            $zipPath = Join-Path -Path $DownloadDirectory -ChildPath $FileName
-            [IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $zipPath)
+            [IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $Path)
             Remove-Item -LiteralPath $zipSource -Recurse -Force
-            $zipPath
+            $Path
         }
     }
 
@@ -54,6 +56,7 @@ Describe 'Install-WUAndroidCommandLineTools' {
         Install-WUAndroidCommandLineTools -AndroidHome $script:AndroidHome -DownloadDirectory $script:DownloadDirectory -WhatIf
 
         Should -Invoke -CommandName Get-WUAndroidCommandLineToolsUrl -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
@@ -67,9 +70,12 @@ Describe 'Install-WUAndroidCommandLineTools' {
             Should -BeTrue
         Get-ChildItem -LiteralPath $script:DownloadDirectory -File | Should -HaveCount 0
         Should -Invoke -CommandName Get-WUAndroidCommandLineToolsUrl -ModuleName PSWinUtil -Times 1 -Exactly
-        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Force -and $TimeoutSeconds -eq 300
+        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Uri.AbsoluteUri -eq 'https://dl.google.com/android/repository/commandlinetools-win-123456_latest.zip' -and
+            $Path.StartsWith($script:DownloadDirectory, [System.StringComparison]::OrdinalIgnoreCase) -and
+            $TimeoutSeconds -eq 300
         }
+        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'replaces an existing latest directory' {
@@ -90,14 +96,13 @@ Describe 'Install-WUAndroidCommandLineTools' {
         $null = New-Item -Path $latestPath -ItemType Directory -Force
         $oldPath = Join-Path -Path $latestPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldPath, 'old')
-        Mock -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
             $zipSource = Join-Path -Path $TestDrive -ChildPath 'InvalidZipSource'
             $null = New-Item -Path $zipSource -ItemType Directory -Force
             [IO.File]::WriteAllText((Join-Path -Path $zipSource -ChildPath 'unexpected.txt'), 'bad')
-            $zipPath = Join-Path -Path $DownloadDirectory -ChildPath $FileName
-            [IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $zipPath)
+            [IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $Path)
             Remove-Item -LiteralPath $zipSource -Recurse -Force
-            $zipPath
+            $Path
         }
 
         {
@@ -109,10 +114,9 @@ Describe 'Install-WUAndroidCommandLineTools' {
     }
 
     It 'removes the downloaded archive when extraction fails' {
-        Mock -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -MockWith {
-            $zipPath = Join-Path -Path $DownloadDirectory -ChildPath $FileName
-            [IO.File]::WriteAllText($zipPath, 'not a zip file')
-            $zipPath
+        Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
+            [IO.File]::WriteAllText($Path, 'not a zip file')
+            $Path
         }
 
         {
