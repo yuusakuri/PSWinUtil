@@ -2,3 +2,5 @@
 /TestResults/
 /docs/public-api-proposal.md
 /docs/rewrite-plan.md
+bin/
+obj/

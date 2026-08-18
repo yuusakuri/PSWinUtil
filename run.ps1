@@ -19,6 +19,15 @@ $sourceManifestPath = Join-Path -Path $moduleSourceDirectory -ChildPath 'PSWinUt
 $outputModuleDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil'
 $outputManifestPath = Join-Path -Path $outputModuleDirectory -ChildPath 'PSWinUtil.psd1'
 $outputModulePath = Join-Path -Path $outputModuleDirectory -ChildPath 'PSWinUtil.psm1'
+$outputLibraryDirectory = Join-Path -Path $outputModuleDirectory -ChildPath 'lib'
+$outputTestSupportDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/TestSupport'
+$dotnetBuildDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/dotnet'
+$nativeProjectPath = Join-Path `
+    -Path $repositoryRoot `
+    -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
+$testSupportProjectPath = Join-Path `
+    -Path $repositoryRoot `
+    -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
@@ -94,6 +103,28 @@ $getSourceFiles = {
 
         $files += Get-ChildItem -LiteralPath $sourceDirectory -File -Recurse |
             Where-Object { $_.Extension -in @('.ps1', '.psd1', '.ps1xml') }
+    }
+
+    @($files | Sort-Object -Property FullName -Unique)
+}
+
+$getDotnetSourceFiles = {
+    $projectDirectories = @(
+        (Split-Path -Path $nativeProjectPath -Parent)
+        (Split-Path -Path $testSupportProjectPath -Parent)
+    )
+    $files = @()
+
+    foreach ($projectDirectory in $projectDirectories) {
+        if (-not (Test-Path -LiteralPath $projectDirectory -PathType Container)) {
+            continue
+        }
+
+        $files += Get-ChildItem -LiteralPath $projectDirectory -File -Recurse |
+            Where-Object {
+                $_.Extension -in @('.cs', '.csproj') -and
+                $_.FullName -notmatch '[\\/](bin|obj)[\\/]'
+            }
     }
 
     @($files | Sort-Object -Property FullName -Unique)
@@ -188,6 +219,8 @@ $assertSource = {
         $buildConfigurationPath
         $formatterSettingsPath
         $analyzerSettingsPath
+        $nativeProjectPath
+        $testSupportProjectPath
     )
     foreach ($requiredPath in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -227,6 +260,10 @@ $assertSource = {
     foreach ($sourceFile in $sourceFiles) {
         & $assertAsciiFile -File $sourceFile
         & $assertPowerShellSyntax -File $sourceFile
+    }
+
+    foreach ($dotnetSourceFile in @(& $getDotnetSourceFiles)) {
+        & $assertAsciiFile -File $dotnetSourceFile
     }
 
     $functionDirectories = @(
@@ -289,9 +326,64 @@ $invokeAnalyze = {
     }
 }
 
+$buildDotnetAssembly = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TargetFramework,
+
+        [Parameter(Mandatory = $true)]
+        [string]$AssemblyFileName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationDirectory
+    )
+
+    $dotnet = Get-Command -Name 'dotnet' -CommandType Application -ErrorAction Ignore
+    if ($null -eq $dotnet) {
+        throw 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
+    }
+
+    $projectName = [System.IO.Path]::GetFileNameWithoutExtension($ProjectPath)
+    $intermediateDirectory = Join-Path `
+        -Path $dotnetBuildDirectory `
+        -ChildPath "$projectName/$TargetFramework"
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $buildOutput = & $dotnet.Source build $ProjectPath `
+            --configuration 'Release' `
+            --framework $TargetFramework `
+            --output $intermediateDirectory `
+            --nologo 2>&1
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        $buildMessage = @($buildOutput) -join [Environment]::NewLine
+        throw "The dotnet build failed for $ProjectPath ($TargetFramework):$([Environment]::NewLine)$buildMessage"
+    }
+
+    $builtAssemblyPath = Join-Path -Path $intermediateDirectory -ChildPath $AssemblyFileName
+    if (-not (Test-Path -LiteralPath $builtAssemblyPath -PathType Leaf)) {
+        throw "The dotnet build did not generate an expected assembly: $builtAssemblyPath"
+    }
+
+    if (-not (Test-Path -LiteralPath $DestinationDirectory -PathType Container)) {
+        $null = New-Item -Path $DestinationDirectory -ItemType 'Directory' -Force
+    }
+
+    Copy-Item -LiteralPath $builtAssemblyPath -Destination $DestinationDirectory -Force
+}
+
 $invokeBuild = {
-    if (Test-Path -LiteralPath $outputModuleDirectory) {
-        Remove-Item -LiteralPath $outputModuleDirectory -Recurse -Force
+    foreach ($staleDirectory in @($outputModuleDirectory, $outputTestSupportDirectory)) {
+        if (Test-Path -LiteralPath $staleDirectory) {
+            Remove-Item -LiteralPath $staleDirectory -Recurse -Force
+        }
     }
 
     Build-Module -SourcePath $buildConfigurationPath | Out-Null
@@ -300,6 +392,23 @@ $invokeBuild = {
         if (-not (Test-Path -LiteralPath $expectedPath -PathType Leaf)) {
             throw "ModuleBuilder did not generate an expected file: $expectedPath"
         }
+    }
+
+    & $buildDotnetAssembly `
+        -ProjectPath $nativeProjectPath `
+        -TargetFramework 'netstandard2.0' `
+        -AssemblyFileName 'PSWinUtil.Native.dll' `
+        -DestinationDirectory $outputLibraryDirectory
+
+    foreach ($testSupportTargetFramework in @('net472', 'netstandard2.0')) {
+        $testSupportDestination = Join-Path `
+            -Path $outputTestSupportDirectory `
+            -ChildPath $testSupportTargetFramework
+        & $buildDotnetAssembly `
+            -ProjectPath $testSupportProjectPath `
+            -TargetFramework $testSupportTargetFramework `
+            -AssemblyFileName 'PSWinUtil.TestSupport.dll' `
+            -DestinationDirectory $testSupportDestination
     }
 
     $generatedPowerShellFiles = @(
