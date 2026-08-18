@@ -4,7 +4,7 @@ function Set-WUAutoLogonPassword {
     Stores or removes the Windows auto logon password.
 
     .DESCRIPTION
-    Uses the Local Security Authority policy API to store the DefaultPassword private data secret. A null password removes the secret. Secret memory is cleared before it is released.
+    Uses the Local Security Authority policy API declared in the PSWinUtil.Native assembly to store the DefaultPassword private data secret. A null password removes the secret. Secret memory is cleared before it is released.
 
     .PARAMETER Password
     Specifies the password to store. A null value removes the stored password.
@@ -45,63 +45,6 @@ function Set-WUAutoLogonPassword {
     }
     if (-not $PSCmdlet.ShouldProcess('LSA private data: DefaultPassword', $action)) {
         return
-    }
-
-    if ($null -eq ('PSWinUtil.NativeMethods.LsaPolicy' -as [type])) {
-        Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-
-namespace PSWinUtil.NativeMethods
-{
-    [StructLayout(LayoutKind.Sequential)]
-    public struct LsaUnicodeString
-    {
-        public ushort Length;
-        public ushort MaximumLength;
-        public IntPtr Buffer;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct LsaObjectAttributes
-    {
-        public uint Length;
-        public IntPtr RootDirectory;
-        public IntPtr ObjectName;
-        public uint Attributes;
-        public IntPtr SecurityDescriptor;
-        public IntPtr SecurityQualityOfService;
-    }
-
-    public static class LsaPolicy
-    {
-        [DllImport("advapi32.dll")]
-        public static extern uint LsaOpenPolicy(
-            IntPtr systemName,
-            ref LsaObjectAttributes objectAttributes,
-            uint desiredAccess,
-            out IntPtr policyHandle);
-
-        [DllImport("advapi32.dll", EntryPoint = "LsaStorePrivateData")]
-        public static extern uint LsaStorePrivateDataValue(
-            IntPtr policyHandle,
-            ref LsaUnicodeString keyName,
-            ref LsaUnicodeString privateData);
-
-        [DllImport("advapi32.dll", EntryPoint = "LsaStorePrivateData")]
-        public static extern uint LsaStorePrivateDataDelete(
-            IntPtr policyHandle,
-            ref LsaUnicodeString keyName,
-            IntPtr privateData);
-
-        [DllImport("advapi32.dll")]
-        public static extern uint LsaClose(IntPtr policyHandle);
-
-        [DllImport("advapi32.dll")]
-        public static extern uint LsaNtStatusToWinError(uint status);
-    }
-}
-'@
     }
 
     $policyCreateSecret = [uint32]0x00000020

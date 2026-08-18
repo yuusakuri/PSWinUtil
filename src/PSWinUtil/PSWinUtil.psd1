@@ -11,6 +11,9 @@
         'Desktop'
     )
     RequiredModules = @()
+    RequiredAssemblies = @(
+        'lib/PSWinUtil.Native.dll'
+    )
     FunctionsToExport = @()
     CmdletsToExport = @()
     VariablesToExport = @()

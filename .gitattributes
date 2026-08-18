@@ -2,6 +2,9 @@
 *.ps1 text eol=lf
 *.psd1 text eol=lf
 *.ps1xml text eol=lf
+*.cs text eol=lf
+*.csproj text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.md text eol=lf
+*.dll binary

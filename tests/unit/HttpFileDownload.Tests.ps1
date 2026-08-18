@@ -6,47 +6,19 @@ BeforeAll {
 
     Add-Type -AssemblyName 'System.Net.Http' -ErrorAction Stop
     if ($null -eq ('PSWinUtil.Tests.StaticHttpMessageHandler' -as [type])) {
-        $typeDefinition = @'
-namespace PSWinUtil.Tests
-{
-    using System;
-    using System.Net;
-    using System.Net.Http;
-    using System.Threading;
-    using System.Threading.Tasks;
-
-    public sealed class StaticHttpMessageHandler : HttpMessageHandler
-    {
-        private readonly byte[] body;
-        private readonly HttpStatusCode statusCode;
-
-        public StaticHttpMessageHandler(byte[] body, HttpStatusCode statusCode)
-        {
-            this.body = body;
-            this.statusCode = statusCode;
-        }
-
-        public Uri RequestUri { get; private set; }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            this.RequestUri = request.RequestUri;
-            var response = new HttpResponseMessage(this.statusCode);
-            response.Content = new ByteArrayContent(this.body);
-            return Task.FromResult(response);
-        }
-    }
-}
-'@
+        $testSupportTargetFramework = 'netstandard2.0'
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
-            Add-Type `
-                -TypeDefinition $typeDefinition `
-                -ReferencedAssemblies 'System.Net.Http.dll'
-        } else {
-            Add-Type -TypeDefinition $typeDefinition
+            $testSupportTargetFramework = 'net472'
         }
+
+        $testSupportAssemblyPath = Join-Path `
+            -Path $repositoryRoot `
+            -ChildPath "output/TestSupport/$testSupportTargetFramework/PSWinUtil.TestSupport.dll"
+        if (-not (Test-Path -LiteralPath $testSupportAssemblyPath -PathType Leaf)) {
+            throw "Run .\run.ps1 build before running the tests. The test support assembly was not found: $testSupportAssemblyPath"
+        }
+
+        Add-Type -LiteralPath $testSupportAssemblyPath -ErrorAction Stop
     }
 }
 

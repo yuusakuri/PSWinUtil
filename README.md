@@ -34,6 +34,15 @@ Download the ZIP file of a release and unpack it to one of the following locatio
 - Current user: `C:\Users\USERNAME\Documents\WindowsPowerShell\Modules\PSWinUtil`
 - All users: `C:\Program Files\WindowsPowerShell\Modules\PSWinUtil`
 
+## Development
+
+The native interop types are compiled from the `src/PSWinUtil.Native` C# project, so building the module requires the .NET SDK 8.0 or later in addition to the pinned PowerShell modules.
+
+```powershell
+.\install.ps1
+.\run.ps1 ci
+```
+
 ## Check if the module is installed
 
 ```powershell
