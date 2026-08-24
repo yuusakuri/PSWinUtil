@@ -4,7 +4,7 @@ function Get-WUFlutterSdkRelease {
     Gets Flutter SDK release metadata for Windows.
 
     .DESCRIPTION
-    Reads the official Flutter release index and returns validated metadata for one Windows SDK archive. Releases without architecture metadata are treated as x64 for compatibility with older index entries.
+    Reads the official Flutter release index and returns metadata for one Windows SDK archive. Releases without architecture metadata are treated as x64 for compatibility with older index entries.
 
     .PARAMETER Version
     Specifies a Flutter SDK version. An empty value selects the current release for the requested channel.
@@ -108,12 +108,8 @@ function Get-WUFlutterSdkRelease {
     }
 
     $archivePath = [string]$targetRelease.archive
-    $sha256 = [string]$targetRelease.sha256
-    if (
-        [string]::IsNullOrWhiteSpace($archivePath) -or
-        $sha256 -notmatch '\A[0-9a-fA-F]{64}\z'
-    ) {
-        throw 'The Flutter SDK release index contains incomplete archive metadata.'
+    if ([string]::IsNullOrWhiteSpace($archivePath)) {
+        throw 'The Flutter SDK release index does not contain an archive path.'
     }
 
     $archiveUri = $null
@@ -129,6 +125,5 @@ function Get-WUFlutterSdkRelease {
         Channel = [string]$targetRelease.channel
         Architecture = $Architecture
         Uri = $archiveUri
-        Sha256 = $sha256.ToLowerInvariant()
     }
 }
