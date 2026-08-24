@@ -35,14 +35,14 @@ $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requiremen
 $writeUsage = {
     Write-Output -InputObject @'
 Usage:
-  .\run.ps1 format
-  .\run.ps1 analyze
-  .\run.ps1 build
-  .\run.ps1 test unit
-  .\run.ps1 test integration
-  .\run.ps1 test contract
-  .\run.ps1 test all
-  .\run.ps1 ci
+  .\dev.ps1 format
+  .\dev.ps1 analyze
+  .\dev.ps1 build
+  .\dev.ps1 test unit
+  .\dev.ps1 test integration
+  .\dev.ps1 test contract
+  .\dev.ps1 test all
+  .\dev.ps1 ci
 '@
 }
 
@@ -78,7 +78,7 @@ $importRequiredModule = {
 $getSourceFiles = {
     $rootFileNames = @(
         'install.ps1'
-        'run.ps1'
+        'dev.ps1'
         'build.requirements.psd1'
         'PSScriptFormatterSettings.psd1'
         'PSScriptAnalyzerSettings.psd1'

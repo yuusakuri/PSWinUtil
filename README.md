@@ -1,50 +1,63 @@
 # PSWinUtil
 
-PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey. It contains the following functions.
+PSWinUtil is a Windows PowerShell 5.1 module for repeatable Windows configuration and administration.
 
-- Set Windows by rewriting the registry
-- Instantly find file and folder paths
-- Get media file properties such as videos and photos
-- Get and change monitor resolution and refresh rate
-- Add or remove paths for path environment variables
+It provides commands that:
+
+- Configure Windows interface, security, sign-in, and notification settings.
+- Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
+- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, and Android command-line tools.
+
+Commands that change system state support PowerShell's `-WhatIf` and `-Confirm` parameters where applicable.
 
 ## Requirements
 
-PowerShell 5.0 (or later)
+- Windows.
+- Windows PowerShell 5.1 with the `Desktop` edition.
 
-## Installing
+The .NET SDK is not required to use the released module.
 
-### Option 1: Scoop
+## Installation
 
-```powershell
-scoop bucket add yuusakuri https://github.com/yuusakuri/scoop-bucket.git
-scoop install yuusakuri/pswinutil
-```
-
-### Option 2: PowerShellGet
+Install PSWinUtil from PowerShell Gallery for the current user:
 
 ```powershell
-Install-Module -Name PSWinUtil -Scope CurrentUser
+Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
 ```
 
-### Option 3: ZIP File
+## Usage
 
-Download the ZIP file of a release and unpack it to one of the following locations:
-
-- Current user: `C:\Users\USERNAME\Documents\WindowsPowerShell\Modules\PSWinUtil`
-- All users: `C:\Program Files\WindowsPowerShell\Modules\PSWinUtil`
-
-## Development
-
-The native interop types are compiled from the `src/PSWinUtil.Native` C# project, so building the module requires the .NET SDK 8.0 or later in addition to the pinned PowerShell modules.
+Import the module and list its commands:
 
 ```powershell
-.\install.ps1
-.\run.ps1 ci
+Import-Module -Name 'PSWinUtil'
+Get-Command -Module 'PSWinUtil'
 ```
 
-## Check if the module is installed
+Read an environment variable from the current user profile:
 
 ```powershell
-. { Get-Module; Get-Module -ListAvailable } | Where-Object { $_.Name -eq 'PSWinUtil' }
+Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
 ```
+
+Preview a persistent environment variable update without changing the system:
+
+```powershell
+Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
+```
+
+Preview enabling Win32 long path support:
+
+```powershell
+Enable-WULongPaths -WhatIf
+```
+
+Use `Get-Help` to view the parameters and examples for any command:
+
+```powershell
+Get-Help -Name 'Set-WUEnvironmentVariable' -Full
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, verification commands, coding conventions, and pull request requirements.
