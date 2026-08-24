@@ -70,4 +70,21 @@ Describe 'Assert-WUPathProperty' {
             Assert-WUPathProperty -Path (Join-Path -Path $TestDrive -ChildPath 'missing') -Exists
         } | Should -Throw '*required properties*'
     }
+
+    It 'allows a missing path while validating the type of an existing path' {
+        $missingPath = Join-Path -Path $TestDrive -ChildPath 'missing-directory'
+        $filePath = Join-Path -Path $TestDrive -ChildPath 'existing-file.txt'
+        [System.IO.File]::WriteAllText($filePath, 'content')
+
+        { Assert-WUPathProperty -Path $missingPath -Container -AllowNonExisting } |
+            Should -Not -Throw
+        { Assert-WUPathProperty -Path $filePath -Container -AllowNonExisting } |
+            Should -Throw '*required properties*'
+    }
+
+    It 'rejects conflicting existence requirements' {
+        {
+            Assert-WUPathProperty -Path $TestDrive -Exists -AllowNonExisting
+        } | Should -Throw '*cannot be specified together*'
+    }
 }

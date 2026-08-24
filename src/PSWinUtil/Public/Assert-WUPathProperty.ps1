@@ -4,7 +4,7 @@ function Assert-WUPathProperty {
     Requires file system paths to match selected properties.
 
     .DESCRIPTION
-    Uses Test-WUPathProperty and reports an error when a path is missing or does not match every selected property. Successful checks produce no output.
+    Uses Test-WUPathProperty and reports an error when a path is missing or does not match every selected property. AllowNonExisting permits a missing path while still validating an existing path. Successful checks produce no output.
 
     .PARAMETER Path
     Specifies one or more file system paths to check.
@@ -24,6 +24,9 @@ function Assert-WUPathProperty {
     .PARAMETER Writable
     Requires the path to be writable by the current process.
 
+    .PARAMETER AllowNonExisting
+    Permits a missing path. An existing path must still match every selected property.
+
     .EXAMPLE
     Assert-WUPathProperty -Path '.\settings.json' -Leaf -Readable
 
@@ -33,6 +36,11 @@ function Assert-WUPathProperty {
     Assert-WUPathProperty -Path '.\missing' -Exists
 
     Reports an error because the path does not exist.
+
+    .EXAMPLE
+    Assert-WUPathProperty -Path '.\output' -Container -AllowNonExisting
+
+    Completes without output when output is missing or is an existing directory.
 
     .INPUTS
     System.String
@@ -65,13 +73,30 @@ function Assert-WUPathProperty {
         [switch]$Readable,
 
         [Parameter()]
-        [switch]$Writable
+        [switch]$Writable,
+
+        [Parameter()]
+        [switch]$AllowNonExisting
     )
+
+    begin {
+        if ($Exists -and $AllowNonExisting) {
+            throw 'Exists and AllowNonExisting cannot be specified together.'
+        }
+    }
 
     process {
         foreach ($currentPath in $Path) {
+            $fullPath = ConvertTo-WUFullPath -Path $currentPath
+            if (
+                $AllowNonExisting -and
+                -not (Test-Path -LiteralPath $fullPath -ErrorAction Stop)
+            ) {
+                continue
+            }
+
             $testParameters = @{
-                Path = $currentPath
+                Path = $fullPath
             }
             foreach ($conditionName in @('Exists', 'Leaf', 'Container', 'Readable', 'Writable')) {
                 if ($PSBoundParameters.ContainsKey($conditionName) -and $PSBoundParameters[$conditionName]) {
