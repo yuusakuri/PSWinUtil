@@ -33,12 +33,9 @@ function Disable-WUWindowsAutoLogon {
     )
 
     $registryPath = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
-    $shouldProcessParameters = @{}
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $shouldProcessParameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $shouldProcessParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
 
     $disabledParameters = @{
         Path = $registryPath

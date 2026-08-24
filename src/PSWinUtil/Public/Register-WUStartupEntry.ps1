@@ -76,12 +76,9 @@ function Register-WUStartupEntry {
         'User' { 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run' }
         'Machine' { 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run' }
     }
-    $shouldProcessParameters = @{}
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $shouldProcessParameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $shouldProcessParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
 
     $setParameters = @{
         Path = $registryPath

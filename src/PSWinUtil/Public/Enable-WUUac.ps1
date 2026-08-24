@@ -25,12 +25,9 @@ function Enable-WUUac {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = @{}
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $shouldProcessParameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $shouldProcessParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
 
     Set-WURegistrySetting `
         -Name 'Uac' `

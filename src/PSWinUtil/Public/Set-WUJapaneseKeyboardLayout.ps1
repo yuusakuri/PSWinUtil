@@ -44,12 +44,9 @@ function Set-WUJapaneseKeyboardLayout {
         Set-WinUserLanguageList -LanguageList $languageList -Force
     }
 
-    $shouldProcessParameters = @{}
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $shouldProcessParameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $shouldProcessParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
 
     $substituteParameters = @{
         Path = 'Registry::HKEY_CURRENT_USER\Keyboard Layout\Substitutes'

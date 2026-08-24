@@ -31,6 +31,7 @@ Describe 'Built module manifest' {
             'Set-WURegistryProperty'
             'Remove-WURegistryProperty'
             'Get-WURegistrySetting'
+            'Select-WUBoundParameter'
             'Set-WUAdvertisingIdMode'
             'Enable-WUAppLaunchTracking'
             'Disable-WUAppLaunchTracking'

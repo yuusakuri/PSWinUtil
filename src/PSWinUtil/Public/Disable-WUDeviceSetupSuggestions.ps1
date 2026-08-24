@@ -34,10 +34,8 @@ function Disable-WUDeviceSetupSuggestions {
         Name = 'DeviceSetupSuggestions'
         Option = 'Disable'
     }
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $parameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $parameters += Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
     Set-WURegistrySetting @parameters
 }
