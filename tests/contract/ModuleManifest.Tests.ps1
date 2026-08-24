@@ -80,6 +80,8 @@ Describe 'Built module manifest' {
             'Set-WUKeyboardRemapping'
             'Remove-WUKeyboardRemapping'
             'Set-WUNativeCommandEncoding'
+            'Set-WUNodeExtraCaCertificate'
+            'Enable-WUJavaWindowsRootTrustStore'
             'Start-WUAndroidEmulator'
             'Get-WUAndroidCommandLineToolsUrl'
             'Invoke-WUDefaultBrowserDownload'
