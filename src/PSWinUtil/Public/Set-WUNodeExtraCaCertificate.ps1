@@ -4,13 +4,16 @@ function Set-WUNodeExtraCaCertificate {
     Configures an additional CA certificate for Node.js.
 
     .DESCRIPTION
-    Sets the current user's NODE_EXTRA_CA_CERTS environment variable to a fully qualified certificate file path. Node.js and npm processes started from subsequently opened sessions use the additional CA certificate. The certificate file must already exist.
+    Sets NODE_EXTRA_CA_CERTS to a fully qualified certificate bundle file path. Node.js and npm processes started after the environment variable is updated use the additional CA certificates. The file must already exist and contain one or more trusted certificates in PEM format.
 
     .PARAMETER CertificatePath
-    Specifies the additional CA certificate file.
+    Specifies a PEM file containing one or more additional trusted CA certificates.
+
+    .PARAMETER Scope
+    Specifies Process, User, or Machine. The default value is User.
 
     .EXAMPLE
-    Set-WUNodeExtraCaCertificate -CertificatePath 'C:\Certificates\AdditionalRootCA.crt'
+    Set-WUNodeExtraCaCertificate -CertificatePath 'C:\Certificates\AdditionalRootCA.pem'
 
     Configures the specified CA certificate file for Node.js and npm.
 
@@ -29,7 +32,11 @@ function Set-WUNodeExtraCaCertificate {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$CertificatePath
+        [string]$CertificatePath,
+
+        [Parameter()]
+        [ValidateSet('Process', 'User', 'Machine')]
+        [string]$Scope = 'User'
     )
 
     $resolvedCertificatePath = ConvertTo-WUFullPath -Path $CertificatePath
@@ -44,6 +51,6 @@ function Set-WUNodeExtraCaCertificate {
     Set-WUEnvironmentVariable `
         -Name 'NODE_EXTRA_CA_CERTS' `
         -Value $resolvedCertificatePath `
-        -Scope 'User' `
+        -Scope $Scope `
         @shouldProcessParameters
 }
