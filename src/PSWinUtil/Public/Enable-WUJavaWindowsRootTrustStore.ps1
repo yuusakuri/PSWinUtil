@@ -7,7 +7,7 @@ function Enable-WUJavaWindowsRootTrustStore {
     Adds the Windows ROOT trust store option to JAVA_TOOL_OPTIONS without removing unrelated Java options. The option is applied to Java processes started after the environment variable is updated.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is User.
+    Specifies Process, User, or Machine. The default value is User. Machine changes do not start an elevated process.
 
     .EXAMPLE
     Enable-WUJavaWindowsRootTrustStore

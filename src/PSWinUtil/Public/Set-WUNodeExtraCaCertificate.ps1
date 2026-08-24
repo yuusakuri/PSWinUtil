@@ -10,7 +10,7 @@ function Set-WUNodeExtraCaCertificate {
     Specifies a PEM file containing one or more additional trusted CA certificates.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is User.
+    Specifies Process, User, or Machine. The default value is User. Machine changes do not start an elevated process.
 
     .EXAMPLE
     Set-WUNodeExtraCaCertificate -CertificatePath 'C:\Certificates\AdditionalRootCA.pem'
