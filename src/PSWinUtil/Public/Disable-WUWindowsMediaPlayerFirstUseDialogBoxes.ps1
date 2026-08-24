@@ -37,7 +37,7 @@ function Disable-WUWindowsMediaPlayerFirstUseDialogBoxes {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsMediaPlayerFirstUseDialogBoxes' `
         -Option 'Disable' `
         @shouldProcessParameters

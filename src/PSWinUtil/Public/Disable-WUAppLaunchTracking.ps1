@@ -32,7 +32,7 @@ function Disable-WUAppLaunchTracking {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'AppLaunchTracking' `
         -Option 'Disable' `
         @shouldProcessParameters

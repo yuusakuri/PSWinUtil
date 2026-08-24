@@ -32,7 +32,7 @@ function Disable-WUWebsiteAccessToLanguageList {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WebsiteAccessToLanguageList' `
         -Option 'Disable' `
         @shouldProcessParameters

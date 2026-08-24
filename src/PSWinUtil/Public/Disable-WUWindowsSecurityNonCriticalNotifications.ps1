@@ -37,7 +37,7 @@ function Disable-WUWindowsSecurityNonCriticalNotifications {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsSecurityNonCriticalNotifications' `
         -Option 'Disable' `
         @shouldProcessParameters

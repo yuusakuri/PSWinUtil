@@ -32,7 +32,7 @@ function Enable-WURequireSignInOnWakeup {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'RequireSignInOnWakeup' `
         -Option 'Enable' `
         @shouldProcessParameters

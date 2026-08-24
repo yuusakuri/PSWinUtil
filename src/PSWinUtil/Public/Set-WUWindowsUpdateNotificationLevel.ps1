@@ -39,7 +39,7 @@ function Set-WUWindowsUpdateNotificationLevel {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsUpdateNotificationLevel' `
         -Option $Level `
         @shouldProcessParameters

@@ -37,7 +37,7 @@ function Disable-WUAppSuggestions {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'AppSuggestions' `
         -Option 'Disable' `
         @shouldProcessParameters

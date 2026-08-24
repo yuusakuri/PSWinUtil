@@ -32,7 +32,7 @@ function Disable-WUDarkMode {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'DarkMode' `
         -Option 'Disable' `
         @shouldProcessParameters

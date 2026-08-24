@@ -40,7 +40,7 @@ Describe 'PowerShell parser integration' {
 Describe 'URI and random string integration' {
     It 'uses System.Uri without network access' {
         $joinedUri = Join-WUUri -BaseUri 'https://example.test/api/' -RelativeUri 'items'
-        $convertedUri = ConvertTo-WUUri -Uri "$($joinedUri.AbsoluteUri)?q=value#top" -WithoutQuery -WithoutFragment
+        $convertedUri = Convert-WUUri -Uri "$($joinedUri.AbsoluteUri)?q=value#top" -WithoutQuery -WithoutFragment
 
         $convertedUri.AbsoluteUri | Should -Be 'https://example.test/api/items'
     }

@@ -32,7 +32,7 @@ function Enable-WUAppLaunchTracking {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'AppLaunchTracking' `
         -Option 'Enable' `
         @shouldProcessParameters

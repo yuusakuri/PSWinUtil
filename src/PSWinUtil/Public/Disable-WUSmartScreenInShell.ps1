@@ -32,7 +32,7 @@ function Disable-WUSmartScreenInShell {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'SmartScreenInShell' `
         -Option 'Disable' `
         @shouldProcessParameters

@@ -37,7 +37,7 @@ function Enable-WUWindowsMediaPlayerFirstUseDialogBoxes {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsMediaPlayerFirstUseDialogBoxes' `
         -Option 'Enable' `
         @shouldProcessParameters

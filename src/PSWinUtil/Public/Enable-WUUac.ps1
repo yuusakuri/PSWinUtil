@@ -32,7 +32,7 @@ function Enable-WUUac {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'Uac' `
         -Option 'Enable' `
         @shouldProcessParameters

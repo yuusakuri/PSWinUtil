@@ -17,11 +17,11 @@ Describe 'Join-WUUri' {
     }
 }
 
-Describe 'ConvertTo-WUUri' {
+Describe 'Convert-WUUri' {
     It 'removes only the selected URI components' {
-        $withoutQuery = ConvertTo-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutQuery
-        $withoutFragment = ConvertTo-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutFragment
-        $withoutBoth = ConvertTo-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutQuery -WithoutFragment
+        $withoutQuery = Convert-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutQuery
+        $withoutFragment = Convert-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutFragment
+        $withoutBoth = Convert-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutQuery -WithoutFragment
 
         $withoutQuery.AbsoluteUri | Should -Be 'https://example.test/items#top'
         $withoutFragment.AbsoluteUri | Should -Be 'https://example.test/items?q=one'
@@ -29,7 +29,7 @@ Describe 'ConvertTo-WUUri' {
     }
 
     It 'requires a conversion option' {
-        { ConvertTo-WUUri -Uri 'https://example.test/items' } | Should -Throw
+        { Convert-WUUri -Uri 'https://example.test/items' } | Should -Throw
     }
 }
 

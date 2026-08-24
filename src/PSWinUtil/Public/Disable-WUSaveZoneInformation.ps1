@@ -32,7 +32,7 @@ function Disable-WUSaveZoneInformation {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'SaveZoneInformation' `
         -Option 'Disable' `
         @shouldProcessParameters

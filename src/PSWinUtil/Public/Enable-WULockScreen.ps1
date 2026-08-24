@@ -32,7 +32,7 @@ function Enable-WULockScreen {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'LockScreen' `
         -Option 'Enable' `
         @shouldProcessParameters

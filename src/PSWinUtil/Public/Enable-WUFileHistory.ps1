@@ -32,7 +32,7 @@ function Enable-WUFileHistory {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'FileHistory' `
         -Option 'Enable' `
         @shouldProcessParameters

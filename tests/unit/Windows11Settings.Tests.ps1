@@ -6,17 +6,17 @@ BeforeAll {
 
 Describe 'Windows 11 registry setting commands' {
     BeforeEach {
-        Mock -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil
+        Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil
     }
 
     It 'enables and disables device setup suggestions' {
         Enable-WUDeviceSetupSuggestions
         Disable-WUDeviceSetupSuggestions
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'DeviceSetupSuggestions' -and $Option -eq 'Enable'
         }
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'DeviceSetupSuggestions' -and $Option -eq 'Disable'
         }
     }
@@ -25,10 +25,10 @@ Describe 'Windows 11 registry setting commands' {
         Set-WUTaskbarAlignment -Alignment Left
         Set-WUTaskbarAlignment -Alignment Center
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'TaskbarAlignment' -and $Option -eq 'Left'
         }
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'TaskbarAlignment' -and $Option -eq 'Center'
         }
     }
@@ -39,7 +39,7 @@ Describe 'Windows 11 registry setting commands' {
         }
 
         foreach ($mode in @('Hidden', 'Icon', 'SearchBox')) {
-            Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
                 $Name -eq 'TaskbarSearchMode' -and $Option -eq $mode
             }
         }
@@ -48,7 +48,7 @@ Describe 'Windows 11 registry setting commands' {
     It 'sets all Japanese IME input widths through one setting' {
         Set-WUJapaneseImeHalfWidthInput
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'JapaneseImeHalfWidthInput' -and $Option -eq 'Set'
         }
     }
@@ -56,7 +56,7 @@ Describe 'Windows 11 registry setting commands' {
     It 'forwards WhatIf to registry settings' {
         Set-WUTaskbarAlignment -Alignment Left -WhatIf
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $WhatIf -eq $true
         }
     }

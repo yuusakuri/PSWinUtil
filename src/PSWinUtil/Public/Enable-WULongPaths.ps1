@@ -37,7 +37,7 @@ function Enable-WULongPaths {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'LongPaths' `
         -Option 'Enable' `
         @shouldProcessParameters

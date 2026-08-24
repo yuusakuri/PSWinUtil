@@ -41,5 +41,5 @@ function Set-WUTaskbarAlignment {
             $parameters[$parameterName] = $PSBoundParameters[$parameterName]
         }
     }
-    Set-WURegistrySettingOption @parameters
+    Set-WURegistrySetting @parameters
 }
