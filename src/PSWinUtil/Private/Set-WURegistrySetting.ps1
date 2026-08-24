@@ -1,4 +1,4 @@
-function Set-WURegistrySettingOption {
+function Set-WURegistrySetting {
     <#
     .SYNOPSIS
     Applies a registry setting option.
@@ -16,7 +16,7 @@ function Set-WURegistrySettingOption {
     Specifies Auto, User, or Machine. The default value is Auto.
 
     .EXAMPLE
-    Set-WURegistrySettingOption -Name 'DarkMode' -Option 'Enable' -Scope User
+    Set-WURegistrySetting -Name 'DarkMode' -Option 'Enable' -Scope User
 
     Applies the Enable option for the current user's DarkMode setting.
 

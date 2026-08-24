@@ -32,7 +32,7 @@ function Enable-WUEdgeFirstRunExperience {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'EdgeFirstRunExperience' `
         -Option 'Enable' `
         @shouldProcessParameters

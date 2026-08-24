@@ -37,7 +37,7 @@ function Enable-WUAppSuggestions {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'AppSuggestions' `
         -Option 'Enable' `
         @shouldProcessParameters

@@ -39,7 +39,7 @@ function Set-WUAdvertisingIdMode {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'AdvertisingId' `
         -Option $Mode `
         @shouldProcessParameters

@@ -1,4 +1,4 @@
-function ConvertTo-WUUri {
+function Convert-WUUri {
     <#
     .SYNOPSIS
     Converts a URI by removing selected components.
@@ -16,12 +16,12 @@ function ConvertTo-WUUri {
     Removes the fragment component.
 
     .EXAMPLE
-    ConvertTo-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutQuery
+    Convert-WUUri -Uri 'https://example.test/items?q=one#top' -WithoutQuery
 
     Returns a URI without the query and keeps the fragment.
 
     .EXAMPLE
-    ConvertTo-WUUri -Uri 'https://example.test/items'
+    Convert-WUUri -Uri 'https://example.test/items'
 
     Reports an error because no conversion was selected.
 

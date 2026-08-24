@@ -32,7 +32,7 @@ function Enable-WUSmartScreenInShell {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'SmartScreenInShell' `
         -Option 'Enable' `
         @shouldProcessParameters

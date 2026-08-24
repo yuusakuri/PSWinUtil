@@ -226,7 +226,7 @@ Describe 'Get-WURegistrySetting' {
     }
 }
 
-Describe 'Set-WURegistrySettingOption' {
+Describe 'Set-WURegistrySetting' {
     BeforeEach {
         Mock -CommandName Import-WURegistrySetting -ModuleName PSWinUtil -MockWith {
             $script:TestRegistrySettingData
@@ -244,7 +244,7 @@ Describe 'Set-WURegistrySettingOption' {
 
     It 'delegates Set actions to Set-WURegistryProperty' {
         InModuleScope -ModuleName PSWinUtil {
-            Set-WURegistrySettingOption -Name Sample -Option Enable -Scope User
+            Set-WURegistrySetting -Name Sample -Option Enable -Scope User
         }
 
         Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
@@ -255,7 +255,7 @@ Describe 'Set-WURegistrySettingOption' {
 
     It 'delegates Remove actions to Remove-WURegistryProperty' {
         InModuleScope -ModuleName PSWinUtil {
-            Set-WURegistrySettingOption -Name Removable -Option Default -Scope User
+            Set-WURegistrySetting -Name Removable -Option Default -Scope User
         }
 
         Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly
@@ -272,7 +272,7 @@ Describe 'Set-WURegistrySettingOption' {
         }
 
         InModuleScope -ModuleName PSWinUtil {
-            Set-WURegistrySettingOption -Name Sample -Option Enable -Scope User
+            Set-WURegistrySetting -Name Sample -Option Enable -Scope User
         }
 
         Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
@@ -281,7 +281,7 @@ Describe 'Set-WURegistrySettingOption' {
 
     It 'forwards WhatIf to registry property commands' {
         InModuleScope -ModuleName PSWinUtil {
-            Set-WURegistrySettingOption `
+            Set-WURegistrySetting `
                 -Name Sample `
                 -Option Enable `
                 -Scope User `
@@ -337,13 +337,13 @@ Describe 'Setting-specific registry commands' {
     }
 
     It 'delegates every Enable and Disable command without registry details' {
-        Mock -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil
+        Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil
 
         foreach ($commandName in $script:SettingCommands.Keys) {
             $expected = $script:SettingCommands[$commandName]
             & $commandName
 
-            Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
                 $Name -eq $expected[0] -and $Option -eq $expected[1]
             }
             (Get-Command -Name $commandName -Module PSWinUtil).ScriptBlock.ToString() |
@@ -352,31 +352,31 @@ Describe 'Setting-specific registry commands' {
     }
 
     It 'delegates advertising ID modes' {
-        Mock -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil
+        Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil
 
         Set-WUAdvertisingIdMode -Mode Disabled
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'AdvertisingId' -and $Option -eq 'Disabled'
         }
     }
 
     It 'forwards WhatIf from a setting-specific command' {
-        Mock -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil
+        Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil
 
         Enable-WUDarkMode -WhatIf
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $WhatIf -eq $true
         }
     }
 
     It 'delegates Windows Update notification levels' {
-        Mock -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil
+        Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil
 
         Set-WUWindowsUpdateNotificationLevel -Level None
 
-        Should -Invoke -CommandName Set-WURegistrySettingOption -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'WindowsUpdateNotificationLevel' -and $Option -eq 'None'
         }
     }

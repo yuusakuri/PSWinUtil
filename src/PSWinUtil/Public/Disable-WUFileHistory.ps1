@@ -32,7 +32,7 @@ function Disable-WUFileHistory {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'FileHistory' `
         -Option 'Disable' `
         @shouldProcessParameters

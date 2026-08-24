@@ -37,7 +37,7 @@ function Disable-WULongPaths {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'LongPaths' `
         -Option 'Disable' `
         @shouldProcessParameters

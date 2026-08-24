@@ -32,7 +32,7 @@ function Disable-WULockWorkstation {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'LockWorkstation' `
         -Option 'Disable' `
         @shouldProcessParameters

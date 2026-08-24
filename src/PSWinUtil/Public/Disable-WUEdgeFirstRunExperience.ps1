@@ -32,7 +32,7 @@ function Disable-WUEdgeFirstRunExperience {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'EdgeFirstRunExperience' `
         -Option 'Disable' `
         @shouldProcessParameters

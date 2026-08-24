@@ -37,7 +37,7 @@ function Disable-WUWidgets {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'Widgets' `
         -Option 'Disable' `
         @shouldProcessParameters

@@ -37,7 +37,7 @@ function Disable-WUWindowsSecurityAllNotifications {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsSecurityAllNotifications' `
         -Option 'Disable' `
         @shouldProcessParameters

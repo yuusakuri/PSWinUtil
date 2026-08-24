@@ -37,7 +37,7 @@ function Enable-WUWidgets {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'Widgets' `
         -Option 'Enable' `
         @shouldProcessParameters

@@ -37,7 +37,7 @@ function Enable-WUWindowsSecurityNonCriticalNotifications {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsSecurityNonCriticalNotifications' `
         -Option 'Enable' `
         @shouldProcessParameters

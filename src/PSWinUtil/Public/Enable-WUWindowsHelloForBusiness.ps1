@@ -32,7 +32,7 @@ function Enable-WUWindowsHelloForBusiness {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsHelloForBusiness' `
         -Option 'Enable' `
         @shouldProcessParameters

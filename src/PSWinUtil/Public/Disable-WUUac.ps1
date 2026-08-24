@@ -32,7 +32,7 @@ function Disable-WUUac {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'Uac' `
         -Option 'Disable' `
         @shouldProcessParameters

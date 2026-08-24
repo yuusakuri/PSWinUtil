@@ -32,7 +32,7 @@ function Disable-WUWindowsHelloForBusiness {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsHelloForBusiness' `
         -Option 'Disable' `
         @shouldProcessParameters

@@ -37,7 +37,7 @@ function Enable-WUWindowsSecurityAllNotifications {
         }
     }
 
-    Set-WURegistrySettingOption `
+    Set-WURegistrySetting `
         -Name 'WindowsSecurityAllNotifications' `
         -Option 'Enable' `
         @shouldProcessParameters

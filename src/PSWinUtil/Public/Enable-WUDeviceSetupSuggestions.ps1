@@ -39,5 +39,5 @@ function Enable-WUDeviceSetupSuggestions {
             $parameters[$parameterName] = $PSBoundParameters[$parameterName]
         }
     }
-    Set-WURegistrySettingOption @parameters
+    Set-WURegistrySetting @parameters
 }
