@@ -36,10 +36,8 @@ function Set-WUTaskbarSearchMode {
         Name = 'TaskbarSearchMode'
         Option = $Mode
     }
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $parameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $parameters += Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
     Set-WURegistrySetting @parameters
 }

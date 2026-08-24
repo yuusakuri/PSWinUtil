@@ -31,10 +31,8 @@ function Enable-WUClassicContextMenu {
         Value = ''
         Type = 'String'
     }
-    foreach ($parameterName in @('WhatIf', 'Confirm')) {
-        if ($PSBoundParameters.ContainsKey($parameterName)) {
-            $parameters[$parameterName] = $PSBoundParameters[$parameterName]
-        }
-    }
+    $parameters += Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'WhatIf', 'Confirm'
     Set-WURegistryProperty @parameters
 }

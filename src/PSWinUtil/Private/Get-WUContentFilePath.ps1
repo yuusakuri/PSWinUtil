@@ -30,15 +30,13 @@ function Get-WUContentFilePath {
     $parameters = @{
         ErrorAction = 'Stop'
     }
+    $parameters += Select-WUBoundParameter `
+        -BoundParameters $BoundParameter `
+        -Name 'Filter', 'Include', 'Exclude', 'Force'
     if ($BoundParameter.ContainsKey('LiteralPath')) {
         $parameters.LiteralPath = $BoundParameter.LiteralPath
     } else {
         $parameters.Path = $BoundParameter.Path
-    }
-    foreach ($parameterName in @('Filter', 'Include', 'Exclude', 'Force')) {
-        if ($BoundParameter.ContainsKey($parameterName)) {
-            $parameters[$parameterName] = $BoundParameter[$parameterName]
-        }
     }
 
     Microsoft.PowerShell.Management\Get-Item @parameters |
