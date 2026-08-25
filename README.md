@@ -1,50 +1,85 @@
 # PSWinUtil
 
-PSWinUtil is a PowerShell module for Windows users. Dependencies are automatically installed by Scoop and Chocolatey. It contains the following functions.
+PSWinUtil is a Windows PowerShell 5.1 module for repeatable Windows configuration and administration.
 
-- Set Windows by rewriting the registry
-- Instantly find file and folder paths
-- Get media file properties such as videos and photos
-- Get and change monitor resolution and refresh rate
-- Add or remove paths for path environment variables
+It provides commands that:
+
+- Configure Windows interface, security, sign-in, and notification settings.
+- Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
+- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, and Android command-line tools.
 
 ## Requirements
 
-PowerShell 5.0 (or later)
+- Windows.
+- Windows PowerShell 5.1 with the `Desktop` edition.
 
-## Installing
+## Installation
 
-### Option 1: Scoop
+### PowerShell Gallery
 
-```powershell
-scoop bucket add yuusakuri https://github.com/yuusakuri/scoop-bucket.git
-scoop install yuusakuri/pswinutil
-```
-
-### Option 2: PowerShellGet
+Install PSWinUtil from PowerShell Gallery for the current user:
 
 ```powershell
-Install-Module -Name PSWinUtil -Scope CurrentUser
+Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
 ```
 
-### Option 3: ZIP File
+### Release ZIP
 
-Download the ZIP file of a release and unpack it to one of the following locations:
+To use PSWinUtil without installing it from PowerShell Gallery, download the ZIP file for the required version from [Releases](https://github.com/yuusakuri/PSWinUtil/releases). Extract the archive to any directory, find the included `PSWinUtil.psd1` module manifest, and import it by its full path.
 
-- Current user: `C:\Users\USERNAME\Documents\WindowsPowerShell\Modules\PSWinUtil`
-- All users: `C:\Program Files\WindowsPowerShell\Modules\PSWinUtil`
-
-## Development
-
-The native interop types are compiled from the `src/PSWinUtil.Native` C# project, so building the module requires the .NET SDK 8.0 or later in addition to the pinned PowerShell modules.
+The following example uses a ZIP file saved as `Downloads\PSWinUtil.zip`:
 
 ```powershell
-.\install.ps1
-.\run.ps1 ci
+$archivePath = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads\PSWinUtil.zip'
+$destinationPath = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads\PSWinUtil-release'
+
+Expand-Archive -LiteralPath $archivePath -DestinationPath $destinationPath
+$manifestPath = Get-ChildItem -LiteralPath $destinationPath -Filter 'PSWinUtil.psd1' -File -Recurse |
+    Select-Object -First 1 -ExpandProperty FullName
+
+if ($null -eq $manifestPath) {
+    throw 'PSWinUtil.psd1 was not found in the extracted release.'
+}
+
+Import-Module -Name $manifestPath
+Get-Command -Module 'PSWinUtil'
 ```
 
-## Check if the module is installed
+The imported commands are available in the current Windows PowerShell session. In a new session, run `Import-Module` with the extracted manifest path again.
+
+## Usage
+
+Import the module and list its commands:
 
 ```powershell
-. { Get-Module; Get-Module -ListAvailable } | Where-Object { $_.Name -eq 'PSWinUtil' }
+Import-Module -Name 'PSWinUtil'
+Get-Command -Module 'PSWinUtil'
 ```
+
+Read an environment variable from the current user profile:
+
+```powershell
+Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
+```
+
+Preview a persistent environment variable update without changing the system:
+
+```powershell
+Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
+```
+
+Preview enabling Win32 long path support:
+
+```powershell
+Enable-WULongPaths -WhatIf
+```
+
+Use `Get-Help` to view the parameters and examples for any command:
+
+```powershell
+Get-Help -Name 'Set-WUEnvironmentVariable' -Full
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, verification commands, coding conventions, and pull request requirements.

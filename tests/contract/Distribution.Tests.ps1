@@ -1,6 +1,7 @@
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $script:OutputModuleDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil'
+    $script:DevScriptPath = Join-Path -Path $repositoryRoot -ChildPath 'dev.ps1'
 }
 
 Describe 'Distribution contents' {
@@ -19,5 +20,15 @@ Describe 'Distribution contents' {
         Test-Path -LiteralPath $registrySettingPath -PathType Leaf | Should -BeTrue
         $settings = Import-PowerShellDataFile -Path $registrySettingPath
         $settings.ContainsKey('DarkMode') | Should -BeTrue
+    }
+
+    It 'can be imported through the development command' {
+        & $script:DevScriptPath import
+
+        $importedModules = @(
+            Get-Module -Name 'PSWinUtil' |
+                Where-Object { $_.ModuleBase -eq $script:OutputModuleDirectory }
+        )
+        $importedModules.Count | Should -BeGreaterThan 0
     }
 }

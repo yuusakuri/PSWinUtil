@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('format', 'analyze', 'build', 'test', 'ci')]
+    [ValidateSet('format', 'analyze', 'build', 'import', 'test', 'ci')]
     [string]$Command,
 
     [Parameter(Position = 1)]
@@ -35,14 +35,15 @@ $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requiremen
 $writeUsage = {
     Write-Output -InputObject @'
 Usage:
-  .\run.ps1 format
-  .\run.ps1 analyze
-  .\run.ps1 build
-  .\run.ps1 test unit
-  .\run.ps1 test integration
-  .\run.ps1 test contract
-  .\run.ps1 test all
-  .\run.ps1 ci
+  .\dev.ps1 format
+  .\dev.ps1 analyze
+  .\dev.ps1 build
+  .\dev.ps1 import
+  .\dev.ps1 test unit
+  .\dev.ps1 test integration
+  .\dev.ps1 test contract
+  .\dev.ps1 test all
+  .\dev.ps1 ci
 '@
 }
 
@@ -78,7 +79,7 @@ $importRequiredModule = {
 $getSourceFiles = {
     $rootFileNames = @(
         'install.ps1'
-        'run.ps1'
+        'dev.ps1'
         'build.requirements.psd1'
         'PSScriptFormatterSettings.psd1'
         'PSScriptAnalyzerSettings.psd1'
@@ -427,6 +428,14 @@ $invokeBuild = {
     }
 }
 
+$invokeImport = {
+    if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
+        throw "Build the module before importing it: $outputManifestPath"
+    }
+
+    Import-Module -Name $outputManifestPath -Force -Global -ErrorAction Stop
+}
+
 $assertOutput = {
     $outputFiles = @(
         Get-ChildItem -LiteralPath $outputModuleDirectory -File -Recurse |
@@ -522,6 +531,9 @@ switch ($Command) {
         & $assertSource
         & $importRequiredModule -Name 'ModuleBuilder'
         & $invokeBuild
+    }
+    'import' {
+        & $invokeImport
     }
     'test' {
         & $assertSource

@@ -27,4 +27,4 @@ jobs:
         run: .\install.ps1
 
       - name: Run verification
-        run: powershell.exe -ExecutionPolicy Bypass -File .\run.ps1 ci
+        run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 ci

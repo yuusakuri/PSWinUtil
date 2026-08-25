@@ -15,7 +15,7 @@ BeforeAll {
             -Path $repositoryRoot `
             -ChildPath "output/TestSupport/$testSupportTargetFramework/PSWinUtil.TestSupport.dll"
         if (-not (Test-Path -LiteralPath $testSupportAssemblyPath -PathType Leaf)) {
-            throw "Run .\run.ps1 build before running the tests. The test support assembly was not found: $testSupportAssemblyPath"
+            throw "Run .\dev.ps1 build before running the tests. The test support assembly was not found: $testSupportAssemblyPath"
         }
 
         Add-Type -LiteralPath $testSupportAssemblyPath -ErrorAction Stop
