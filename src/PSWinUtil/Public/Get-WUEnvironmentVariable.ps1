@@ -4,18 +4,23 @@ function Get-WUEnvironmentVariable {
     Gets one or more environment variable values.
 
     .DESCRIPTION
-    Gets environment variable values from the Process, User, or Machine scope. A missing variable produces no output.
+    Gets environment variable values from one or more Process, User, or Machine scopes. A missing variable produces no output.
 
     .PARAMETER Name
     Specifies one or more environment variable names.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is Process.
+    Specifies one or more of Process, User, and Machine. The default value is Process.
 
     .EXAMPLE
     Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
 
     Gets JAVA_HOME from the current user environment.
+
+    .EXAMPLE
+    Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope Process, User
+
+    Gets JAVA_HOME from the current process and current user environments in the specified order.
 
     .INPUTS
     System.String
@@ -38,13 +43,15 @@ function Get-WUEnvironmentVariable {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string[]]$Scope = 'Process'
     )
 
     process {
-        $target = [System.EnvironmentVariableTarget]$Scope
         foreach ($currentName in $Name) {
-            [System.Environment]::GetEnvironmentVariable($currentName, $target)
+            foreach ($currentScope in $Scope) {
+                $target = [System.EnvironmentVariableTarget]$currentScope
+                [System.Environment]::GetEnvironmentVariable($currentName, $target)
+            }
         }
     }
 }

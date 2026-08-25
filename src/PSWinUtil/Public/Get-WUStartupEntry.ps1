@@ -4,18 +4,23 @@ function Get-WUStartupEntry {
     Gets Windows startup entries.
 
     .DESCRIPTION
-    Gets startup command lines from the current user or local machine Run registry key. Command lines are returned exactly as stored and are not parsed.
+    Gets startup command lines from one or more current user and local machine Run registry keys. Command lines are returned exactly as stored and are not parsed.
 
     .PARAMETER Name
     Specifies the startup entry name. When omitted, all named entries in the selected scope are returned.
 
     .PARAMETER Scope
-    Specifies All, User, or Machine. The default value is All.
+    Specifies one or more of All, User, and Machine. All selects User and Machine. The default value is All.
 
     .EXAMPLE
     Get-WUStartupEntry -Name 'ExampleApp' -Scope User
 
     Gets the current user startup entry named ExampleApp.
+
+    .EXAMPLE
+    Get-WUStartupEntry -Name 'ExampleApp' -Scope User, Machine
+
+    Gets ExampleApp from the current user and local machine startup entries.
 
     .INPUTS
     None
@@ -32,7 +37,7 @@ function Get-WUStartupEntry {
 
         [Parameter()]
         [ValidateSet('All', 'User', 'Machine')]
-        [string]$Scope = 'All'
+        [string[]]$Scope = 'All'
     )
 
     $scopePaths = [ordered]@{
@@ -40,8 +45,8 @@ function Get-WUStartupEntry {
         Machine = 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run'
     }
     $selectedScopes = @($scopePaths.Keys)
-    if ($Scope -ne 'All') {
-        $selectedScopes = @($Scope)
+    if ($Scope -notcontains 'All') {
+        $selectedScopes = @($Scope | Select-Object -Unique)
     }
 
     foreach ($selectedScope in $selectedScopes) {

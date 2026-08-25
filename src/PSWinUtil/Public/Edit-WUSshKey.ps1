@@ -6,8 +6,11 @@ function Edit-WUSshKey {
     .DESCRIPTION
     Runs ssh-keygen.exe against an existing private key. Passphrase and comment changes use separate parameter sets. OpenSSH Client is not installed automatically.
 
-    .PARAMETER KeyPath
-    Specifies the existing private key file path.
+    .PARAMETER Path
+    Specifies the existing private key file path. Wildcards are supported when they resolve to exactly one file.
+
+    .PARAMETER LiteralPath
+    Specifies the existing private key file path without wildcard interpretation.
 
     .PARAMETER NewPassphrase
     Specifies the replacement passphrase. An empty string removes the passphrase.
@@ -19,17 +22,17 @@ function Edit-WUSshKey {
     Specifies the current passphrase. Use an empty string when the key has no passphrase.
 
     .EXAMPLE
-    Edit-WUSshKey -KeyPath '.\id_rsa' -CurrentPassphrase 'old value' -NewPassphrase 'new value'
+    Edit-WUSshKey -Path '.\id_rsa' -CurrentPassphrase 'old value' -NewPassphrase 'new value'
 
     Changes the private key passphrase and returns the key file.
 
     .EXAMPLE
-    Edit-WUSshKey -KeyPath '.\id_rsa' -CurrentPassphrase '' -Comment 'new comment' -WhatIf
+    Edit-WUSshKey -Path '.\id_rsa' -CurrentPassphrase '' -Comment 'new comment' -WhatIf
 
     Shows the comment change without running ssh-keygen.exe.
 
     .EXAMPLE
-    Edit-WUSshKey -KeyPath '.\missing-key' -CurrentPassphrase '' -Comment 'new comment'
+    Edit-WUSshKey -LiteralPath '.\missing-key' -CurrentPassphrase '' -Comment 'new comment'
 
     Reports an error because the private key does not exist.
 
@@ -41,19 +44,46 @@ function Edit-WUSshKey {
         '',
         Justification = 'ssh-keygen.exe requires passphrases as command arguments.'
     )]
-    [CmdletBinding(DefaultParameterSetName = 'Passphrase', SupportsShouldProcess = $true)]
+    [CmdletBinding(
+        DefaultParameterSetName = 'PassphrasePath',
+        SupportsShouldProcess = $true
+    )]
     [OutputType([System.IO.FileInfo])]
     param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [Alias('Path')]
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'PassphrasePath',
+            Position = 0
+        )]
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'CommentPath',
+            Position = 0
+        )]
+        [Alias('KeyPath')]
         [ValidateNotNullOrEmpty()]
-        [string]$KeyPath,
+        [SupportsWildcards()]
+        [string]$Path,
 
-        [Parameter(Mandatory = $true, ParameterSetName = 'Passphrase')]
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'PassphraseLiteralPath'
+        )]
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'CommentLiteralPath'
+        )]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [string]$LiteralPath,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'PassphrasePath')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'PassphraseLiteralPath')]
         [AllowEmptyString()]
         [string]$NewPassphrase,
 
-        [Parameter(Mandatory = $true, ParameterSetName = 'Comment')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'CommentPath')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'CommentLiteralPath')]
         [AllowEmptyString()]
         [string]$Comment,
 
@@ -62,8 +92,20 @@ function Edit-WUSshKey {
         [string]$CurrentPassphrase
     )
 
-    $fullKeyPath = ConvertTo-WUFullPath -Path $KeyPath
-    Assert-WUPathProperty -Path $fullKeyPath -Leaf -Readable -Writable
+    $pathParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'Path', 'LiteralPath'
+    $resolvedKeyPaths = @(
+        Resolve-WUExistingFileSystemPath `
+            @pathParameters `
+            -Leaf `
+            -Readable `
+            -Writable
+    )
+    if ($resolvedKeyPaths.Count -ne 1) {
+        throw 'Path must resolve to exactly one SSH private key file.'
+    }
+    $fullKeyPath = $resolvedKeyPaths[0]
     $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop |
         Select-Object -First 1
 
@@ -72,7 +114,7 @@ function Edit-WUSshKey {
         $nativeCurrentPassphrase = '""'
     }
 
-    if ($PSCmdlet.ParameterSetName -eq 'Passphrase') {
+    if ($PSCmdlet.ParameterSetName -like 'Passphrase*') {
         $action = 'Change SSH key passphrase'
         $nativeNewPassphrase = $NewPassphrase
         if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeNewPassphrase.Length -eq 0) {

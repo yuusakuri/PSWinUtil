@@ -61,14 +61,12 @@ function Install-WUAndroidCommandLineTools {
     if ([string]::IsNullOrWhiteSpace($AndroidHome)) {
         throw 'AndroidHome is required. Specify it or set ANDROID_HOME.'
     }
-    $fullAndroidHome = ConvertTo-WUFullPath -Path $AndroidHome
-    if (-not (Test-Path -LiteralPath $fullAndroidHome -PathType Container)) {
-        throw "The Android SDK directory does not exist: $fullAndroidHome"
-    }
-    $fullDownloadDirectory = ConvertTo-WUFullPath -Path $DownloadDirectory
-    if (-not (Test-Path -LiteralPath $fullDownloadDirectory -PathType Container)) {
-        throw "The download directory does not exist: $fullDownloadDirectory"
-    }
+    $fullAndroidHome = Resolve-WUExistingFileSystemPath `
+        -LiteralPath $AndroidHome `
+        -Container
+    $fullDownloadDirectory = Resolve-WUExistingFileSystemPath `
+        -LiteralPath $DownloadDirectory `
+        -Container
 
     $commandLineToolsRoot = Join-Path -Path $fullAndroidHome -ChildPath 'cmdline-tools'
     $latestPath = Join-Path -Path $commandLineToolsRoot -ChildPath 'latest'

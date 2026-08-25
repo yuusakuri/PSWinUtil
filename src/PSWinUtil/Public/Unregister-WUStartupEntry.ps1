@@ -4,18 +4,23 @@ function Unregister-WUStartupEntry {
     Unregisters a Windows startup entry.
 
     .DESCRIPTION
-    Removes one startup entry from the selected Run registry key. A missing entry produces no change. The command does not start an elevated process.
+    Removes one startup entry from one or more selected Run registry keys. A missing entry produces no change. The command does not start an elevated process.
 
     .PARAMETER Name
     Specifies the startup entry name.
 
     .PARAMETER Scope
-    Specifies User or Machine. The default value is User.
+    Specifies one or more of User and Machine. The default value is User.
 
     .EXAMPLE
     Unregister-WUStartupEntry -Name 'ExampleApp' -Scope User
 
     Removes ExampleApp from the current user startup entries.
+
+    .EXAMPLE
+    Unregister-WUStartupEntry -Name 'ExampleApp' -Scope User, Machine
+
+    Removes ExampleApp from the current user and local machine startup entries.
 
     .INPUTS
     None
@@ -36,16 +41,21 @@ function Unregister-WUStartupEntry {
 
         [Parameter()]
         [ValidateSet('User', 'Machine')]
-        [string]$Scope = 'User'
+        [string[]]$Scope = 'User'
     )
 
-    $registryPath = switch ($Scope) {
-        'User' { 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run' }
-        'Machine' { 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run' }
-    }
     $shouldProcessParameters = Select-WUBoundParameter `
         -BoundParameters $PSBoundParameters `
         -Name 'WhatIf', 'Confirm'
 
-    Remove-WURegistryProperty -Path $registryPath -Name $Name @shouldProcessParameters
+    foreach ($currentScope in @($Scope | Select-Object -Unique)) {
+        $registryPath = switch ($currentScope) {
+            'User' { 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run' }
+            'Machine' { 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run' }
+        }
+        Remove-WURegistryProperty `
+            -Path $registryPath `
+            -Name $Name `
+            @shouldProcessParameters
+    }
 }

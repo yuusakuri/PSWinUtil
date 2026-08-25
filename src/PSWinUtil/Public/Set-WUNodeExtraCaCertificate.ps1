@@ -6,16 +6,24 @@ function Set-WUNodeExtraCaCertificate {
     .DESCRIPTION
     Sets NODE_EXTRA_CA_CERTS to a fully qualified certificate bundle file path. Node.js and npm processes started after the environment variable is updated use the additional CA certificates. The file must already exist and contain one or more trusted certificates in PEM format.
 
-    .PARAMETER CertificatePath
-    Specifies a PEM file containing one or more additional trusted CA certificates.
+    .PARAMETER Path
+    Specifies a PEM file containing one or more additional trusted CA certificates. Wildcards are supported when they resolve to exactly one file.
+
+    .PARAMETER LiteralPath
+    Specifies a PEM file containing one or more additional trusted CA certificates without wildcard interpretation.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is User. Machine changes do not start an elevated process.
+    Specifies one or more of Process, User, and Machine. The default value is User. Machine changes do not start an elevated process.
 
     .EXAMPLE
-    Set-WUNodeExtraCaCertificate -CertificatePath 'C:\Certificates\AdditionalRootCA.pem'
+    Set-WUNodeExtraCaCertificate -Path 'C:\Certificates\AdditionalRootCA.pem'
 
     Configures the specified CA certificate file for Node.js and npm.
+
+    .EXAMPLE
+    Set-WUNodeExtraCaCertificate -LiteralPath 'C:\Certificates\AdditionalRoot[1].pem' -Scope Process, User
+
+    Configures the exact CA certificate file for the current process and current user environments.
 
     .INPUTS
     None
@@ -28,21 +36,42 @@ function Set-WUNodeExtraCaCertificate {
         '',
         Justification = 'Set-WUEnvironmentVariable evaluates ShouldProcess for the delegated change.'
     )]
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(
+        DefaultParameterSetName = 'Path',
+        SupportsShouldProcess = $true
+    )]
     param(
-        [Parameter(Mandatory = $true, Position = 0)]
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'Path',
+            Position = 0
+        )]
         [ValidateNotNullOrEmpty()]
-        [string]$CertificatePath,
+        [SupportsWildcards()]
+        [string]$Path,
+
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'LiteralPath'
+        )]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [string]$LiteralPath,
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'User'
+        [string[]]$Scope = 'User'
     )
 
-    $resolvedCertificatePath = ConvertTo-WUFullPath -Path $CertificatePath
-    if (-not (Test-Path -LiteralPath $resolvedCertificatePath -PathType Leaf)) {
-        throw "The Node.js CA certificate file was not found: $resolvedCertificatePath"
+    $pathParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'Path', 'LiteralPath'
+    $resolvedCertificatePaths = @(Resolve-WUExistingFileSystemPath @pathParameters)
+    if ($resolvedCertificatePaths.Count -ne 1) {
+        throw 'Path must resolve to exactly one Node.js CA certificate file.'
     }
+    $resolvedCertificatePath = $resolvedCertificatePaths[0]
+    Assert-WUPathProperty -Path $resolvedCertificatePath -Leaf -Readable
 
     $shouldProcessParameters = Select-WUBoundParameter `
         -BoundParameters $PSBoundParameters `

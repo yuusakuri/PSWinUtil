@@ -71,6 +71,16 @@ Describe 'Get-WUFileTreeWithContent' {
         $result.Path | Should -Contain $script:NestedFilePath
     }
 
+    It 'expands wildcard Path values' {
+        $result = @(
+            Get-WUFileTreeWithContent `
+                -Path (Join-Path -Path $script:RootPath -ChildPath '*.txt')
+        )
+
+        $result | Should -HaveCount 1
+        $result[0].Path | Should -Be $script:FirstFilePath
+    }
+
     It 'returns null content for a binary file' {
         $binaryPath = Join-Path -Path $script:RootPath -ChildPath 'binary.dat'
         [System.IO.File]::WriteAllBytes($binaryPath, [byte[]]@(65, 0, 66))

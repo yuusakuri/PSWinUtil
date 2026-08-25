@@ -57,6 +57,45 @@ Describe 'Import-WUEnvironmentVariableSetting' {
         $firstSetting.Scope | Should -Be 'User'
     }
 
+    It 'returns each setting for every selected scope' {
+        $environmentFile = Join-Path -Path $TestDrive -ChildPath 'multiple-scopes.psd1'
+        [System.IO.File]::WriteAllText(
+            $environmentFile,
+            "@{`n    NAME = 'value'`n}`n",
+            [System.Text.UTF8Encoding]::new($false)
+        )
+
+        $settings = InModuleScope -ModuleName PSWinUtil -Parameters @{ DataPath = $environmentFile } {
+            param($DataPath)
+            @(
+                Import-WUEnvironmentVariableSetting `
+                    -Path $DataPath `
+                    -Scope Process, User
+            )
+        }
+
+        $settings | Should -HaveCount 2
+        $settings.Scope | Should -Contain 'Process'
+        $settings.Scope | Should -Contain 'User'
+    }
+
+    It 'imports a LiteralPath without wildcard interpretation' {
+        $environmentFile = Join-Path -Path $TestDrive -ChildPath 'environment[1].psd1'
+        [System.IO.File]::WriteAllText(
+            $environmentFile,
+            "@{`n    NAME = 'literal value'`n}`n",
+            [System.Text.UTF8Encoding]::new($false)
+        )
+
+        $settings = InModuleScope -ModuleName PSWinUtil -Parameters @{ DataPath = $environmentFile } {
+            param($DataPath)
+            @(Import-WUEnvironmentVariableSetting -LiteralPath $DataPath -Scope User)
+        }
+
+        $settings | Should -HaveCount 1
+        $settings[0].Value | Should -Be 'literal value'
+    }
+
     It 'delegates data validation to the validator' {
         $environmentFile = Join-Path -Path $TestDrive -ChildPath 'environment.psd1'
         [System.IO.File]::WriteAllText(

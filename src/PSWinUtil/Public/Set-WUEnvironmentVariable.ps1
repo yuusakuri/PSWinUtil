@@ -15,8 +15,11 @@ function Set-WUEnvironmentVariable {
     .PARAMETER Path
     Specifies one or more .psd1 files. Each file must contain a Hashtable with environment variable names as keys and strings as values. Wildcards are supported.
 
+    .PARAMETER LiteralPath
+    Specifies one or more .psd1 files without wildcard interpretation. Each file must contain a Hashtable with environment variable names as keys and strings as values.
+
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is Process.
+    Specifies one or more of Process, User, and Machine. The default value is Process.
 
     .PARAMETER PassThru
     Returns the name, stored value, and scope after each variable is set.
@@ -35,6 +38,11 @@ function Set-WUEnvironmentVariable {
     Set-WUEnvironmentVariable -Path '.\environment.psd1' -Scope User -WhatIf
 
     Shows the variables that would be read from environment.psd1 and set for the current user.
+
+    .EXAMPLE
+    Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope Process, User
+
+    Sets MY_TOOL_HOME in the current process and current user environments.
 
     .INPUTS
     System.String
@@ -78,9 +86,19 @@ function Set-WUEnvironmentVariable {
         [SupportsWildcards()]
         [string[]]$Path,
 
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'ByLiteralFile',
+            ValueFromPipelineByPropertyName = $true
+        )]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ [System.IO.Path]::GetExtension($_) -ieq '.psd1' })]
+        [string[]]$LiteralPath,
+
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process',
+        [string[]]$Scope = 'Process',
 
         [Parameter()]
         [switch]$PassThru
@@ -97,19 +115,29 @@ function Set-WUEnvironmentVariable {
                 throw 'The environment variable value must be a string or null.'
             }
 
-            $settings += [pscustomobject]@{
-                Name = $Name
-                Value = $Value
-                Scope = $Scope
+            foreach ($currentScope in $Scope) {
+                $settings += [pscustomobject]@{
+                    Name = $Name
+                    Value = $Value
+                    Scope = $currentScope
+                }
             }
-        } else {
+        } elseif ($PSCmdlet.ParameterSetName -eq 'ByFile') {
             $dataPaths += $Path
+        } else {
+            $dataPaths += $LiteralPath
         }
     }
 
     end {
         if ($PSCmdlet.ParameterSetName -eq 'ByFile') {
             $settings = @(Import-WUEnvironmentVariableSetting -Path $dataPaths -Scope $Scope)
+        } elseif ($PSCmdlet.ParameterSetName -eq 'ByLiteralFile') {
+            $settings = @(
+                Import-WUEnvironmentVariableSetting `
+                    -LiteralPath $dataPaths `
+                    -Scope $Scope
+            )
         }
 
         foreach ($setting in $settings) {

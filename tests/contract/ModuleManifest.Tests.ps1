@@ -81,7 +81,7 @@ Describe 'Built module manifest' {
             'Remove-WUKeyboardRemapping'
             'Set-WUNativeCommandEncoding'
             'Set-WUNodeExtraCaCertificate'
-            'Enable-WUJavaWindowsRootTrustStore'
+            'Set-WUJavaWindowsRootTrustStore'
             'Start-WUAndroidEmulator'
             'Get-WUAndroidCommandLineToolsUrl'
             'Invoke-WUDefaultBrowserDownload'
@@ -119,6 +119,50 @@ Describe 'Built module manifest' {
                 $exportedCommands | Should -Not -Contain $commandName
                 (Get-Command -Name $commandName).ModuleName | Should -Not -Be 'PSWinUtil'
             }
+        }
+    }
+
+    It 'accepts multiple Scope values in every scoped public command' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $scopedCommandNames = @(
+            'Get-WUEnvironmentVariable'
+            'Set-WUEnvironmentVariable'
+            'Remove-WUEnvironmentVariable'
+            'Add-WUPathEnvironmentVariable'
+            'Remove-WUPathEnvironmentVariable'
+            'Get-WURegistrySetting'
+            'Get-WUStartupEntry'
+            'Register-WUStartupEntry'
+            'Unregister-WUStartupEntry'
+            'Set-WUNodeExtraCaCertificate'
+            'Set-WUJavaWindowsRootTrustStore'
+        )
+
+        foreach ($commandName in $scopedCommandNames) {
+            $command = Get-Command -Name $commandName -Module 'PSWinUtil'
+
+            $command.Parameters.Scope.ParameterType |
+                Should -Be ([string[]]) -Because "$commandName must accept multiple scopes"
+        }
+    }
+
+    It 'offers Path and LiteralPath for public commands that select existing files' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $pathCommandNames = @(
+            'Set-WUEnvironmentVariable'
+            'Set-WUNodeExtraCaCertificate'
+            'Edit-WUSshKey'
+            'Test-WUPSScript'
+            'Assert-WUPSScript'
+            'Start-WUPSScriptAsAdmin'
+            'Get-WUFileTreeWithContent'
+        )
+
+        foreach ($commandName in $pathCommandNames) {
+            $command = Get-Command -Name $commandName -Module 'PSWinUtil'
+
+            $command.Parameters.Keys | Should -Contain 'Path'
+            $command.Parameters.Keys | Should -Contain 'LiteralPath'
         }
     }
 
