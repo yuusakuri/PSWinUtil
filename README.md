@@ -8,14 +8,10 @@ It provides commands that:
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
 - Work with UTF-8 text files, paths, URIs, SSH keys, downloads, and Android command-line tools.
 
-Commands that change system state support PowerShell's `-WhatIf` and `-Confirm` parameters where applicable.
-
 ## Requirements
 
 - Windows.
 - Windows PowerShell 5.1 with the `Desktop` edition.
-
-The .NET SDK is not required to use the released module.
 
 ## Installation
 
