@@ -52,11 +52,20 @@ A pull request description must explain the problem and the resulting behavior, 
 | `.\dev.ps1 format` | Formats PowerShell source files with the repository settings. |
 | `.\dev.ps1 analyze` | Runs PSScriptAnalyzer with the repository settings. |
 | `.\dev.ps1 build` | Builds the PowerShell module and its C# assemblies into `output/`. |
+| `.\dev.ps1 import` | Imports the previously built module into the current Windows PowerShell session. |
 | `.\dev.ps1 test unit` | Builds the module and runs unit tests. |
 | `.\dev.ps1 test integration` | Builds the module and runs Windows integration tests. |
 | `.\dev.ps1 test contract` | Builds the module and runs distribution and manifest contract tests. |
 | `.\dev.ps1 test all` | Builds the module and runs unit, integration, and contract tests. |
 | `.\dev.ps1 ci` | Checks formatting, performs static analysis, builds the distribution, validates it, and runs every test suite. |
+
+Build the current source and import the generated module into the current session:
+
+```powershell
+.\dev.ps1 build
+.\dev.ps1 import
+Get-Command -Module 'PSWinUtil'
+```
 
 Run the complete verification before submitting a pull request:
 

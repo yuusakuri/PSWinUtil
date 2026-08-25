@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('format', 'analyze', 'build', 'test', 'ci')]
+    [ValidateSet('format', 'analyze', 'build', 'import', 'test', 'ci')]
     [string]$Command,
 
     [Parameter(Position = 1)]
@@ -38,6 +38,7 @@ Usage:
   .\dev.ps1 format
   .\dev.ps1 analyze
   .\dev.ps1 build
+  .\dev.ps1 import
   .\dev.ps1 test unit
   .\dev.ps1 test integration
   .\dev.ps1 test contract
@@ -427,6 +428,14 @@ $invokeBuild = {
     }
 }
 
+$invokeImport = {
+    if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
+        throw "Build the module before importing it: $outputManifestPath"
+    }
+
+    Import-Module -Name $outputManifestPath -Force -Global -ErrorAction Stop
+}
+
 $assertOutput = {
     $outputFiles = @(
         Get-ChildItem -LiteralPath $outputModuleDirectory -File -Recurse |
@@ -522,6 +531,9 @@ switch ($Command) {
         & $assertSource
         & $importRequiredModule -Name 'ModuleBuilder'
         & $invokeBuild
+    }
+    'import' {
+        & $invokeImport
     }
     'test' {
         & $assertSource
