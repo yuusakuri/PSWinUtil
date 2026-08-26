@@ -66,7 +66,7 @@ function Register-WUStartupEntry {
     )
 
     $fullPath = ConvertTo-WUFullPath -Path $FilePath
-    Assert-WUPathProperty -Path $fullPath -Leaf
+    Assert-WUPathProperty -LiteralPath $fullPath -Leaf
     $commandLineParts = @(
         ConvertTo-WUWindowsCommandLineArgument -Argument $fullPath -AlwaysQuote
     )

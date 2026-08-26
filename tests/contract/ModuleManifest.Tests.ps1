@@ -142,22 +142,52 @@ Describe 'Built module manifest' {
         }
     }
 
-    It 'offers Path and LiteralPath for public commands that select existing files' {
+    It 'uses consistent wildcard and literal parameters for file selectors' {
         Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
-        $pathCommandNames = @(
-            'Set-WUEnvironmentVariable'
-            'Edit-WUSshKey'
-            'Test-WUPSScript'
-            'Assert-WUPSScript'
-            'Start-WUPSScriptAsAdmin'
-            'Get-WUFileTreeWithContent'
+        $pathCommandTypes = @{
+            'Add-Content' = [string[]]
+            'Assert-WUPathProperty' = [string[]]
+            'Assert-WUPSScript' = [string[]]
+            'Edit-WUSshKey' = [string]
+            'Get-Content' = [string[]]
+            'Get-WUFileTreeWithContent' = [string[]]
+            'Set-Content' = [string[]]
+            'Set-WUEnvironmentVariable' = [string[]]
+            'Start-WUPSScriptAsAdmin' = [string]
+            'Test-WUPathProperty' = [string[]]
+            'Test-WUPSScript' = [string[]]
+        }
+        $desktopOnlyCommandNames = @(
+            'Add-Content'
+            'Get-Content'
+            'Set-Content'
         )
 
-        foreach ($commandName in $pathCommandNames) {
-            $command = Get-Command -Name $commandName -Module 'PSWinUtil'
+        foreach ($commandName in $pathCommandTypes.Keys) {
+            $command = Get-Command `
+                -Name $commandName `
+                -Module 'PSWinUtil' `
+                -ErrorAction SilentlyContinue
+            if ($null -eq $command -and $commandName -in $desktopOnlyCommandNames) {
+                continue
+            }
+            $command | Should -Not -BeNullOrEmpty
 
             $command.Parameters.Keys | Should -Contain 'Path'
             $command.Parameters.Keys | Should -Contain 'LiteralPath'
+            $command.Parameters.Path.ParameterType |
+                Should -Be $pathCommandTypes[$commandName]
+            $command.Parameters.LiteralPath.ParameterType |
+                Should -Be $pathCommandTypes[$commandName]
+            $wildcardAttributes = @(
+                $command.Parameters.Path.Attributes |
+                    Where-Object {
+                        $_ -is [System.Management.Automation.SupportsWildcardsAttribute]
+                    }
+            )
+            $wildcardAttributes | Should -HaveCount 1
+            $command.Parameters.LiteralPath.Aliases | Should -Contain 'PSPath'
+            $command.Parameters.LiteralPath.Aliases | Should -Contain 'LP'
         }
     }
 

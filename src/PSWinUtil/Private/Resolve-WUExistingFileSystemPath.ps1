@@ -92,7 +92,7 @@ function Resolve-WUExistingFileSystemPath {
                 $assertParameters = Select-WUBoundParameter `
                     -BoundParameters $PSBoundParameters `
                     -Name 'Leaf', 'Container', 'Readable', 'Writable'
-                $assertParameters['Path'] = $resolvedPath.ProviderPath
+                $assertParameters['LiteralPath'] = $resolvedPath.ProviderPath
                 Assert-WUPathProperty @assertParameters
                 $resolvedPath.ProviderPath
             }
