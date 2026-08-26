@@ -89,14 +89,10 @@ function Resolve-WUExistingFileSystemPath {
                     throw "The path must use the FileSystem provider: $($resolvedPath.Path)"
                 }
 
-                $assertParameters = @{
-                    Path = $resolvedPath.ProviderPath
-                }
-                foreach ($propertyName in @('Leaf', 'Container', 'Readable', 'Writable')) {
-                    if ($PSBoundParameters.ContainsKey($propertyName) -and $PSBoundParameters[$propertyName]) {
-                        $assertParameters[$propertyName] = $true
-                    }
-                }
+                $assertParameters = Select-WUBoundParameter `
+                    -BoundParameters $PSBoundParameters `
+                    -Name 'Leaf', 'Container', 'Readable', 'Writable'
+                $assertParameters['Path'] = $resolvedPath.ProviderPath
                 Assert-WUPathProperty @assertParameters
                 $resolvedPath.ProviderPath
             }

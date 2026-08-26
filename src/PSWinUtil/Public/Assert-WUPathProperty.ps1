@@ -9,9 +9,6 @@ function Assert-WUPathProperty {
     .PARAMETER Path
     Specifies one or more file system paths to check.
 
-    .PARAMETER Exists
-    Requires the path to exist.
-
     .PARAMETER Leaf
     Requires the path to be a file.
 
@@ -33,7 +30,7 @@ function Assert-WUPathProperty {
     Completes without output when settings.json is a readable file.
 
     .EXAMPLE
-    Assert-WUPathProperty -Path '.\missing' -Exists
+    Assert-WUPathProperty -Path '.\missing'
 
     Reports an error because the path does not exist.
 
@@ -61,9 +58,6 @@ function Assert-WUPathProperty {
         [string[]]$Path,
 
         [Parameter()]
-        [switch]$Exists,
-
-        [Parameter()]
         [switch]$Leaf,
 
         [Parameter()]
@@ -79,12 +73,6 @@ function Assert-WUPathProperty {
         [switch]$AllowNonExisting
     )
 
-    begin {
-        if ($Exists -and $AllowNonExisting) {
-            throw 'Exists and AllowNonExisting cannot be specified together.'
-        }
-    }
-
     process {
         foreach ($currentPath in $Path) {
             $fullPath = ConvertTo-WUFullPath -Path $currentPath
@@ -95,14 +83,10 @@ function Assert-WUPathProperty {
                 continue
             }
 
-            $testParameters = @{
-                Path = $fullPath
-            }
-            foreach ($conditionName in @('Exists', 'Leaf', 'Container', 'Readable', 'Writable')) {
-                if ($PSBoundParameters.ContainsKey($conditionName) -and $PSBoundParameters[$conditionName]) {
-                    $testParameters[$conditionName] = $true
-                }
-            }
+            $testParameters = Select-WUBoundParameter `
+                -BoundParameters $PSBoundParameters `
+                -Name 'Leaf', 'Container', 'Readable', 'Writable'
+            $testParameters['Path'] = $fullPath
 
             if (-not (Test-WUPathProperty @testParameters)) {
                 throw "The path does not match the required properties: $currentPath"
