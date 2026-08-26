@@ -157,9 +157,21 @@ Describe 'Built module manifest' {
             'Test-WUPathProperty' = [string[]]
             'Test-WUPSScript' = [string[]]
         }
+        $desktopOnlyCommandNames = @(
+            'Add-Content'
+            'Get-Content'
+            'Set-Content'
+        )
 
         foreach ($commandName in $pathCommandTypes.Keys) {
-            $command = Get-Command -Name $commandName -Module 'PSWinUtil'
+            $command = Get-Command `
+                -Name $commandName `
+                -Module 'PSWinUtil' `
+                -ErrorAction SilentlyContinue
+            if ($null -eq $command -and $commandName -in $desktopOnlyCommandNames) {
+                continue
+            }
+            $command | Should -Not -BeNullOrEmpty
 
             $command.Parameters.Keys | Should -Contain 'Path'
             $command.Parameters.Keys | Should -Contain 'LiteralPath'
