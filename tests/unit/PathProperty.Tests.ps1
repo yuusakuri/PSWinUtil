@@ -87,6 +87,10 @@ Describe 'Test-WUPathProperty' {
         Test-WUPathProperty -Path (Join-Path -Path $TestDrive -ChildPath 'missing') | Should -BeFalse
     }
 
+    It 'returns true for an existing path when no additional property is specified' {
+        Test-WUPathProperty -Path $script:TestFile | Should -BeTrue
+    }
+
     It 'distinguishes files and directories' {
         Test-WUPathProperty -Path $script:TestFile -Leaf | Should -BeTrue
         Test-WUPathProperty -Path $script:TestFile -Container | Should -BeFalse
@@ -113,7 +117,7 @@ Describe 'Assert-WUPathProperty' {
 
     It 'reports an error for a missing path' {
         {
-            Assert-WUPathProperty -Path (Join-Path -Path $TestDrive -ChildPath 'missing') -Exists
+            Assert-WUPathProperty -Path (Join-Path -Path $TestDrive -ChildPath 'missing')
         } | Should -Throw '*required properties*'
     }
 
@@ -126,11 +130,5 @@ Describe 'Assert-WUPathProperty' {
             Should -Not -Throw
         { Assert-WUPathProperty -Path $filePath -Container -AllowNonExisting } |
             Should -Throw '*required properties*'
-    }
-
-    It 'rejects conflicting existence requirements' {
-        {
-            Assert-WUPathProperty -Path $TestDrive -Exists -AllowNonExisting
-        } | Should -Throw '*cannot be specified together*'
     }
 }

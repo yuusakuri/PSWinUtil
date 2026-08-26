@@ -4,13 +4,10 @@ function Test-WUPathProperty {
     Tests file system path properties.
 
     .DESCRIPTION
-    Returns a Boolean value for each path. A path can be tested for existence, item type, readability, and writability. A missing path or an unmet condition returns false.
+    Returns a Boolean value for each path. A missing path returns false. An existing path can also be tested for item type, readability, and writability.
 
     .PARAMETER Path
     Specifies one or more file system paths to test.
-
-    .PARAMETER Exists
-    Tests whether the path exists. This is the default condition when no other condition is specified.
 
     .PARAMETER Leaf
     Tests whether the path is a file.
@@ -30,7 +27,7 @@ function Test-WUPathProperty {
     Returns true when settings.json exists as a readable file.
 
     .EXAMPLE
-    Test-WUPathProperty -Path '.\missing' -Exists
+    Test-WUPathProperty -Path '.\missing'
 
     Returns false when the path does not exist.
 
@@ -52,9 +49,6 @@ function Test-WUPathProperty {
         [Alias('FullName')]
         [ValidateNotNullOrEmpty()]
         [string[]]$Path,
-
-        [Parameter()]
-        [switch]$Exists,
 
         [Parameter()]
         [switch]$Leaf,
@@ -82,10 +76,6 @@ function Test-WUPathProperty {
                 $pathExists = Test-Path -LiteralPath $fullPath -ErrorAction Stop
             } catch {
                 $pathExists = $false
-            }
-            if ($Exists -and -not $pathExists) {
-                $false
-                continue
             }
             if (-not $pathExists) {
                 $false
