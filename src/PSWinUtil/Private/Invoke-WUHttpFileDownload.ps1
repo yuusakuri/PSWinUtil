@@ -47,9 +47,7 @@ function Invoke-WUHttpFileDownload {
     }
     $fullPath = ConvertTo-WUFullPath -Path $Path
     $parentPath = Split-Path -Path $fullPath -Parent
-    if (-not (Test-Path -LiteralPath $parentPath -PathType Container)) {
-        throw "The download directory does not exist: $parentPath"
-    }
+    Assert-WUPathProperty -Path $parentPath -Container
     if (Test-Path -LiteralPath $fullPath) {
         throw "The download target already exists: $fullPath"
     }

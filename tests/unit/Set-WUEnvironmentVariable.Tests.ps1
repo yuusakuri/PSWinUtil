@@ -4,6 +4,7 @@ BeforeAll {
     Import-Module -Name $manifestPath -Force -ErrorAction Stop
 
     $script:EnvironmentTarget = [System.EnvironmentVariableTarget]::Process
+    $script:UserEnvironmentTarget = [System.EnvironmentVariableTarget]::User
     $script:FileEnvironmentName = 'PSWINUTIL_FILE_TEST_NAME'
 }
 
@@ -31,6 +32,11 @@ Describe 'Set-WUEnvironmentVariable' {
             $script:EnvironmentTarget
         )
         [System.Environment]::SetEnvironmentVariable(
+            $script:EnvironmentName,
+            $null,
+            $script:UserEnvironmentTarget
+        )
+        [System.Environment]::SetEnvironmentVariable(
             $script:FileEnvironmentName,
             $script:OriginalFileValue,
             $script:EnvironmentTarget
@@ -56,6 +62,38 @@ Describe 'Set-WUEnvironmentVariable' {
             $script:FileEnvironmentName,
             $script:EnvironmentTarget
         ) | Should -Be 'file value'
+    }
+
+    It 'forwards LiteralPath to the private importer' {
+        Set-WUEnvironmentVariable -LiteralPath '.\environment[1].psd1' -Scope Process
+
+        Should -Invoke -CommandName Import-WUEnvironmentVariableSetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -contains '.\environment[1].psd1' -and
+            $null -eq $Path -and
+            $Scope -eq 'Process'
+        }
+    }
+
+    It 'sets a named variable in multiple scopes' -Skip:($env:OS -ne 'Windows_NT') {
+        $result = @(
+            Set-WUEnvironmentVariable `
+                -Name $script:EnvironmentName `
+                -Value 'shared value' `
+                -Scope Process, User `
+                -PassThru
+        )
+
+        $result | Should -HaveCount 2
+        $result.Scope | Should -Contain 'Process'
+        $result.Scope | Should -Contain 'User'
+        [System.Environment]::GetEnvironmentVariable(
+            $script:EnvironmentName,
+            $script:EnvironmentTarget
+        ) | Should -Be 'shared value'
+        [System.Environment]::GetEnvironmentVariable(
+            $script:EnvironmentName,
+            $script:UserEnvironmentTarget
+        ) | Should -Be 'shared value'
     }
 
     It 'does not set a variable with WhatIf' {

@@ -29,6 +29,18 @@ Describe 'Remove-WUEnvironmentVariable' {
         }
     }
 
+    It 'delegates every selected scope' {
+        Remove-WUEnvironmentVariable `
+            -Name 'PSWINUTIL_TEST_NAME' `
+            -Scope Process, User
+
+        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            @($Scope).Count -eq 2 -and
+            $Scope[0] -eq 'Process' -and
+            $Scope[1] -eq 'User'
+        }
+    }
+
     It 'forwards WhatIf to Set-WUEnvironmentVariable' {
         Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME' -WhatIf
 

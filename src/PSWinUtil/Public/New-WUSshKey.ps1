@@ -123,12 +123,7 @@ function New-WUSshKey {
         $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
         throw "ssh-keygen.exe failed with exit code $exitCode.$([Environment]::NewLine)$message"
     }
-    if (-not (Test-Path -LiteralPath $keyPath -PathType Leaf)) {
-        throw "ssh-keygen.exe did not create the private key: $keyPath"
-    }
-    if (-not (Test-Path -LiteralPath $publicKeyPath -PathType Leaf)) {
-        throw "ssh-keygen.exe did not create the public key: $publicKeyPath"
-    }
+    Assert-WUPathProperty -Path $keyPath, $publicKeyPath -Leaf
 
     Get-Item -LiteralPath $keyPath
 }

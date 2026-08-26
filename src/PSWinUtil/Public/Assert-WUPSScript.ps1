@@ -7,7 +7,10 @@ function Assert-WUPSScript {
     Uses Test-WUPSScript with the parser from the current PowerShell process. Parser errors are reported as an error. Successful checks produce no output.
 
     .PARAMETER Path
-    Specifies one or more PowerShell script files to parse.
+    Specifies one or more PowerShell script files to parse. Wildcards are supported.
+
+    .PARAMETER LiteralPath
+    Specifies one or more PowerShell script files to parse without wildcard interpretation.
 
     .PARAMETER Script
     Specifies PowerShell script text to parse.
@@ -21,6 +24,11 @@ function Assert-WUPSScript {
     Assert-WUPSScript -Script 'if ('
 
     Reports the parser errors for the incomplete statement.
+
+    .EXAMPLE
+    Assert-WUPSScript -LiteralPath '.\install[local].ps1'
+
+    Completes without output when the exact script file has valid syntax.
 
     .INPUTS
     System.String
@@ -38,7 +46,17 @@ function Assert-WUPSScript {
         )]
         [Alias('FullName')]
         [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
         [string[]]$Path,
+
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'LiteralPath',
+            ValueFromPipelineByPropertyName = $true
+        )]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$LiteralPath,
 
         [Parameter(
             Mandatory = $true,
@@ -53,18 +71,18 @@ function Assert-WUPSScript {
     )
 
     process {
-        $inputs = $Script
+        $testParameters = @{
+            Detailed = $true
+        }
         if ($PSCmdlet.ParameterSetName -eq 'Path') {
-            $inputs = $Path
+            $testParameters.Path = $Path
+        } elseif ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
+            $testParameters.LiteralPath = $LiteralPath
+        } else {
+            $testParameters.Script = $Script
         }
 
-        foreach ($currentInput in $inputs) {
-            if ($PSCmdlet.ParameterSetName -eq 'Path') {
-                $result = Test-WUPSScript -Path $currentInput -Detailed
-            } else {
-                $result = Test-WUPSScript -Script $currentInput -Detailed
-            }
-
+        foreach ($result in @(Test-WUPSScript @testParameters)) {
             if (-not $result.IsValid) {
                 $messages = @($result.Errors | ForEach-Object { $_.Message }) -join [Environment]::NewLine
                 throw "PowerShell parser errors were found:$([Environment]::NewLine)$messages"

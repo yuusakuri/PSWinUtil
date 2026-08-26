@@ -71,6 +71,14 @@ Describe 'Get-WUStartupEntry' {
         $entries[0].CommandLine | Should -Be 'User command'
     }
 
+    It 'gets entries from multiple explicitly selected scopes' {
+        $entries = @(Get-WUStartupEntry -Name 'ExampleApp' -Scope User, Machine)
+
+        $entries | Should -HaveCount 2
+        $entries.Scope | Should -Contain 'User'
+        $entries.Scope | Should -Contain 'Machine'
+    }
+
     It 'returns no output for a missing Run key' {
         Mock -CommandName Test-Path -ModuleName PSWinUtil -MockWith { $false }
 
@@ -84,13 +92,16 @@ Describe 'Register-WUStartupEntry' {
         Mock -CommandName ConvertTo-WUFullPath -ModuleName PSWinUtil -MockWith {
             'C:\Program Files\Example\app.exe'
         }
+        Mock -CommandName Assert-WUPathProperty -ModuleName PSWinUtil
         Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil
         Mock -CommandName Get-WUStartupEntry -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{
-                PSTypeName = 'PSWinUtil.StartupEntry'
-                Name = $Name
-                Scope = $Scope
-                CommandLine = 'stored command'
+            foreach ($currentScope in @($Scope)) {
+                [pscustomobject]@{
+                    PSTypeName = 'PSWinUtil.StartupEntry'
+                    Name = $Name
+                    Scope = $currentScope
+                    CommandLine = 'stored command'
+                }
             }
         }
     }
@@ -104,6 +115,9 @@ Describe 'Register-WUStartupEntry' {
         Register-WUStartupEntry @parameters
 
         Should -Invoke -CommandName ConvertTo-WUFullPath -ModuleName PSWinUtil -Times 1 -Exactly
+        Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq 'C:\Program Files\Example\app.exe' -and $Leaf
+        }
         Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Path -eq $script:UserRunPath -and
             $Name -eq 'ExampleApp' -and
@@ -127,6 +141,20 @@ Describe 'Register-WUStartupEntry' {
         $entry.Scope | Should -Be 'Machine'
         Should -Invoke -CommandName Get-WUStartupEntry -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'ExampleApp' -and $Scope -eq 'Machine'
+        }
+    }
+
+    It 'registers an entry in every selected scope' {
+        Register-WUStartupEntry `
+            -Name 'ExampleApp' `
+            -FilePath '.\app.exe' `
+            -Scope User, Machine
+
+        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq $script:UserRunPath
+        }
+        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq $script:MachineRunPath
         }
     }
 
@@ -160,6 +188,19 @@ Describe 'Unregister-WUStartupEntry' {
 
         Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $WhatIf
+        }
+    }
+
+    It 'removes an entry from every selected scope' {
+        Unregister-WUStartupEntry `
+            -Name 'ExampleApp' `
+            -Scope User, Machine
+
+        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq $script:UserRunPath
+        }
+        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq $script:MachineRunPath
         }
     }
 }

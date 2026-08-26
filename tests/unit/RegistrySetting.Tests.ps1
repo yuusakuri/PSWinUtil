@@ -203,6 +203,27 @@ Describe 'Get-WURegistrySetting' {
         $result.State | Should -Be 'Disable'
     }
 
+    It 'gets state independently from multiple scopes' {
+        $userPath = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
+        $machinePath = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
+        $script:TestRegistryValues[$userPath + '|First'] = 1
+        $script:TestRegistryValues[$userPath + '|Second'] = 1
+        $script:TestRegistryValues[$machinePath + '|First'] = 0
+        $script:TestRegistryValues[$machinePath + '|Second'] = 0
+
+        $result = @(Get-WURegistrySetting -Name Sample -Scope User, Machine)
+
+        $result | Should -HaveCount 2
+        ($result | Where-Object { $_.Scope -eq 'User' }).State | Should -Be 'Enable'
+        ($result | Where-Object { $_.Scope -eq 'Machine' }).State | Should -Be 'Disable'
+    }
+
+    It 'rejects Auto combined with an explicit scope' {
+        {
+            Get-WURegistrySetting -Name Sample -Scope Auto, User
+        } | Should -Throw '*cannot be combined*'
+    }
+
     It 'returns a Remove option before NotConfigured' {
         $result = Get-WURegistrySetting -Name Removable
 
@@ -291,6 +312,33 @@ Describe 'Set-WURegistrySetting' {
         Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
             $WhatIf -eq $true
         }
+    }
+
+    It 'applies an option independently to multiple scopes' {
+        InModuleScope -ModuleName PSWinUtil {
+            Set-WURegistrySetting `
+                -Name Sample `
+                -Option Enable `
+                -Scope User, Machine
+        }
+
+        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
+            $Path -like '*HKEY_CURRENT_USER*'
+        }
+        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
+            $Path -like '*HKEY_LOCAL_MACHINE*'
+        }
+    }
+
+    It 'rejects Auto combined with an explicit scope' {
+        {
+            InModuleScope -ModuleName PSWinUtil {
+                Set-WURegistrySetting `
+                    -Name Sample `
+                    -Option Enable `
+                    -Scope Auto, User
+            }
+        } | Should -Throw '*cannot be combined*'
     }
 }
 

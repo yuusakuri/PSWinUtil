@@ -94,6 +94,19 @@ Describe 'Add-WUPathEnvironmentVariable' {
             $WhatIf
         }
     }
+
+    It 'adds paths independently in every selected scope' {
+        $script:UniquePathToAdd = 'C:\PSWinUtil-' + [guid]::NewGuid().ToString('N')
+
+        Add-WUPathEnvironmentVariable -Path $script:UniquePathToAdd -Scope Process, User
+
+        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Scope -eq 'Process' -and $Value -like "*$script:UniquePathToAdd*"
+        }
+        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Scope -eq 'User' -and $Value -like "*$script:UniquePathToAdd*"
+        }
+    }
 }
 
 Describe 'Remove-WUPathEnvironmentVariable' {

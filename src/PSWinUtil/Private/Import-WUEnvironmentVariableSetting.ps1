@@ -4,18 +4,26 @@ function Import-WUEnvironmentVariableSetting {
     Imports environment variable settings.
 
     .DESCRIPTION
-    Resolves PowerShell data files, imports their Hashtable values, validates them with Test-WUEnvironmentVariableSetting, and returns environment variable setting objects.
+    Resolves PowerShell data files, imports their Hashtable values, validates them with Test-WUEnvironmentVariableSetting, and returns environment variable setting objects for every selected scope.
 
     .PARAMETER Path
-    Specifies one or more PowerShell data files to import.
+    Specifies one or more PowerShell data files to import. Wildcards are supported.
+
+    .PARAMETER LiteralPath
+    Specifies one or more PowerShell data files to import without wildcard interpretation.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine for every imported setting.
+    Specifies one or more of Process, User, and Machine for every imported setting.
 
     .EXAMPLE
     Import-WUEnvironmentVariableSetting -Path '.\environment.psd1' -Scope User
 
     Imports and validates the environment variable settings for the User scope.
+
+    .EXAMPLE
+    Import-WUEnvironmentVariableSetting -LiteralPath '.\environment[1].psd1' -Scope Process, User
+
+    Imports the exact file and returns each setting for the Process and User scopes.
 
     .INPUTS
     None
@@ -23,47 +31,51 @@ function Import-WUEnvironmentVariableSetting {
     .OUTPUTS
     System.Management.Automation.PSCustomObject
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Path')]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Path')]
         [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
         [string[]]$Path,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'LiteralPath')]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$LiteralPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope
+        [string[]]$Scope
     )
 
-    $resolvedFiles = @()
-    foreach ($currentPath in $Path) {
-        $resolvedPaths = @(Resolve-Path -Path $currentPath -ErrorAction Stop)
-        foreach ($resolvedPath in $resolvedPaths) {
-            if ($resolvedPath.Provider.Name -ne 'FileSystem') {
-                throw "The environment file must use the FileSystem provider: $($resolvedPath.Path)"
-            }
-            if ([System.IO.Path]::GetExtension($resolvedPath.ProviderPath) -ine '.psd1') {
-                throw "The environment file must use the .psd1 extension: $($resolvedPath.ProviderPath)"
-            }
-            if (-not (Test-Path -LiteralPath $resolvedPath.ProviderPath -PathType Leaf)) {
-                throw "The environment file was not found: $($resolvedPath.ProviderPath)"
-            }
-
-            $resolvedFiles += $resolvedPath.ProviderPath
+    $resolveParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'Path', 'LiteralPath'
+    $resolvedFiles = @(
+        Resolve-WUExistingFileSystemPath @resolveParameters -Leaf -Readable
+    )
+    foreach ($resolvedFile in $resolvedFiles) {
+        if ([System.IO.Path]::GetExtension($resolvedFile) -ine '.psd1') {
+            throw "The environment file must use the .psd1 extension: $resolvedFile"
         }
     }
 
     $settings = @()
     foreach ($resolvedFile in @($resolvedFiles | Select-Object -Unique)) {
-        $environmentVariables = Import-PowerShellDataFile -Path $resolvedFile -ErrorAction Stop
+        $environmentVariables = Import-PowerShellDataFile `
+            -LiteralPath $resolvedFile `
+            -ErrorAction Stop
         if (-not (Test-WUEnvironmentVariableSetting -Setting $environmentVariables)) {
             throw "The environment data file must contain valid environment variable settings: $resolvedFile"
         }
 
         foreach ($environmentEntry in $environmentVariables.GetEnumerator()) {
-            $settings += [pscustomobject]@{
-                Name = [string]$environmentEntry.Key
-                Value = [string]$environmentEntry.Value
-                Scope = $Scope
+            foreach ($currentScope in $Scope) {
+                $settings += [pscustomobject]@{
+                    Name = [string]$environmentEntry.Key
+                    Value = [string]$environmentEntry.Value
+                    Scope = $currentScope
+                }
             }
         }
     }

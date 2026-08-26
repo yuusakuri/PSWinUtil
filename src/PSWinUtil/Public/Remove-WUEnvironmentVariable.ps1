@@ -4,18 +4,23 @@ function Remove-WUEnvironmentVariable {
     Removes an environment variable.
 
     .DESCRIPTION
-    Removes an environment variable from the Process, User, or Machine scope. If the variable does not exist, the command makes no change. Machine changes do not start an elevated process.
+    Removes an environment variable from one or more Process, User, or Machine scopes. If the variable does not exist, the command makes no change. Machine changes do not start an elevated process.
 
     .PARAMETER Name
     Specifies the environment variable name.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is Process.
+    Specifies one or more of Process, User, and Machine. The default value is Process.
 
     .EXAMPLE
     Remove-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Scope User
 
     Removes MY_TOOL_HOME from the current user environment.
+
+    .EXAMPLE
+    Remove-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Scope Process, User
+
+    Removes MY_TOOL_HOME from the current process and current user environments.
 
     .INPUTS
     System.String
@@ -42,7 +47,7 @@ function Remove-WUEnvironmentVariable {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string[]]$Scope = 'Process'
     )
 
     begin {

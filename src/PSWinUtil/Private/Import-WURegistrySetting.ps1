@@ -28,9 +28,11 @@ function Import-WURegistrySetting {
         [string]$Path = (Join-Path -Path $PSScriptRoot -ChildPath 'data/RegistrySettings.psd1')
     )
 
-    $settingData = Import-PowerShellDataFile -Path $Path -ErrorAction Stop
+    $fullPath = ConvertTo-WUFullPath -Path $Path
+    Assert-WUPathProperty -Path $fullPath -Leaf -Readable
+    $settingData = Import-PowerShellDataFile -LiteralPath $fullPath -ErrorAction Stop
     if (-not (Test-WURegistrySetting -Setting $settingData)) {
-        throw "The registry setting data is invalid: $Path"
+        throw "The registry setting data is invalid: $fullPath"
     }
 
     $settingData
