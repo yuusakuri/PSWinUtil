@@ -92,6 +92,7 @@ function Set-Content {
             Position = 0,
             ValueFromPipelineByPropertyName = $true
         )]
+        [SupportsWildcards()]
         [string[]]$Path,
 
         [Parameter(

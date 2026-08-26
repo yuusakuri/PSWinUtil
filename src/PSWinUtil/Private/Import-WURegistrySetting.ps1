@@ -29,7 +29,7 @@ function Import-WURegistrySetting {
     )
 
     $fullPath = ConvertTo-WUFullPath -Path $Path
-    Assert-WUPathProperty -Path $fullPath -Leaf -Readable
+    Assert-WUPathProperty -LiteralPath $fullPath -Leaf -Readable
     $settingData = Import-PowerShellDataFile -LiteralPath $fullPath -ErrorAction Stop
     if (-not (Test-WURegistrySetting -Setting $settingData)) {
         throw "The registry setting data is invalid: $fullPath"

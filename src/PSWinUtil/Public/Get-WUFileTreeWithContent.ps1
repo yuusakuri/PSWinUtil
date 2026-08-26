@@ -67,6 +67,7 @@ function Get-WUFileTreeWithContent {
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true
         )]
+        [Alias('PSPath', 'LP')]
         [ValidateNotNullOrEmpty()]
         [string[]]$LiteralPath,
 

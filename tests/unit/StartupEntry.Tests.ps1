@@ -116,7 +116,7 @@ Describe 'Register-WUStartupEntry' {
 
         Should -Invoke -CommandName ConvertTo-WUFullPath -ModuleName PSWinUtil -Times 1 -Exactly
         Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq 'C:\Program Files\Example\app.exe' -and $Leaf
+            $LiteralPath -eq 'C:\Program Files\Example\app.exe' -and $Leaf
         }
         Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Path -eq $script:UserRunPath -and
