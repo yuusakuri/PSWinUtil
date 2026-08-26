@@ -27,7 +27,4 @@ jobs:
         run: .\install.ps1
 
       - name: Run verification
-        run: |
-          powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 format
-          git diff -- tests/contract/ModuleManifest.Tests.ps1
-          exit 1
+        run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 ci
