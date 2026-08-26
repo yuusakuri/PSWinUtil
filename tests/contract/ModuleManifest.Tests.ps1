@@ -167,12 +167,13 @@ Describe 'Built module manifest' {
                 Should -Be $pathCommandTypes[$commandName]
             $command.Parameters.LiteralPath.ParameterType |
                 Should -Be $pathCommandTypes[$commandName]
-            @(
+            $wildcardAttributes = @(
                 $command.Parameters.Path.Attributes |
                     Where-Object {
                         $_ -is [System.Management.Automation.SupportsWildcardsAttribute]
                     }
-            ) | Should -HaveCount 1
+            )
+            $wildcardAttributes | Should -HaveCount 1
             $command.Parameters.LiteralPath.Aliases | Should -Contain 'PSPath'
             $command.Parameters.LiteralPath.Aliases | Should -Contain 'LP'
         }
