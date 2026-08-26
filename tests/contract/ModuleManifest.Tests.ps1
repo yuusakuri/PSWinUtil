@@ -172,8 +172,7 @@ Describe 'Built module manifest' {
                     Where-Object {
                         $_ -is [System.Management.Automation.SupportsWildcardsAttribute]
                     }
-            ) |
-                Should -HaveCount 1
+            ) | Should -HaveCount 1
             $command.Parameters.LiteralPath.Aliases | Should -Contain 'PSPath'
             $command.Parameters.LiteralPath.Aliases | Should -Contain 'LP'
         }
