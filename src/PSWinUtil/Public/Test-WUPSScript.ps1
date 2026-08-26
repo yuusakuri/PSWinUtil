@@ -4,10 +4,13 @@ function Test-WUPSScript {
     Tests PowerShell script syntax.
 
     .DESCRIPTION
-    Uses the parser from the current PowerShell process to test a file or script text. The default result is Boolean. Detailed results include the parser errors and their source locations.
+    Uses the parser from the current PowerShell process to test a file or script text. Path permits wildcards, while LiteralPath uses an exact path. The default result is Boolean. Detailed results include the parser errors and their source locations.
 
     .PARAMETER Path
-    Specifies one or more PowerShell script files to parse.
+    Specifies one or more PowerShell script files to parse. Wildcards are supported.
+
+    .PARAMETER LiteralPath
+    Specifies one or more PowerShell script files to parse without wildcard interpretation.
 
     .PARAMETER Script
     Specifies PowerShell script text to parse.
@@ -24,6 +27,11 @@ function Test-WUPSScript {
     Test-WUPSScript -Script 'if (' -Detailed
 
     Returns a detailed result containing parser errors.
+
+    .EXAMPLE
+    Test-WUPSScript -LiteralPath '.\build[local].ps1'
+
+    Tests the exact script file without interpreting brackets as a wildcard pattern.
 
     .INPUTS
     System.String
@@ -42,7 +50,17 @@ function Test-WUPSScript {
         )]
         [Alias('FullName')]
         [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
         [string[]]$Path,
+
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'LiteralPath',
+            ValueFromPipelineByPropertyName = $true
+        )]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$LiteralPath,
 
         [Parameter(
             Mandatory = $true,
@@ -60,18 +78,25 @@ function Test-WUPSScript {
     )
 
     process {
-        $inputs = $Script
-        if ($PSCmdlet.ParameterSetName -eq 'Path') {
-            $inputs = $Path
+        $inputs = @($Script)
+        $isFileInput = $PSCmdlet.ParameterSetName -in @('Path', 'LiteralPath')
+        if ($isFileInput) {
+            $pathParameters = Select-WUBoundParameter `
+                -BoundParameters $PSBoundParameters `
+                -Name 'Path', 'LiteralPath'
+            $inputs = @(
+                Resolve-WUExistingFileSystemPath `
+                    @pathParameters `
+                    -Leaf `
+                    -Readable
+            )
         }
 
         foreach ($currentInput in $inputs) {
             $tokens = $null
             $parseErrors = $null
             $reportedInput = $currentInput
-            if ($PSCmdlet.ParameterSetName -eq 'Path') {
-                $reportedInput = ConvertTo-WUFullPath -Path $currentInput
-                Assert-WUPathProperty -Path $reportedInput -Leaf -Readable
+            if ($isFileInput) {
                 $null = [System.Management.Automation.Language.Parser]::ParseFile(
                     $reportedInput,
                     [ref]$tokens,

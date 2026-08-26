@@ -29,6 +29,52 @@ Describe 'ConvertTo-WUFullPath' {
     }
 }
 
+Describe 'Resolve-WUExistingFileSystemPath' {
+    BeforeEach {
+        $script:FirstDataFile = Join-Path -Path $TestDrive -ChildPath 'first.psd1'
+        $script:LiteralDataFile = Join-Path -Path $TestDrive -ChildPath 'environment[1].psd1'
+        [System.IO.File]::WriteAllText($script:FirstDataFile, '@{}')
+        [System.IO.File]::WriteAllText($script:LiteralDataFile, '@{}')
+    }
+
+    It 'expands wildcard Path values' {
+        $result = InModuleScope -ModuleName PSWinUtil -Parameters @{ DataDirectory = $TestDrive } {
+            param($DataDirectory)
+            @(Resolve-WUExistingFileSystemPath -Path "$DataDirectory\*.psd1" -Leaf)
+        }
+
+        $result | Should -HaveCount 2
+        $result | Should -Contain $script:FirstDataFile
+        $result | Should -Contain $script:LiteralDataFile
+    }
+
+    It 'resolves LiteralPath without wildcard interpretation' {
+        $result = InModuleScope -ModuleName PSWinUtil -Parameters @{ DataPath = $script:LiteralDataFile } {
+            param($DataPath)
+            Resolve-WUExistingFileSystemPath -LiteralPath $DataPath -Leaf
+        }
+
+        $result | Should -Be $script:LiteralDataFile
+    }
+
+    It 'rejects a resolved path with the wrong item type' {
+        {
+            InModuleScope -ModuleName PSWinUtil -Parameters @{ DataPath = $script:FirstDataFile } {
+                param($DataPath)
+                Resolve-WUExistingFileSystemPath -LiteralPath $DataPath -Container
+            }
+        } | Should -Throw '*required properties*'
+    }
+
+    It 'rejects a non-file-system provider' {
+        {
+            InModuleScope -ModuleName PSWinUtil {
+                Resolve-WUExistingFileSystemPath -LiteralPath 'Env:\PATH'
+            }
+        } | Should -Throw '*FileSystem provider*'
+    }
+}
+
 Describe 'Test-WUPathProperty' {
     BeforeEach {
         $script:TestFile = Join-Path -Path $TestDrive -ChildPath 'item.txt'

@@ -4,18 +4,23 @@ function Get-WURegistrySetting {
     Gets a Windows registry setting state.
 
     .DESCRIPTION
-    Gets the state of a named registry setting. Auto selects a complete User candidate set before a complete Machine candidate set. The result is an option name, NotConfigured, or Mixed.
+    Gets the state of a named registry setting in one or more scopes. Auto selects a complete User candidate set before a complete Machine candidate set. The result is an option name, NotConfigured, or Mixed.
 
     .PARAMETER Name
     Specifies one or more registry setting names from the distributed setting data.
 
     .PARAMETER Scope
-    Specifies Auto, User, or Machine. The default value is Auto.
+    Specifies one or more of Auto, User, and Machine. Auto cannot be combined with another scope. The default value is Auto.
 
     .EXAMPLE
     Get-WURegistrySetting -Name 'DarkMode' -Scope User
 
     Gets the current DarkMode setting state for the current user.
+
+    .EXAMPLE
+    Get-WURegistrySetting -Name 'DarkMode' -Scope User, Machine
+
+    Gets the current DarkMode setting state for the User and Machine scopes.
 
     .INPUTS
     System.String
@@ -36,10 +41,14 @@ function Get-WURegistrySetting {
 
         [Parameter()]
         [ValidateSet('Auto', 'User', 'Machine')]
-        [string]$Scope = 'Auto'
+        [string[]]$Scope = 'Auto'
     )
 
     begin {
+        $selectedScopes = @($Scope | Select-Object -Unique)
+        if ($selectedScopes.Count -gt 1 -and $selectedScopes -contains 'Auto') {
+            throw 'Auto cannot be combined with another scope.'
+        }
         $settingData = Import-WURegistrySetting
     }
 
@@ -49,66 +58,68 @@ function Get-WURegistrySetting {
                 throw "The registry setting was not found: $currentName"
             }
 
-            $selection = Get-WURegistrySettingCandidate `
-                -Setting $settingData[$currentName] `
-                -Scope $Scope
-            $propertyStates = @()
-            foreach ($selectedProperty in $selection.Properties) {
-                $candidate = $selectedProperty.Candidate
-                $registryProperty = Get-WURegistryProperty `
-                    -Path $candidate.Path `
-                    -Name $candidate.Name
-                $propertyStates += [pscustomobject]@{
-                    Candidate = $candidate
-                    RegistryProperty = $registryProperty
+            foreach ($currentScope in $selectedScopes) {
+                $selection = Get-WURegistrySettingCandidate `
+                    -Setting $settingData[$currentName] `
+                    -Scope $currentScope
+                $propertyStates = @()
+                foreach ($selectedProperty in $selection.Properties) {
+                    $candidate = $selectedProperty.Candidate
+                    $registryProperty = Get-WURegistryProperty `
+                        -Path $candidate.Path `
+                        -Name $candidate.Name
+                    $propertyStates += [pscustomobject]@{
+                        Candidate = $candidate
+                        RegistryProperty = $registryProperty
+                    }
                 }
-            }
 
-            $firstCandidate = $selection.Properties[0].Candidate
-            $state = $null
-            foreach ($optionName in @($firstCandidate.Options.Keys | Sort-Object)) {
-                $optionMatches = $true
-                foreach ($propertyState in $propertyStates) {
-                    $option = $propertyState.Candidate.Options[$optionName]
-                    if ($option.Action -eq 'Remove') {
-                        if ($null -ne $propertyState.RegistryProperty) {
+                $firstCandidate = $selection.Properties[0].Candidate
+                $state = $null
+                foreach ($optionName in @($firstCandidate.Options.Keys | Sort-Object)) {
+                    $optionMatches = $true
+                    foreach ($propertyState in $propertyStates) {
+                        $option = $propertyState.Candidate.Options[$optionName]
+                        if ($option.Action -eq 'Remove') {
+                            if ($null -ne $propertyState.RegistryProperty) {
+                                $optionMatches = $false
+                                break
+                            }
+                        } elseif (
+                            $null -eq $propertyState.RegistryProperty -or
+                            $propertyState.RegistryProperty.Type -ine $propertyState.Candidate.Type -or
+                            -not (Compare-WURegistryValue `
+                                    -ReferenceValue $option.Value `
+                                    -DifferenceValue $propertyState.RegistryProperty.Value)
+                        ) {
                             $optionMatches = $false
                             break
                         }
-                    } elseif (
-                        $null -eq $propertyState.RegistryProperty -or
-                        $propertyState.RegistryProperty.Type -ine $propertyState.Candidate.Type -or
-                        -not (Compare-WURegistryValue `
-                                -ReferenceValue $option.Value `
-                                -DifferenceValue $propertyState.RegistryProperty.Value)
-                    ) {
-                        $optionMatches = $false
+                    }
+
+                    if ($optionMatches) {
+                        $state = [string]$optionName
                         break
                     }
                 }
 
-                if ($optionMatches) {
-                    $state = [string]$optionName
-                    break
+                if ($null -eq $state) {
+                    $configuredPropertyCount = @(
+                        $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
+                    ).Count
+                    if ($configuredPropertyCount -eq 0) {
+                        $state = 'NotConfigured'
+                    } else {
+                        $state = 'Mixed'
+                    }
                 }
-            }
 
-            if ($null -eq $state) {
-                $configuredPropertyCount = @(
-                    $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
-                ).Count
-                if ($configuredPropertyCount -eq 0) {
-                    $state = 'NotConfigured'
-                } else {
-                    $state = 'Mixed'
+                [pscustomobject]@{
+                    PSTypeName = 'PSWinUtil.RegistrySetting'
+                    Name = $currentName
+                    Scope = $selection.Scope
+                    State = $state
                 }
-            }
-
-            [pscustomobject]@{
-                PSTypeName = 'PSWinUtil.RegistrySetting'
-                Name = $currentName
-                Scope = $selection.Scope
-                State = $state
             }
         }
     }

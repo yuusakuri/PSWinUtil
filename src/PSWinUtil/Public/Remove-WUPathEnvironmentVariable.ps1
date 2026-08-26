@@ -4,18 +4,23 @@ function Remove-WUPathEnvironmentVariable {
     Removes paths from the PATH environment variable.
 
     .DESCRIPTION
-    Removes matching paths from the Process, User, or Machine PATH. Matching ignores leading and trailing spaces, a trailing backslash, and character case. Existing nonmatching item text and order are preserved.
+    Removes matching paths from one or more Process, User, or Machine PATH values. Matching ignores leading and trailing spaces, a trailing backslash, and character case. Existing nonmatching item text and order are preserved.
 
     .PARAMETER Path
     Specifies one or more paths to remove. The paths do not need to exist.
 
     .PARAMETER Scope
-    Specifies Process, User, or Machine. The default value is Process.
+    Specifies one or more of Process, User, and Machine. The default value is Process.
 
     .EXAMPLE
     Remove-WUPathEnvironmentVariable -Path 'C:\Tools\' -Scope User
 
     Removes C:\Tools from the current user PATH even if the stored path has no trailing backslash.
+
+    .EXAMPLE
+    Remove-WUPathEnvironmentVariable -Path 'C:\Tools' -Scope Process, User
+
+    Removes C:\Tools from the current process and current user PATH values.
 
     .INPUTS
     System.String
@@ -42,7 +47,7 @@ function Remove-WUPathEnvironmentVariable {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string[]]$Scope = 'Process'
     )
 
     begin {
@@ -57,36 +62,38 @@ function Remove-WUPathEnvironmentVariable {
     }
 
     end {
-        $target = [System.EnvironmentVariableTarget]$Scope
-        $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
-        $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
-        $remainingPaths = @()
-        $removedPath = $false
+        foreach ($currentScope in $Scope) {
+            $target = [System.EnvironmentVariableTarget]$currentScope
+            $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
+            $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
+            $remainingPaths = @()
+            $removedPath = $false
 
-        foreach ($existingPath in $existingPaths) {
-            $isMatch = $false
-            foreach ($pathToRemove in $pathsToRemove) {
-                if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $pathToRemove) {
-                    $isMatch = $true
-                    $removedPath = $true
-                    break
+            foreach ($existingPath in $existingPaths) {
+                $isMatch = $false
+                foreach ($pathToRemove in $pathsToRemove) {
+                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $pathToRemove) {
+                        $isMatch = $true
+                        $removedPath = $true
+                        break
+                    }
+                }
+
+                if (-not $isMatch) {
+                    $remainingPaths += $existingPath
                 }
             }
 
-            if (-not $isMatch) {
-                $remainingPaths += $existingPath
+            if (-not $removedPath) {
+                continue
             }
-        }
 
-        if (-not $removedPath) {
-            return
+            $updatedValue = Join-WUPathEnvironmentVariable -Path $remainingPaths
+            Set-WUEnvironmentVariable `
+                -Name 'Path' `
+                -Value $updatedValue `
+                -Scope $currentScope `
+                @shouldProcessParameters
         }
-
-        $updatedValue = Join-WUPathEnvironmentVariable -Path $remainingPaths
-        Set-WUEnvironmentVariable `
-            -Name 'Path' `
-            -Value $updatedValue `
-            -Scope $Scope `
-            @shouldProcessParameters
     }
 }

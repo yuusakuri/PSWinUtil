@@ -81,6 +81,18 @@ Describe 'Edit-WUSshKey' {
         $result.FullName | Should -Be $keyPath
         $capturedArguments -join '|' | Should -Be "-q|-c|-P|current value|-C|updated value|-f|$keyPath"
     }
+
+    It 'uses LiteralPath without wildcard interpretation' {
+        $keyPath = Join-Path -Path $TestDrive -ChildPath 'literal[1]-key'
+        [System.IO.File]::WriteAllText($keyPath, 'key')
+
+        $result = Edit-WUSshKey `
+            -LiteralPath $keyPath `
+            -CurrentPassphrase '' `
+            -Comment 'updated value'
+
+        $result.FullName | Should -Be $keyPath
+    }
 }
 
 Describe 'Start-WUPSScriptAsAdmin' {
@@ -120,5 +132,14 @@ Describe 'Start-WUPSScriptAsAdmin' {
         [System.IO.File]::WriteAllText($scriptFile, 'Get-Item -Path .')
 
         { Start-WUPSScriptAsAdmin -Path $scriptFile } | Should -Throw '*.ps1 extension*'
+    }
+
+    It 'uses LiteralPath without wildcard interpretation' {
+        $scriptFile = Join-Path -Path $TestDrive -ChildPath 'script[1].ps1'
+        [System.IO.File]::WriteAllText($scriptFile, "Get-Item -Path .`n")
+
+        Start-WUPSScriptAsAdmin -LiteralPath $scriptFile -WhatIf
+
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 }

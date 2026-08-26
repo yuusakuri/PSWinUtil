@@ -7,7 +7,10 @@ function Start-WUPSScriptAsAdmin {
     Validates a .ps1 file and starts it in a separate Windows PowerShell process by using Start-Process with the RunAs verb. Script arguments are encoded into the command so each string value is preserved.
 
     .PARAMETER Path
-    Specifies the .ps1 file to start.
+    Specifies the .ps1 file to start. Wildcards are supported when they resolve to exactly one file.
+
+    .PARAMETER LiteralPath
+    Specifies the .ps1 file to start without wildcard interpretation.
 
     .PARAMETER ArgumentList
     Specifies string arguments passed to the script in their original order.
@@ -27,23 +30,42 @@ function Start-WUPSScriptAsAdmin {
 
     Reports an error because the input file does not use the .ps1 extension.
 
+    .EXAMPLE
+    Start-WUPSScriptAsAdmin -LiteralPath '.\setup[local].ps1'
+
+    Starts the exact script file in an elevated Windows PowerShell process.
+
     .INPUTS
     System.String
 
     .OUTPUTS
     None
     #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(
+        DefaultParameterSetName = 'Path',
+        SupportsShouldProcess = $true
+    )]
     param(
         [Parameter(
             Mandatory = $true,
+            ParameterSetName = 'Path',
             Position = 0,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true
         )]
         [Alias('FullName')]
         [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
         [string]$Path,
+
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'LiteralPath',
+            ValueFromPipelineByPropertyName = $true
+        )]
+        [Alias('PSPath', 'LP')]
+        [ValidateNotNullOrEmpty()]
+        [string]$LiteralPath,
 
         [Parameter()]
         [AllowEmptyCollection()]
@@ -52,12 +74,23 @@ function Start-WUPSScriptAsAdmin {
     )
 
     process {
-        $fullPath = ConvertTo-WUFullPath -Path $Path
+        $pathParameters = Select-WUBoundParameter `
+            -BoundParameters $PSBoundParameters `
+            -Name 'Path', 'LiteralPath'
+        $resolvedPaths = @(
+            Resolve-WUExistingFileSystemPath `
+                @pathParameters `
+                -Leaf `
+                -Readable
+        )
+        if ($resolvedPaths.Count -ne 1) {
+            throw 'Path must resolve to exactly one PowerShell script file.'
+        }
+        $fullPath = $resolvedPaths[0]
         if ([System.IO.Path]::GetExtension($fullPath) -ine '.ps1') {
             throw "The script must use the .ps1 extension: $fullPath"
         }
-        Assert-WUPathProperty -Path $fullPath -Leaf -Readable
-        Assert-WUPSScript -Path $fullPath
+        Assert-WUPSScript -LiteralPath $fullPath
 
         $windowsPowerShell = Get-Command -Name 'powershell.exe' -CommandType Application -ErrorAction Stop
         $escapedPath = $fullPath.Replace("'", "''")

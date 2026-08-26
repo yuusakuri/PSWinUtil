@@ -120,6 +120,47 @@ Describe 'Built module manifest' {
         }
     }
 
+    It 'accepts multiple Scope values in every scoped public command' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $scopedCommandNames = @(
+            'Get-WUEnvironmentVariable'
+            'Set-WUEnvironmentVariable'
+            'Remove-WUEnvironmentVariable'
+            'Add-WUPathEnvironmentVariable'
+            'Remove-WUPathEnvironmentVariable'
+            'Get-WURegistrySetting'
+            'Get-WUStartupEntry'
+            'Register-WUStartupEntry'
+            'Unregister-WUStartupEntry'
+        )
+
+        foreach ($commandName in $scopedCommandNames) {
+            $command = Get-Command -Name $commandName -Module 'PSWinUtil'
+
+            $command.Parameters.Scope.ParameterType |
+                Should -Be ([string[]]) -Because "$commandName must accept multiple scopes"
+        }
+    }
+
+    It 'offers Path and LiteralPath for public commands that select existing files' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $pathCommandNames = @(
+            'Set-WUEnvironmentVariable'
+            'Edit-WUSshKey'
+            'Test-WUPSScript'
+            'Assert-WUPSScript'
+            'Start-WUPSScriptAsAdmin'
+            'Get-WUFileTreeWithContent'
+        )
+
+        foreach ($commandName in $pathCommandNames) {
+            $command = Get-Command -Name $commandName -Module 'PSWinUtil'
+
+            $command.Parameters.Keys | Should -Contain 'Path'
+            $command.Parameters.Keys | Should -Contain 'LiteralPath'
+        }
+    }
+
     It 'contains the public structured output type names' {
         $modulePath = Join-Path -Path (Split-Path -Path $script:ManifestPath -Parent) -ChildPath 'PSWinUtil.psm1'
         $moduleText = [System.IO.File]::ReadAllText($modulePath)

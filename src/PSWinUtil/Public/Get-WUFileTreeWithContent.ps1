@@ -4,9 +4,12 @@ function Get-WUFileTreeWithContent {
     Gets a file tree with text file contents.
 
     .DESCRIPTION
-    Gets files and directories from one or more literal paths. Directory children are read recursively. By default, each item is returned as a PSWinUtil.FileTreeContent object. Text files are read with strict UTF-8 decoding. A file that is not valid UTF-8 or contains a null character is returned with a null Content value.
+    Gets files and directories from one or more paths. Path permits wildcards, while LiteralPath uses exact paths. Directory children are read recursively. By default, each item is returned as a PSWinUtil.FileTreeContent object. Text files are read with strict UTF-8 decoding. A file that is not valid UTF-8 or contains a null character is returned with a null Content value.
 
     When AsXml is specified, the command writes a documents start element, one escaped document element for each item, and a documents end element. Each XML fragment is a separate pipeline value. A directory symbolic link or junction is returned but is not traversed.
+
+    .PARAMETER Path
+    Specifies one or more file system paths. Wildcards are supported.
 
     .PARAMETER LiteralPath
     Specifies one or more literal file system paths. Wildcards are not supported.
@@ -30,6 +33,11 @@ function Get-WUFileTreeWithContent {
 
     Gets the input directory and its descendants as XML fragments.
 
+    .EXAMPLE
+    Get-WUFileTreeWithContent -Path 'C:\MyProject\src\*.ps1'
+
+    Gets each PowerShell script selected by the wildcard path.
+
     .INPUTS
     System.String
 
@@ -37,12 +45,24 @@ function Get-WUFileTreeWithContent {
     PSWinUtil.FileTreeContent
     System.String
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'LiteralPath')]
     [OutputType('PSWinUtil.FileTreeContent')]
     [OutputType([string])]
     param(
         [Parameter(
             Mandatory = $true,
+            ParameterSetName = 'Path',
+            Position = 0,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true
+        )]
+        [ValidateNotNullOrEmpty()]
+        [SupportsWildcards()]
+        [string[]]$Path,
+
+        [Parameter(
+            Mandatory = $true,
+            ParameterSetName = 'LiteralPath',
             Position = 0,
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true
@@ -119,14 +139,13 @@ function Get-WUFileTreeWithContent {
     }
 
     process {
-        foreach ($currentPath in $LiteralPath) {
-            $fullPath = ConvertTo-WUFullPath -Path $currentPath
+        $pathParameters = Select-WUBoundParameter `
+            -BoundParameters $PSBoundParameters `
+            -Name 'Path', 'LiteralPath'
+        foreach ($fullPath in @(Resolve-WUExistingFileSystemPath @pathParameters)) {
             if ([System.IO.File]::Exists($fullPath)) {
                 & $writeItem -Item ([System.IO.FileInfo]::new($fullPath))
                 continue
-            }
-            if (-not [System.IO.Directory]::Exists($fullPath)) {
-                throw "The path does not exist: $fullPath"
             }
 
             $stack = [System.Collections.Generic.Stack[object]]::new()
