@@ -143,7 +143,11 @@ function Get-WUFileTreeWithContent {
         $pathParameters = Select-WUBoundParameter `
             -BoundParameters $PSBoundParameters `
             -Name 'Path', 'LiteralPath'
-        foreach ($fullPath in @(Resolve-WUExistingFileSystemPath @pathParameters)) {
+        $fullPaths = @(
+            Resolve-WUPath @pathParameters |
+                ConvertTo-WUFullPath
+        )
+        foreach ($fullPath in $fullPaths) {
             if ([System.IO.File]::Exists($fullPath)) {
                 & $writeItem -Item ([System.IO.FileInfo]::new($fullPath))
                 continue

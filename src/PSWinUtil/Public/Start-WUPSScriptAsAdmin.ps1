@@ -77,16 +77,9 @@ function Start-WUPSScriptAsAdmin {
         $pathParameters = Select-WUBoundParameter `
             -BoundParameters $PSBoundParameters `
             -Name 'Path', 'LiteralPath'
-        $resolvedPaths = @(
-            Resolve-WUExistingFileSystemPath `
-                @pathParameters `
-                -Leaf `
-                -Readable
-        )
-        if ($resolvedPaths.Count -ne 1) {
-            throw 'Path must resolve to exactly one PowerShell script file.'
-        }
-        $fullPath = $resolvedPaths[0]
+        $fullPath = Resolve-WUPath @pathParameters -DenyMultiplePaths |
+            ConvertTo-WUFullPath
+        Assert-WUPathProperty -LiteralPath $fullPath -Leaf
         if ([System.IO.Path]::GetExtension($fullPath) -ine '.ps1') {
             throw "The script must use the .ps1 extension: $fullPath"
         }

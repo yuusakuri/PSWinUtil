@@ -1,41 +1,40 @@
 function Assert-WUPathProperty {
     <#
     .SYNOPSIS
-    Requires file system paths to match selected properties.
+    Requires PowerShell paths to match selected properties.
 
     .DESCRIPTION
-    Expands wildcard Path values, uses Test-WUPathProperty, and reports an error when a path is missing or does not match every selected property. LiteralPath values are checked without wildcard interpretation. AllowNonExisting permits a missing path while still validating an existing path. Successful checks produce no output.
+    Expands wildcard Path values, uses Test-WUPathProperty, and reports an error when a path is missing or does not match the selected provider item type. LiteralPath values are checked without wildcard interpretation. AllowNonExisting permits a missing path while still validating an existing path. Successful checks produce no output.
 
     .PARAMETER Path
-    Specifies one or more file system paths to check. Wildcards are supported.
+    Specifies one or more PowerShell paths to check. Wildcards are supported.
 
     .PARAMETER LiteralPath
-    Specifies one or more file system paths to check without wildcard interpretation.
+    Specifies one or more PowerShell paths to check without wildcard interpretation.
 
     .PARAMETER Leaf
-    Requires the path to be a file.
+    Requires the path to identify a provider leaf item.
 
     .PARAMETER Container
-    Requires the path to be a directory.
-
-    .PARAMETER Readable
-    Requires the path to be readable by the current process.
-
-    .PARAMETER Writable
-    Requires the path to be writable by the current process.
+    Requires the path to identify a provider container item.
 
     .PARAMETER AllowNonExisting
-    Permits a missing path. An existing path must still match every selected property.
+    Permits a missing path. An existing path must still match the selected provider item type.
 
     .EXAMPLE
-    Assert-WUPathProperty -Path '.\settings.json' -Leaf -Readable
+    Assert-WUPathProperty -Path '.\settings.json' -Leaf
 
-    Completes without output when settings.json is a readable file.
+    Completes without output when settings.json is a leaf item.
 
     .EXAMPLE
-    Assert-WUPathProperty -Path '.\certificates\*.pem' -Leaf -Readable
+    Assert-WUPathProperty -Path '.\certificates\*.pem' -Leaf
 
-    Completes without output when every matching PEM file is readable.
+    Completes without output when every matching path is a leaf item.
+
+    .EXAMPLE
+    Assert-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf
+
+    Completes without output because PATH is a leaf item in the Environment provider.
 
     .EXAMPLE
     Assert-WUPathProperty -Path '.\missing'
@@ -45,7 +44,7 @@ function Assert-WUPathProperty {
     .EXAMPLE
     Assert-WUPathProperty -Path '.\output' -Container -AllowNonExisting
 
-    Completes without output when output is missing or is an existing directory.
+    Completes without output when output is missing or is an existing container item.
 
     .INPUTS
     System.String
@@ -83,14 +82,14 @@ function Assert-WUPathProperty {
         [switch]$Container,
 
         [Parameter()]
-        [switch]$Readable,
-
-        [Parameter()]
-        [switch]$Writable,
-
-        [Parameter()]
         [switch]$AllowNonExisting
     )
+
+    begin {
+        if ($Leaf -and $Container) {
+            throw 'Leaf and Container cannot be specified together.'
+        }
+    }
 
     process {
         $selectedPaths = $Path
@@ -107,36 +106,39 @@ function Assert-WUPathProperty {
                 try {
                     $pathsToTest = @(Resolve-Path -Path $selectedPath -ErrorAction Stop)
                 } catch [System.Management.Automation.ItemNotFoundException] {
-                    if (-not $AllowNonExisting) {
-                        throw
+                    if ($AllowNonExisting) {
+                        continue
                     }
+                    throw
                 }
             }
 
+            if ($pathsToTest.Count -eq 0) {
+                if ($AllowNonExisting) {
+                    continue
+                }
+                throw [System.Management.Automation.ItemNotFoundException]::new()
+            }
+
             foreach ($pathToTest in $pathsToTest) {
+                $literalPathToTest = $pathToTest
                 if ($pathToTest -is [System.Management.Automation.PathInfo]) {
-                    if ($pathToTest.Provider.Name -ne 'FileSystem') {
-                        throw "The path must use the FileSystem provider: $($pathToTest.Path)"
-                    }
-                    $fullPath = $pathToTest.ProviderPath
-                } else {
-                    $fullPath = ConvertTo-WUFullPath -Path $pathToTest
+                    $literalPathToTest = $pathToTest.Path
                 }
 
                 if (
                     $AllowNonExisting -and
-                    -not (Test-Path -LiteralPath $fullPath -ErrorAction Stop)
+                    -not (Test-Path -LiteralPath $literalPathToTest -ErrorAction Stop)
                 ) {
                     continue
                 }
 
                 $testParameters = Select-WUBoundParameter `
                     -BoundParameters $PSBoundParameters `
-                    -Name 'Leaf', 'Container', 'Readable', 'Writable'
-                $testParameters['LiteralPath'] = $fullPath
-
+                    -Name 'Leaf', 'Container'
+                $testParameters['LiteralPath'] = $literalPathToTest
                 if (-not (Test-WUPathProperty @testParameters)) {
-                    throw "The path does not match the required properties: $pathToTest"
+                    throw "The path does not match the required properties: $literalPathToTest"
                 }
             }
         }

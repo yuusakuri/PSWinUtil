@@ -24,8 +24,20 @@ Describe 'ConvertTo-WUFullPath' {
         $results | ForEach-Object { [System.IO.Path]::IsPathRooted($_) | Should -BeTrue }
     }
 
+    It 'converts PathInfo pipeline input from Resolve-WUPath' {
+        $result = Resolve-WUPath -LiteralPath $TestDrive |
+            ConvertTo-WUFullPath
+
+        $result | Should -Be $TestDrive
+    }
+
     It 'rejects a non-file-system provider path' {
         { ConvertTo-WUFullPath -Path 'Env:\Path' } | Should -Throw '*FileSystem provider*'
+    }
+
+    It 'rejects non-file-system PathInfo pipeline input' {
+        { Resolve-WUPath -LiteralPath 'Env:\PATH' | ConvertTo-WUFullPath } |
+            Should -Throw '*FileSystem provider*'
     }
 }
 
@@ -116,52 +128,6 @@ Describe 'Resolve-WUPath' {
     }
 }
 
-Describe 'Resolve-WUExistingFileSystemPath' {
-    BeforeEach {
-        $script:FirstDataFile = Join-Path -Path $TestDrive -ChildPath 'first.psd1'
-        $script:LiteralDataFile = Join-Path -Path $TestDrive -ChildPath 'environment[1].psd1'
-        [System.IO.File]::WriteAllText($script:FirstDataFile, '@{}')
-        [System.IO.File]::WriteAllText($script:LiteralDataFile, '@{}')
-    }
-
-    It 'expands wildcard Path values' {
-        $result = InModuleScope -ModuleName PSWinUtil -Parameters @{ DataDirectory = $TestDrive } {
-            param($DataDirectory)
-            @(Resolve-WUExistingFileSystemPath -Path "$DataDirectory\*.psd1" -Leaf)
-        }
-
-        $result | Should -HaveCount 2
-        $result | Should -Contain $script:FirstDataFile
-        $result | Should -Contain $script:LiteralDataFile
-    }
-
-    It 'resolves LiteralPath without wildcard interpretation' {
-        $result = InModuleScope -ModuleName PSWinUtil -Parameters @{ DataPath = $script:LiteralDataFile } {
-            param($DataPath)
-            Resolve-WUExistingFileSystemPath -LiteralPath $DataPath -Leaf
-        }
-
-        $result | Should -Be $script:LiteralDataFile
-    }
-
-    It 'rejects a resolved path with the wrong item type' {
-        {
-            InModuleScope -ModuleName PSWinUtil -Parameters @{ DataPath = $script:FirstDataFile } {
-                param($DataPath)
-                Resolve-WUExistingFileSystemPath -LiteralPath $DataPath -Container
-            }
-        } | Should -Throw '*required properties*'
-    }
-
-    It 'rejects a non-file-system provider' {
-        {
-            InModuleScope -ModuleName PSWinUtil {
-                Resolve-WUExistingFileSystemPath -LiteralPath 'Env:\PATH'
-            }
-        } | Should -Throw '*FileSystem provider*'
-    }
-}
-
 Describe 'Test-WUPathProperty' {
     BeforeEach {
         $script:TestFile = Join-Path -Path $TestDrive -ChildPath 'item.txt'
@@ -185,16 +151,11 @@ Describe 'Test-WUPathProperty' {
         Test-WUPathProperty -Path $script:TestDirectory -Leaf | Should -BeFalse
     }
 
-    It 'tests readable and writable paths' {
-        Test-WUPathProperty -Path $script:TestFile -Readable -Writable | Should -BeTrue
-        Test-WUPathProperty -Path $script:TestDirectory -Readable -Writable | Should -BeTrue
-    }
-
     It 'returns one result for each wildcard Path match' {
         $secondFile = Join-Path -Path $TestDrive -ChildPath 'second.txt'
         [System.IO.File]::WriteAllText($secondFile, 'second')
 
-        $results = @(Test-WUPathProperty -Path "$TestDrive\*.txt" -Leaf -Readable)
+        $results = @(Test-WUPathProperty -Path "$TestDrive\*.txt" -Leaf)
 
         $results | Should -HaveCount 2
         $results | Should -Not -Contain $false
@@ -209,8 +170,13 @@ Describe 'Test-WUPathProperty' {
         $literalPath = Join-Path -Path $TestDrive -ChildPath 'item[1].txt'
         [System.IO.File]::WriteAllText($literalPath, 'content')
 
-        Test-WUPathProperty -LiteralPath $literalPath -Leaf -Readable |
+        Test-WUPathProperty -LiteralPath $literalPath -Leaf |
             Should -BeTrue
+    }
+
+    It 'tests paths from a non-file-system provider' {
+        Test-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf | Should -BeTrue
+        Test-WUPathProperty -LiteralPath 'Env:\PATH' -Container | Should -BeFalse
     }
 
     It 'rejects conflicting item types' {
@@ -220,7 +186,7 @@ Describe 'Test-WUPathProperty' {
 
 Describe 'Assert-WUPathProperty' {
     It 'produces no output for a matching path' {
-        $result = Assert-WUPathProperty -Path $TestDrive -Container -Readable -Writable
+        $result = Assert-WUPathProperty -Path $TestDrive -Container
 
         $result | Should -BeNullOrEmpty
     }
@@ -248,7 +214,7 @@ Describe 'Assert-WUPathProperty' {
         [System.IO.File]::WriteAllText($firstFile, 'first')
         [System.IO.File]::WriteAllText($secondFile, 'second')
 
-        { Assert-WUPathProperty -Path "$TestDrive\*.pem" -Leaf -Readable } |
+        { Assert-WUPathProperty -Path "$TestDrive\*.pem" -Leaf } |
             Should -Not -Throw
     }
 
@@ -271,7 +237,14 @@ Describe 'Assert-WUPathProperty' {
         $literalPath = Join-Path -Path $TestDrive -ChildPath 'certificate[1].pem'
         [System.IO.File]::WriteAllText($literalPath, 'content')
 
-        { Assert-WUPathProperty -LiteralPath $literalPath -Leaf -Readable } |
+        { Assert-WUPathProperty -LiteralPath $literalPath -Leaf } |
             Should -Not -Throw
+    }
+
+    It 'checks paths from a non-file-system provider' {
+        { Assert-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf } |
+            Should -Not -Throw
+        { Assert-WUPathProperty -LiteralPath 'Env:\PATH' -Container } |
+            Should -Throw '*required properties*'
     }
 }

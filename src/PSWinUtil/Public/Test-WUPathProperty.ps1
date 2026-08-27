@@ -1,38 +1,37 @@
 function Test-WUPathProperty {
     <#
     .SYNOPSIS
-    Tests file system path properties.
+    Tests PowerShell path properties.
 
     .DESCRIPTION
-    Expands wildcard Path values and returns a Boolean value for each resolved path. LiteralPath values are tested without wildcard interpretation. A missing path or an unmatched pattern returns false. An existing path can also be tested for item type, readability, and writability.
+    Expands wildcard Path values and returns a Boolean value for each resolved path. LiteralPath values are tested without wildcard interpretation. A missing path or an unmatched pattern returns false. An existing path can also be tested for its provider item type.
 
     .PARAMETER Path
-    Specifies one or more file system paths to test. Wildcards are supported.
+    Specifies one or more PowerShell paths to test. Wildcards are supported.
 
     .PARAMETER LiteralPath
-    Specifies one or more file system paths to test without wildcard interpretation.
+    Specifies one or more PowerShell paths to test without wildcard interpretation.
 
     .PARAMETER Leaf
-    Tests whether the path is a file.
+    Tests whether the path identifies a provider leaf item.
 
     .PARAMETER Container
-    Tests whether the path is a directory.
-
-    .PARAMETER Readable
-    Tests whether the current process can read the file or enumerate the directory.
-
-    .PARAMETER Writable
-    Tests whether the current process can open the file for writing or create and remove a temporary file in the directory.
+    Tests whether the path identifies a provider container item.
 
     .EXAMPLE
-    Test-WUPathProperty -Path '.\settings.json' -Leaf -Readable
+    Test-WUPathProperty -Path '.\settings.json' -Leaf
 
-    Returns true when settings.json exists as a readable file.
+    Returns true when settings.json exists as a leaf item.
 
     .EXAMPLE
-    Test-WUPathProperty -Path '.\certificates\*.pem' -Leaf -Readable
+    Test-WUPathProperty -Path '.\certificates\*.pem' -Leaf
 
-    Returns one Boolean value for each matching PEM file.
+    Returns one Boolean value for each matching leaf item.
+
+    .EXAMPLE
+    Test-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf
+
+    Returns true because PATH is a leaf item in the Environment provider.
 
     .EXAMPLE
     Test-WUPathProperty -Path '.\missing'
@@ -73,13 +72,7 @@ function Test-WUPathProperty {
         [switch]$Leaf,
 
         [Parameter()]
-        [switch]$Container,
-
-        [Parameter()]
-        [switch]$Readable,
-
-        [Parameter()]
-        [switch]$Writable
+        [switch]$Container
     )
 
     begin {
@@ -108,105 +101,32 @@ function Test-WUPathProperty {
                 }
             }
 
+            if ($pathsToTest.Count -eq 0) {
+                $false
+                continue
+            }
+
             foreach ($pathToTest in $pathsToTest) {
+                $literalPathToTest = $pathToTest
                 if ($pathToTest -is [System.Management.Automation.PathInfo]) {
-                    if ($pathToTest.Provider.Name -ne 'FileSystem') {
-                        throw "The path must use the FileSystem provider: $($pathToTest.Path)"
-                    }
-                    $fullPath = $pathToTest.ProviderPath
-                } else {
-                    $fullPath = ConvertTo-WUFullPath -Path $pathToTest
+                    $literalPathToTest = $pathToTest.Path
+                }
+
+                $pathType = 'Any'
+                if ($Leaf) {
+                    $pathType = 'Leaf'
+                } elseif ($Container) {
+                    $pathType = 'Container'
                 }
 
                 try {
-                    $pathExists = Test-Path -LiteralPath $fullPath -ErrorAction Stop
+                    Test-Path `
+                        -LiteralPath $literalPathToTest `
+                        -PathType $pathType `
+                        -ErrorAction Stop
                 } catch {
-                    $pathExists = $false
-                }
-                if (-not $pathExists) {
                     $false
-                    continue
                 }
-
-                $isLeaf = Test-Path -LiteralPath $fullPath -PathType Leaf
-                $isContainer = Test-Path -LiteralPath $fullPath -PathType Container
-                if (($Leaf -and -not $isLeaf) -or ($Container -and -not $isContainer)) {
-                    $false
-                    continue
-                }
-
-                if ($Readable) {
-                    $readSucceeded = $false
-                    try {
-                        if ($isLeaf) {
-                            $stream = [System.IO.File]::Open(
-                                $fullPath,
-                                [System.IO.FileMode]::Open,
-                                [System.IO.FileAccess]::Read,
-                                [System.IO.FileShare]::ReadWrite
-                            )
-                            $stream.Dispose()
-                        } else {
-                            $enumerator = [System.IO.Directory]::EnumerateFileSystemEntries($fullPath).GetEnumerator()
-                            try {
-                                $null = $enumerator.MoveNext()
-                            } finally {
-                                if ($enumerator -is [System.IDisposable]) {
-                                    $enumerator.Dispose()
-                                }
-                            }
-                        }
-                        $readSucceeded = $true
-                    } catch {
-                        $readSucceeded = $false
-                    }
-                    if (-not $readSucceeded) {
-                        $false
-                        continue
-                    }
-                }
-
-                if ($Writable) {
-                    $writeSucceeded = $false
-                    $probePath = $null
-                    try {
-                        if ($isLeaf) {
-                            $stream = [System.IO.File]::Open(
-                                $fullPath,
-                                [System.IO.FileMode]::Open,
-                                [System.IO.FileAccess]::Write,
-                                [System.IO.FileShare]::ReadWrite
-                            )
-                            $stream.Dispose()
-                        } else {
-                            $probePath = Join-Path -Path $fullPath -ChildPath ([System.IO.Path]::GetRandomFileName())
-                            $stream = [System.IO.File]::Open(
-                                $probePath,
-                                [System.IO.FileMode]::CreateNew,
-                                [System.IO.FileAccess]::Write,
-                                [System.IO.FileShare]::None
-                            )
-                            $stream.Dispose()
-                        }
-                        $writeSucceeded = $true
-                    } catch {
-                        $writeSucceeded = $false
-                    } finally {
-                        if ($null -ne $probePath -and [System.IO.File]::Exists($probePath)) {
-                            try {
-                                [System.IO.File]::Delete($probePath)
-                            } catch {
-                                $writeSucceeded = $false
-                            }
-                        }
-                    }
-                    if (-not $writeSucceeded) {
-                        $false
-                        continue
-                    }
-                }
-
-                $true
             }
         }
     }
