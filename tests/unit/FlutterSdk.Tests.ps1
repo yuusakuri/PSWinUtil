@@ -222,10 +222,10 @@ Describe 'Install-WUFlutterSdk' {
         $expectedFlutterPath = Join-Path -Path $TestDrive -ChildPath 'flutter'
 
         Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq $TestDrive -and $Container -and $AllowNonExisting
+            $LiteralPath -eq $TestDrive -and $Container -and $AllowNonExisting
         }
         Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq $expectedFlutterPath -and $Container -and $AllowNonExisting
+            $LiteralPath -eq $expectedFlutterPath -and $Container -and $AllowNonExisting
         }
     }
 

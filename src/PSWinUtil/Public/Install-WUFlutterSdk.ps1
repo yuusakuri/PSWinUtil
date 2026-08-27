@@ -77,13 +77,13 @@ function Install-WUFlutterSdk {
     process {
         $fullDestinationPath = ConvertTo-WUFullPath -Path $DestinationPath
         Assert-WUPathProperty `
-            -Path $fullDestinationPath `
+            -LiteralPath $fullDestinationPath `
             -Container `
             -AllowNonExisting
 
         $flutterPath = Join-Path -Path $fullDestinationPath -ChildPath 'flutter'
         Assert-WUPathProperty `
-            -Path $flutterPath `
+            -LiteralPath $flutterPath `
             -Container `
             -AllowNonExisting
 
