@@ -85,11 +85,10 @@ function Test-WUPSScript {
                 -BoundParameters $PSBoundParameters `
                 -Name 'Path', 'LiteralPath'
             $inputs = @(
-                Resolve-WUExistingFileSystemPath `
-                    @pathParameters `
-                    -Leaf `
-                    -Readable
+                Resolve-WUPath @pathParameters |
+                    ConvertTo-WUFullPath
             )
+            Assert-WUPathProperty -LiteralPath $inputs -Leaf
         }
 
         foreach ($currentInput in $inputs) {

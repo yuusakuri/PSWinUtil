@@ -18,9 +18,10 @@ Describe 'File system utility integration' {
 
     It 'converts and tests a temporary file and directory' {
         ConvertTo-WUFullPath -Path $script:FilePath | Should -Be $script:FilePath
-        Test-WUPathProperty -Path $script:FilePath -Leaf -Readable -Writable | Should -BeTrue
-        Test-WUPathProperty -Path $script:DirectoryPath -Container -Readable -Writable | Should -BeTrue
-        { Assert-WUPathProperty -Path $script:FilePath -Leaf -Readable } | Should -Not -Throw
+        Test-WUPathProperty -Path $script:FilePath -Leaf | Should -BeTrue
+        Test-WUPathProperty -Path $script:DirectoryPath -Container | Should -BeTrue
+        { Assert-WUPathProperty -Path $script:FilePath -Leaf } | Should -Not -Throw
+        Test-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf | Should -BeTrue
     }
 }
 
