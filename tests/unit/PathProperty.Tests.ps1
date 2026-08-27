@@ -29,6 +29,93 @@ Describe 'ConvertTo-WUFullPath' {
     }
 }
 
+Describe 'Resolve-WUPath' {
+    BeforeEach {
+        $script:ResolvePathDirectory = Join-Path -Path $TestDrive -ChildPath 'Resolve-WUPath'
+        $null = New-Item -Path $script:ResolvePathDirectory -ItemType Directory -Force
+        $script:FirstPath = Join-Path -Path $script:ResolvePathDirectory -ChildPath 'first.txt'
+        $script:SecondPath = Join-Path -Path $script:ResolvePathDirectory -ChildPath 'second.txt'
+        $script:LiteralPath = Join-Path -Path $script:ResolvePathDirectory -ChildPath 'item[1].txt'
+        [System.IO.File]::WriteAllText($script:FirstPath, 'first')
+        [System.IO.File]::WriteAllText($script:SecondPath, 'second')
+        [System.IO.File]::WriteAllText($script:LiteralPath, 'literal')
+    }
+
+    It 'preserves Resolve-Path wildcard behavior' {
+        $results = @(Resolve-WUPath -Path "$script:ResolvePathDirectory\*.txt")
+
+        $results | Should -HaveCount 3
+        @($results.ProviderPath) | Should -Contain $script:FirstPath
+        @($results.ProviderPath) | Should -Contain $script:SecondPath
+        @($results.ProviderPath) | Should -Contain $script:LiteralPath
+    }
+
+    It 'resolves LiteralPath without wildcard interpretation' {
+        $result = Resolve-WUPath -LiteralPath $script:LiteralPath
+
+        $result.ProviderPath | Should -Be $script:LiteralPath
+    }
+
+    It 'preserves relative path output' {
+        Push-Location -LiteralPath $script:ResolvePathDirectory
+        try {
+            $result = Resolve-WUPath -LiteralPath $script:FirstPath -Relative
+        } finally {
+            Pop-Location
+        }
+
+        $result | Should -Be '.\first.txt'
+    }
+
+    It 'accepts path values from the pipeline' {
+        $results = @($script:FirstPath, $script:SecondPath) | Resolve-WUPath
+
+        $results | Should -HaveCount 2
+        @($results.ProviderPath) | Should -Contain $script:FirstPath
+        @($results.ProviderPath) | Should -Contain $script:SecondPath
+    }
+
+    It 'returns one path when DenyMultiplePaths receives one result' {
+        $result = Resolve-WUPath `
+            -LiteralPath $script:FirstPath `
+            -DenyMultiplePaths
+
+        $result.ProviderPath | Should -Be $script:FirstPath
+    }
+
+    It 'rejects multiple wildcard results when DenyMultiplePaths is specified' {
+        try {
+            $null = Resolve-WUPath `
+                -Path "$script:ResolvePathDirectory\*.txt" `
+                -DenyMultiplePaths
+            throw 'Expected Resolve-WUPath to report an error.'
+        } catch {
+            $_.Exception | Should -BeOfType ([System.ArgumentException])
+            $_.Exception.Message | Should -Be 'Path resolved to more than one result'
+        }
+    }
+
+    It 'rejects multiple pipeline results when DenyMultiplePaths is specified' {
+        { @($script:FirstPath, $script:SecondPath) | Resolve-WUPath -DenyMultiplePaths } |
+            Should -Throw '*more than one result*'
+    }
+
+    It 'reports ItemNotFoundException for no result with DenyMultiplePaths' {
+        $missingPath = Join-Path -Path $script:ResolvePathDirectory -ChildPath 'missing.txt'
+
+        try {
+            $null = Resolve-WUPath `
+                -LiteralPath $missingPath `
+                -DenyMultiplePaths
+            throw 'Expected Resolve-WUPath to report an error.'
+        } catch {
+            $_.Exception | Should -BeOfType (
+                [System.Management.Automation.ItemNotFoundException]
+            )
+        }
+    }
+}
+
 Describe 'Resolve-WUExistingFileSystemPath' {
     BeforeEach {
         $script:FirstDataFile = Join-Path -Path $TestDrive -ChildPath 'first.psd1'
