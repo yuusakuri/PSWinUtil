@@ -28,6 +28,20 @@ Describe 'Get-WUFileTreeWithContent' {
         $firstFile.Content | Should -Be 'first'
     }
 
+    It 'uses the current location when no path is specified' {
+        Push-Location -Path $script:RootPath
+        try {
+            $result = @(Get-WUFileTreeWithContent)
+        } finally {
+            Pop-Location
+        }
+
+        $result | Should -HaveCount 3
+        $result.Path | Should -Contain $script:ChildPath
+        $result.Path | Should -Contain $script:FirstFilePath
+        $result.Path | Should -Contain $script:NestedFilePath
+    }
+
     It 'applies minimum and maximum depth to directory inputs' {
         $depthZero = @(
             Get-WUFileTreeWithContent `

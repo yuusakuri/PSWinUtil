@@ -12,7 +12,7 @@ function Get-WUFileTreeWithContent {
     Specifies one or more file system paths. Wildcards are supported.
 
     .PARAMETER LiteralPath
-    Specifies one or more literal file system paths. Wildcards are not supported.
+    Specifies one or more literal file system paths. Wildcards are not supported. The default value is the current location.
 
     .PARAMETER MinDepth
     Specifies the minimum directory depth to return. The input directory is depth 0 and its direct children are depth 1. The default value is 1. This parameter does not exclude a directly specified file.
@@ -22,6 +22,11 @@ function Get-WUFileTreeWithContent {
 
     .PARAMETER AsXml
     Writes escaped XML fragments instead of PSWinUtil.FileTreeContent objects.
+
+    .EXAMPLE
+    Get-WUFileTreeWithContent
+
+    Gets the items under the current location.
 
     .EXAMPLE
     Get-WUFileTreeWithContent -LiteralPath 'C:\MyProject\src' -MaxDepth 3
@@ -61,7 +66,6 @@ function Get-WUFileTreeWithContent {
         [string[]]$Path,
 
         [Parameter(
-            Mandatory = $true,
             ParameterSetName = 'LiteralPath',
             Position = 0,
             ValueFromPipeline = $true,
@@ -69,7 +73,7 @@ function Get-WUFileTreeWithContent {
         )]
         [Alias('PSPath', 'LP')]
         [ValidateNotNullOrEmpty()]
-        [string[]]$LiteralPath,
+        [string[]]$LiteralPath = (Get-Location).Path,
 
         [Parameter()]
         [ValidateRange(0, [int]::MaxValue)]
@@ -143,6 +147,9 @@ function Get-WUFileTreeWithContent {
         $pathParameters = Select-WUBoundParameter `
             -BoundParameters $PSBoundParameters `
             -Name 'Path', 'LiteralPath'
+        if ($pathParameters.Count -eq 0) {
+            $pathParameters.LiteralPath = $LiteralPath
+        }
         foreach ($fullPath in @(Resolve-WUExistingFileSystemPath @pathParameters)) {
             if ([System.IO.File]::Exists($fullPath)) {
                 & $writeItem -Item ([System.IO.FileInfo]::new($fullPath))
