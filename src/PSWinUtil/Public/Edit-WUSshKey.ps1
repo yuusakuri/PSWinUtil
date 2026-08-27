@@ -95,17 +95,9 @@ function Edit-WUSshKey {
     $pathParameters = Select-WUBoundParameter `
         -BoundParameters $PSBoundParameters `
         -Name 'Path', 'LiteralPath'
-    $resolvedKeyPaths = @(
-        Resolve-WUExistingFileSystemPath `
-            @pathParameters `
-            -Leaf `
-            -Readable `
-            -Writable
-    )
-    if ($resolvedKeyPaths.Count -ne 1) {
-        throw 'Path must resolve to exactly one SSH private key file.'
-    }
-    $fullKeyPath = $resolvedKeyPaths[0]
+    $fullKeyPath = Resolve-WUPath @pathParameters -DenyMultiplePaths |
+        ConvertTo-WUFullPath
+    Assert-WUPathProperty -LiteralPath $fullKeyPath -Leaf
     $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop |
         Select-Object -First 1
 

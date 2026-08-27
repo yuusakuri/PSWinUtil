@@ -150,7 +150,11 @@ function Get-WUFileTreeWithContent {
         if ($pathParameters.Count -eq 0) {
             $pathParameters.LiteralPath = $LiteralPath
         }
-        foreach ($fullPath in @(Resolve-WUExistingFileSystemPath @pathParameters)) {
+        $fullPaths = @(
+            Resolve-WUPath @pathParameters |
+                ConvertTo-WUFullPath
+        )
+        foreach ($fullPath in $fullPaths) {
             if ([System.IO.File]::Exists($fullPath)) {
                 & $writeItem -Item ([System.IO.FileInfo]::new($fullPath))
                 continue
