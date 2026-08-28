@@ -128,6 +128,89 @@ Describe 'Resolve-WUPath' {
     }
 }
 
+Describe 'Resolve-WUPathFromParameter' {
+    BeforeEach {
+        $script:ParameterDirectory = Join-Path `
+            -Path $TestDrive `
+            -ChildPath 'Resolve-WUPathFromParameter'
+        $null = New-Item -Path $script:ParameterDirectory -ItemType Directory -Force
+        $script:ParameterFirstPath = Join-Path `
+            -Path $script:ParameterDirectory `
+            -ChildPath 'first.txt'
+        $script:ParameterSecondPath = Join-Path `
+            -Path $script:ParameterDirectory `
+            -ChildPath 'second.txt'
+        $script:ParameterLiteralPath = Join-Path `
+            -Path $script:ParameterDirectory `
+            -ChildPath 'item[1].txt'
+        [System.IO.File]::WriteAllText($script:ParameterFirstPath, 'first')
+        [System.IO.File]::WriteAllText($script:ParameterSecondPath, 'second')
+        [System.IO.File]::WriteAllText($script:ParameterLiteralPath, 'literal')
+    }
+
+    It 'resolves Path for the default Path parameter set name' {
+        $results = @(
+            Resolve-WUPathFromParameter `
+                -ParameterSetName 'Path' `
+                -Path "$script:ParameterDirectory\*.txt"
+        )
+
+        $results | Should -HaveCount 3
+        @($results.ProviderPath) | Should -Contain $script:ParameterFirstPath
+        @($results.ProviderPath) | Should -Contain $script:ParameterSecondPath
+        @($results.ProviderPath) | Should -Contain $script:ParameterLiteralPath
+    }
+
+    It 'resolves LiteralPath for the default LiteralPath parameter set name' {
+        $result = Resolve-WUPathFromParameter `
+            -ParameterSetName 'LiteralPath' `
+            -LiteralPath $script:ParameterLiteralPath
+
+        $result.ProviderPath | Should -Be $script:ParameterLiteralPath
+    }
+
+    It 'supports custom path parameter set names' {
+        $result = Resolve-WUPathFromParameter `
+            -ParameterSetName 'SourceLiteralPath' `
+            -LiteralPath $script:ParameterLiteralPath `
+            -PathSetName 'SourcePath' `
+            -LiteralPathSetName 'SourceLiteralPath'
+
+        $result.ProviderPath | Should -Be $script:ParameterLiteralPath
+    }
+
+    It 'forwards Relative to Resolve-WUPath' {
+        Push-Location -LiteralPath $script:ParameterDirectory
+        try {
+            $result = Resolve-WUPathFromParameter `
+                -ParameterSetName 'LiteralPath' `
+                -LiteralPath $script:ParameterFirstPath `
+                -Relative
+        } finally {
+            Pop-Location
+        }
+
+        $result | Should -Be '.\first.txt'
+    }
+
+    It 'forwards DenyMultiplePaths to Resolve-WUPath' {
+        {
+            Resolve-WUPathFromParameter `
+                -ParameterSetName 'Path' `
+                -Path "$script:ParameterDirectory\*.txt" `
+                -DenyMultiplePaths
+        } | Should -Throw '*more than one result*'
+    }
+
+    It 'rejects an unsupported parameter set name' {
+        {
+            Resolve-WUPathFromParameter `
+                -ParameterSetName 'Script' `
+                -Path $script:ParameterFirstPath
+        } | Should -Throw "*Parameter set 'Script' is not supported*"
+    }
+}
+
 Describe 'Test-WUPathProperty' {
     BeforeEach {
         $script:TestFile = Join-Path -Path $TestDrive -ChildPath 'item.txt'

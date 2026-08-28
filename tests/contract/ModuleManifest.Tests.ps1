@@ -33,6 +33,7 @@ Describe 'Built module manifest' {
             'Get-WURegistrySetting'
             'Select-WUBoundParameter'
             'Resolve-WUPath'
+            'Resolve-WUPathFromParameter'
             'Set-WUAdvertisingIdMode'
             'Enable-WUAppLaunchTracking'
             'Disable-WUAppLaunchTracking'
@@ -153,6 +154,7 @@ Describe 'Built module manifest' {
             'Get-Content' = [string[]]
             'Get-WUFileTreeWithContent' = [string[]]
             'Resolve-WUPath' = [string[]]
+            'Resolve-WUPathFromParameter' = [string[]]
             'Set-Content' = [string[]]
             'Set-WUEnvironmentVariable' = [string[]]
             'Start-WUPSScriptAsAdmin' = [string]

@@ -74,10 +74,11 @@ function Start-WUPSScriptAsAdmin {
     )
 
     process {
-        $pathParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'Path', 'LiteralPath'
-        $fullPath = Resolve-WUPath @pathParameters -DenyMultiplePaths |
+        $fullPath = Resolve-WUPathFromParameter `
+            -ParameterSetName $PSCmdlet.ParameterSetName `
+            -Path $Path `
+            -LiteralPath $LiteralPath `
+            -DenyMultiplePaths |
             ConvertTo-WUFullPath
         Assert-WUPathProperty -LiteralPath $fullPath -Leaf
         if ([System.IO.Path]::GetExtension($fullPath) -ine '.ps1') {

@@ -92,10 +92,18 @@ function Edit-WUSshKey {
         [string]$CurrentPassphrase
     )
 
-    $pathParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'Path', 'LiteralPath'
-    $fullKeyPath = Resolve-WUPath @pathParameters -DenyMultiplePaths |
+    $operationName = if ($PSCmdlet.ParameterSetName -like 'Passphrase*') {
+        'Passphrase'
+    } else {
+        'Comment'
+    }
+    $fullKeyPath = Resolve-WUPathFromParameter `
+        -ParameterSetName $PSCmdlet.ParameterSetName `
+        -Path $Path `
+        -LiteralPath $LiteralPath `
+        -PathSetName "${operationName}Path" `
+        -LiteralPathSetName "${operationName}LiteralPath" `
+        -DenyMultiplePaths |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullKeyPath -Leaf
     $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop |
@@ -106,7 +114,7 @@ function Edit-WUSshKey {
         $nativeCurrentPassphrase = '""'
     }
 
-    if ($PSCmdlet.ParameterSetName -like 'Passphrase*') {
+    if ($operationName -eq 'Passphrase') {
         $action = 'Change SSH key passphrase'
         $nativeNewPassphrase = $NewPassphrase
         if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeNewPassphrase.Length -eq 0) {
