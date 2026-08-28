@@ -118,7 +118,7 @@ function Edit-WUSshKey {
     } else {
         $operationParameters.Comment = $Comment
     }
-    $operation = New-WUSshKeyEditOperation @operationParameters
+    $operation = Get-WUSshKeyEditOperation @operationParameters
     $sshKeygen = Get-WUSshKeygenCommand
 
     if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $operation.Action)) {

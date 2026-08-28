@@ -1,7 +1,7 @@
-function New-WUSshKeyEditOperation {
+function Get-WUSshKeyEditOperation {
     <#
     .SYNOPSIS
-    Creates an SSH key edit operation.
+    Gets an SSH key edit operation.
 
     .DESCRIPTION
     Creates the ShouldProcess action and ssh-keygen.exe argument list for a passphrase or comment change.
@@ -19,7 +19,7 @@ function New-WUSshKeyEditOperation {
     Specifies the replacement comment for Comment mode.
 
     .EXAMPLE
-    New-WUSshKeyEditOperation -KeyPath 'C:\Keys\id_rsa' -CurrentPassphrase '' -Comment 'user@example.com'
+    Get-WUSshKeyEditOperation -KeyPath 'C:\Keys\id_rsa' -CurrentPassphrase '' -Comment 'user@example.com'
 
     Returns the action and argument list for changing the key comment.
 
