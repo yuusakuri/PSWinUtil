@@ -15,6 +15,12 @@ Describe 'Get-WUFileTreeWithContent' {
         [System.IO.File]::WriteAllText($script:NestedFilePath, 'nested')
     }
 
+    It 'uses Path as the default parameter set' {
+        $command = Get-Command -Name 'Get-WUFileTreeWithContent'
+
+        $command.DefaultParameterSet | Should -Be 'Path'
+    }
+
     It 'returns typed objects with exact text content' {
         $result = @(Get-WUFileTreeWithContent -LiteralPath $script:RootPath)
 
