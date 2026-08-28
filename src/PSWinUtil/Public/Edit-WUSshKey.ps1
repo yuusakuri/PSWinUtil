@@ -97,49 +97,35 @@ function Edit-WUSshKey {
     } else {
         'Comment'
     }
-    $fullKeyPath = Resolve-WUPathFromParameter `
-        -ParameterSetName $PSCmdlet.ParameterSetName `
-        -Path $Path `
-        -LiteralPath $LiteralPath `
-        -PathSetName "${operationName}Path" `
-        -LiteralPathSetName "${operationName}LiteralPath" `
-        -DenyMultiplePaths |
+    $resolveParameters = @{
+        ParameterSetName = $PSCmdlet.ParameterSetName
+        Path = $Path
+        LiteralPath = $LiteralPath
+        PathSetName = "${operationName}Path"
+        LiteralPathSetName = "${operationName}LiteralPath"
+        DenyMultiplePaths = $true
+    }
+    $fullKeyPath = Resolve-WUPathFromParameter @resolveParameters |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullKeyPath -Leaf
-    $sshKeygen = Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop |
-        Select-Object -First 1
 
-    $nativeCurrentPassphrase = $CurrentPassphrase
-    if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeCurrentPassphrase.Length -eq 0) {
-        $nativeCurrentPassphrase = '""'
+    $operationParameters = @{
+        KeyPath = $fullKeyPath
+        CurrentPassphrase = $CurrentPassphrase
     }
-
     if ($operationName -eq 'Passphrase') {
-        $action = 'Change SSH key passphrase'
-        $nativeNewPassphrase = $NewPassphrase
-        if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeNewPassphrase.Length -eq 0) {
-            $nativeNewPassphrase = '""'
-        }
-        $arguments = @('-q', '-p', '-P', $nativeCurrentPassphrase, '-N', $nativeNewPassphrase, '-f', $fullKeyPath)
+        $operationParameters.NewPassphrase = $NewPassphrase
     } else {
-        $action = 'Change SSH key comment'
-        $nativeComment = $Comment
-        if ($PSVersionTable.PSEdition -eq 'Desktop' -and $nativeComment.Length -eq 0) {
-            $nativeComment = '""'
-        }
-        $arguments = @('-q', '-c', '-P', $nativeCurrentPassphrase, '-C', $nativeComment, '-f', $fullKeyPath)
+        $operationParameters.Comment = $Comment
     }
+    $operation = New-WUSshKeyEditOperation @operationParameters
+    $sshKeygen = Get-WUSshKeygenCommand
 
-    if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $action)) {
+    if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $operation.Action)) {
         return
     }
 
-    $commandOutput = @(& $sshKeygen.Source @arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-        throw "ssh-keygen.exe failed with exit code $exitCode.$([Environment]::NewLine)$message"
-    }
+    Invoke-WUSshKeygen -FilePath $sshKeygen.Source -ArgumentList $operation.ArgumentList
 
     Get-Item -LiteralPath $fullKeyPath
 }

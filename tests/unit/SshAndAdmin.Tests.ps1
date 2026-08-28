@@ -46,6 +46,29 @@ Describe 'New-WUSshKey' {
         $result.FullName | Should -Be $keyPath
         $capturedArguments -join '|' | Should -Be "-q|-t|rsa|-b|3072|-C|test comment|-N|test passphrase|-f|$keyPath"
     }
+
+    It 'preserves empty comment and passphrase arguments' {
+        $keyPath = Join-Path -Path $TestDrive -ChildPath 'empty-arguments-key'
+
+        $null = New-WUSshKey -Path $keyPath
+        $capturedArguments = InModuleScope -ModuleName PSWinUtil { $script:CapturedSshArguments }
+        $expectedArguments = '-q|-t|rsa|-C|""|-N|""|-f|{0}' -f $keyPath
+
+        $capturedArguments -join '|' | Should -Be $expectedArguments
+    }
+
+    It 'reports ssh-keygen failures' {
+        InModuleScope -ModuleName PSWinUtil {
+            function script:Invoke-WUTestSshKeygen {
+                'failure details'
+                $global:LASTEXITCODE = 7
+            }
+        }
+        $keyPath = Join-Path -Path $TestDrive -ChildPath 'failed-key'
+
+        { New-WUSshKey -Path $keyPath } |
+            Should -Throw '*exit code 7*failure details*'
+    }
 }
 
 Describe 'Edit-WUSshKey' {
@@ -82,14 +105,38 @@ Describe 'Edit-WUSshKey' {
         $capturedArguments -join '|' | Should -Be "-q|-c|-P|current value|-C|updated value|-f|$keyPath"
     }
 
+    It 'preserves empty passphrase arguments' {
+        $keyPath = Join-Path -Path $TestDrive -ChildPath 'empty-passphrase-key'
+        [System.IO.File]::WriteAllText($keyPath, 'key')
+
+        $null = Edit-WUSshKey -KeyPath $keyPath -CurrentPassphrase '' -NewPassphrase ''
+        $capturedArguments = InModuleScope -ModuleName PSWinUtil { $script:CapturedSshArguments }
+        $expectedArguments = '-q|-p|-P|""|-N|""|-f|{0}' -f $keyPath
+
+        $capturedArguments -join '|' | Should -Be $expectedArguments
+    }
+
+    It 'preserves an empty comment argument' {
+        $keyPath = Join-Path -Path $TestDrive -ChildPath 'empty-comment-key'
+        [System.IO.File]::WriteAllText($keyPath, 'key')
+
+        $null = Edit-WUSshKey -KeyPath $keyPath -CurrentPassphrase 'current value' -Comment ''
+        $capturedArguments = InModuleScope -ModuleName PSWinUtil { $script:CapturedSshArguments }
+        $expectedArguments = '-q|-c|-P|current value|-C|""|-f|{0}' -f $keyPath
+
+        $capturedArguments -join '|' | Should -Be $expectedArguments
+    }
+
     It 'uses LiteralPath without wildcard interpretation' {
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'literal[1]-key'
         [System.IO.File]::WriteAllText($keyPath, 'key')
+        $parameters = @{
+            LiteralPath = $keyPath
+            CurrentPassphrase = ''
+            Comment = 'updated value'
+        }
 
-        $result = Edit-WUSshKey `
-            -LiteralPath $keyPath `
-            -CurrentPassphrase '' `
-            -Comment 'updated value'
+        $result = Edit-WUSshKey @parameters
 
         $result.FullName | Should -Be $keyPath
     }

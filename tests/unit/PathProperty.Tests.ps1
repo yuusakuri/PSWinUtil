@@ -130,29 +130,23 @@ Describe 'Resolve-WUPath' {
 
 Describe 'Resolve-WUPathFromParameter' {
     BeforeEach {
-        $script:ParameterDirectory = Join-Path `
-            -Path $TestDrive `
-            -ChildPath 'Resolve-WUPathFromParameter'
+        $script:ParameterDirectory = Join-Path -Path $TestDrive -ChildPath 'Resolve-WUPathFromParameter'
         $null = New-Item -Path $script:ParameterDirectory -ItemType Directory -Force
-        $script:ParameterFirstPath = Join-Path `
-            -Path $script:ParameterDirectory `
-            -ChildPath 'first.txt'
-        $script:ParameterSecondPath = Join-Path `
-            -Path $script:ParameterDirectory `
-            -ChildPath 'second.txt'
-        $script:ParameterLiteralPath = Join-Path `
-            -Path $script:ParameterDirectory `
-            -ChildPath 'item[1].txt'
+        $script:ParameterFirstPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'first.txt'
+        $script:ParameterSecondPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'second.txt'
+        $script:ParameterLiteralPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'item[1].txt'
         [System.IO.File]::WriteAllText($script:ParameterFirstPath, 'first')
         [System.IO.File]::WriteAllText($script:ParameterSecondPath, 'second')
         [System.IO.File]::WriteAllText($script:ParameterLiteralPath, 'literal')
     }
 
     It 'resolves Path for the default Path parameter set name' {
+        $parameters = @{
+            ParameterSetName = 'Path'
+            Path = "$script:ParameterDirectory\*.txt"
+        }
         $results = @(
-            Resolve-WUPathFromParameter `
-                -ParameterSetName 'Path' `
-                -Path "$script:ParameterDirectory\*.txt"
+            Resolve-WUPathFromParameter @parameters
         )
 
         $results | Should -HaveCount 3
@@ -162,19 +156,23 @@ Describe 'Resolve-WUPathFromParameter' {
     }
 
     It 'resolves LiteralPath for the default LiteralPath parameter set name' {
-        $result = Resolve-WUPathFromParameter `
-            -ParameterSetName 'LiteralPath' `
-            -LiteralPath $script:ParameterLiteralPath
+        $parameters = @{
+            ParameterSetName = 'LiteralPath'
+            LiteralPath = $script:ParameterLiteralPath
+        }
+        $result = Resolve-WUPathFromParameter @parameters
 
         $result.ProviderPath | Should -Be $script:ParameterLiteralPath
     }
 
     It 'supports custom path parameter set names' {
-        $result = Resolve-WUPathFromParameter `
-            -ParameterSetName 'SourceLiteralPath' `
-            -LiteralPath $script:ParameterLiteralPath `
-            -PathSetName 'SourcePath' `
-            -LiteralPathSetName 'SourceLiteralPath'
+        $parameters = @{
+            ParameterSetName = 'SourceLiteralPath'
+            LiteralPath = $script:ParameterLiteralPath
+            PathSetName = 'SourcePath'
+            LiteralPathSetName = 'SourceLiteralPath'
+        }
+        $result = Resolve-WUPathFromParameter @parameters
 
         $result.ProviderPath | Should -Be $script:ParameterLiteralPath
     }
@@ -182,10 +180,12 @@ Describe 'Resolve-WUPathFromParameter' {
     It 'forwards Relative to Resolve-WUPath' {
         Push-Location -LiteralPath $script:ParameterDirectory
         try {
-            $result = Resolve-WUPathFromParameter `
-                -ParameterSetName 'LiteralPath' `
-                -LiteralPath $script:ParameterFirstPath `
-                -Relative
+            $parameters = @{
+                ParameterSetName = 'LiteralPath'
+                LiteralPath = $script:ParameterFirstPath
+                Relative = $true
+            }
+            $result = Resolve-WUPathFromParameter @parameters
         } finally {
             Pop-Location
         }
@@ -194,19 +194,23 @@ Describe 'Resolve-WUPathFromParameter' {
     }
 
     It 'forwards DenyMultiplePaths to Resolve-WUPath' {
+        $parameters = @{
+            ParameterSetName = 'Path'
+            Path = "$script:ParameterDirectory\*.txt"
+            DenyMultiplePaths = $true
+        }
         {
-            Resolve-WUPathFromParameter `
-                -ParameterSetName 'Path' `
-                -Path "$script:ParameterDirectory\*.txt" `
-                -DenyMultiplePaths
+            Resolve-WUPathFromParameter @parameters
         } | Should -Throw '*more than one result*'
     }
 
     It 'rejects an unsupported parameter set name' {
+        $parameters = @{
+            ParameterSetName = 'Script'
+            Path = $script:ParameterFirstPath
+        }
         {
-            Resolve-WUPathFromParameter `
-                -ParameterSetName 'Script' `
-                -Path $script:ParameterFirstPath
+            Resolve-WUPathFromParameter @parameters
         } | Should -Throw "*Parameter set 'Script' is not supported*"
     }
 }

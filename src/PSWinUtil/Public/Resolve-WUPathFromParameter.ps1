@@ -28,19 +28,19 @@ function Resolve-WUPathFromParameter {
     Requires the selected values to resolve to exactly one path.
 
     .EXAMPLE
-    Resolve-WUPathFromParameter `
-        -ParameterSetName 'Path' `
-        -Path '.\scripts\*.ps1'
+    Resolve-WUPathFromParameter -ParameterSetName 'Path' -Path '.\scripts\*.ps1'
 
     Resolves the scripts selected by Path.
 
     .EXAMPLE
-    Resolve-WUPathFromParameter `
-        -ParameterSetName 'SourceLiteralPath' `
-        -LiteralPath '.\source[1].ps1' `
-        -PathSetName 'SourcePath' `
-        -LiteralPathSetName 'SourceLiteralPath' `
-        -DenyMultiplePaths
+    $parameters = @{
+        ParameterSetName = 'SourceLiteralPath'
+        LiteralPath = '.\source[1].ps1'
+        PathSetName = 'SourcePath'
+        LiteralPathSetName = 'SourceLiteralPath'
+        DenyMultiplePaths = $true
+    }
+    Resolve-WUPathFromParameter @parameters
 
     Resolves exactly one literal path by using custom parameter set names.
 
@@ -81,9 +81,7 @@ function Resolve-WUPathFromParameter {
         [switch]$DenyMultiplePaths
     )
 
-    $resolveParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'Relative', 'DenyMultiplePaths'
+    $resolveParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'Relative', 'DenyMultiplePaths'
     if ($ParameterSetName -eq $PathSetName) {
         $resolveParameters.Path = $Path
     } elseif ($ParameterSetName -eq $LiteralPathSetName) {

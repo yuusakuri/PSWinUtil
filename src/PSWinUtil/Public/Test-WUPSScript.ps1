@@ -81,11 +81,13 @@ function Test-WUPSScript {
         $inputs = @($Script)
         $isFileInput = $PSCmdlet.ParameterSetName -in @('Path', 'LiteralPath')
         if ($isFileInput) {
+            $resolveParameters = @{
+                ParameterSetName = $PSCmdlet.ParameterSetName
+                Path = $Path
+                LiteralPath = $LiteralPath
+            }
             $inputs = @(
-                Resolve-WUPathFromParameter `
-                    -ParameterSetName $PSCmdlet.ParameterSetName `
-                    -Path $Path `
-                    -LiteralPath $LiteralPath |
+                Resolve-WUPathFromParameter @resolveParameters |
                     ConvertTo-WUFullPath
             )
             Assert-WUPathProperty -LiteralPath $inputs -Leaf

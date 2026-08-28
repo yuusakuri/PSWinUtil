@@ -48,11 +48,13 @@ function Import-WUEnvironmentVariableSetting {
         [string[]]$Scope
     )
 
+    $resolveParameters = @{
+        ParameterSetName = $PSCmdlet.ParameterSetName
+        Path = $Path
+        LiteralPath = $LiteralPath
+    }
     $resolvedFiles = @(
-        Resolve-WUPathFromParameter `
-            -ParameterSetName $PSCmdlet.ParameterSetName `
-            -Path $Path `
-            -LiteralPath $LiteralPath |
+        Resolve-WUPathFromParameter @resolveParameters |
             ConvertTo-WUFullPath
     )
     Assert-WUPathProperty -LiteralPath $resolvedFiles -Leaf

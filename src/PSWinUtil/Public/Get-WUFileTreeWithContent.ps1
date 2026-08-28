@@ -144,11 +144,13 @@ function Get-WUFileTreeWithContent {
     }
 
     process {
+        $resolveParameters = @{
+            ParameterSetName = $PSCmdlet.ParameterSetName
+            Path = $Path
+            LiteralPath = $LiteralPath
+        }
         $fullPaths = @(
-            Resolve-WUPathFromParameter `
-                -ParameterSetName $PSCmdlet.ParameterSetName `
-                -Path $Path `
-                -LiteralPath $LiteralPath |
+            Resolve-WUPathFromParameter @resolveParameters |
                 ConvertTo-WUFullPath
         )
         foreach ($fullPath in $fullPaths) {
