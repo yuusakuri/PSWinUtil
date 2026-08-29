@@ -35,7 +35,7 @@ Describe 'Built module manifest' {
             'Resolve-WUPath'
             'Resolve-WUPathFromParameterSet'
             'ConvertTo-WUNativeCommandArgument'
-            'ConvertTo-WUPSSingleQuotedStringLiteral'
+            'ConvertTo-WUPSStringLiteral'
             'Set-WUAdvertisingIdMode'
             'Enable-WUAppLaunchTracking'
             'Disable-WUAppLaunchTracking'

@@ -147,7 +147,7 @@ Describe 'Start-WUPSScriptAsAdmin' {
 
         Start-WUPSScriptAsAdmin -Path $scriptFile -ArgumentList 'value with spaces', "quote'value", ''
 
-        $quotedScriptFile = ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $scriptFile
+        $quotedScriptFile = ConvertTo-WUPSStringLiteral -InputObject $scriptFile
         $expectedCommand = "& $quotedScriptFile 'value with spaces' 'quote''value' ''"
 
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {

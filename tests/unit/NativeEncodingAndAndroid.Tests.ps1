@@ -57,26 +57,41 @@ Describe 'ConvertTo-WUNativeCommandArgument' {
     }
 }
 
-Describe 'ConvertTo-WUPSSingleQuotedStringLiteral' {
-    It 'returns a complete single-quoted string literal' {
-        ConvertTo-WUPSSingleQuotedStringLiteral -InputObject 'plain text' |
+Describe 'ConvertTo-WUPSStringLiteral' {
+    It 'uses single quotation marks by default' {
+        ConvertTo-WUPSStringLiteral -InputObject 'plain text' |
             Should -Be "'plain text'"
     }
 
     It 'doubles embedded single quotation marks' {
-        ConvertTo-WUPSSingleQuotedStringLiteral -InputObject "It's ready" |
+        ConvertTo-WUPSStringLiteral -InputObject "It's ready" |
             Should -Be "'It''s ready'"
     }
 
-    It 'represents an empty string' {
-        ConvertTo-WUPSSingleQuotedStringLiteral -InputObject '' |
+    It 'represents an empty single-quoted string' {
+        ConvertTo-WUPSStringLiteral -InputObject '' |
             Should -Be "''"
+    }
+
+    It 'escapes a double-quoted string without changing its value' {
+        $value = '$HOME "quoted" ` $(Get-Item .)'
+        $expectedLiteral = '"' + '`$HOME `"quoted`" `` `$(Get-Item .)' + '"'
+
+        $literal = ConvertTo-WUPSStringLiteral -InputObject $value -QuoteType Double
+
+        $literal | Should -Be $expectedLiteral
+        & ([scriptblock]::Create($literal)) | Should -Be $value
+    }
+
+    It 'represents an empty double-quoted string' {
+        ConvertTo-WUPSStringLiteral -InputObject '' -QuoteType Double |
+            Should -Be '""'
     }
 
     It 'converts an input array in order' {
         $values = @('first value', '', "third'value")
 
-        $result = @(ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $values)
+        $result = @(ConvertTo-WUPSStringLiteral -InputObject $values)
 
         $result | Should -HaveCount 3
         $result[0] | Should -Be "'first value'"
@@ -87,7 +102,7 @@ Describe 'ConvertTo-WUPSSingleQuotedStringLiteral' {
     It 'accepts strings from the pipeline' {
         $values = @('first', 'second')
 
-        $result = @($values | ConvertTo-WUPSSingleQuotedStringLiteral)
+        $result = @($values | ConvertTo-WUPSStringLiteral)
 
         $result | Should -HaveCount 2
         $result[0] | Should -Be "'first'"

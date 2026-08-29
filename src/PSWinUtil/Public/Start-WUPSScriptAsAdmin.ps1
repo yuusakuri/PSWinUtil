@@ -89,9 +89,9 @@ function Start-WUPSScriptAsAdmin {
         Assert-WUPSScript -LiteralPath $fullPath
 
         $quotedArguments = [System.Collections.Generic.List[string]]::new()
-        $quotedArguments.Add((ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $fullPath))
+        $quotedArguments.Add((ConvertTo-WUPSStringLiteral -InputObject $fullPath))
         foreach ($argument in $ArgumentList) {
-            $quotedArguments.Add((ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $argument))
+            $quotedArguments.Add((ConvertTo-WUPSStringLiteral -InputObject $argument))
         }
         $scriptCommand = '& {0}' -f ($quotedArguments -join ' ')
         $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($scriptCommand))
