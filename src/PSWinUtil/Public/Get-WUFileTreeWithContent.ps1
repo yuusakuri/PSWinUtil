@@ -150,7 +150,7 @@ function Get-WUFileTreeWithContent {
             LiteralPath = $LiteralPath
         }
         $fullPaths = @(
-            Resolve-WUPathFromParameter @resolveParameters |
+            Resolve-WUPathFromParameterSet @resolveParameters |
                 ConvertTo-WUFullPath
         )
         foreach ($fullPath in $fullPaths) {

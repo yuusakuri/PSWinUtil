@@ -101,11 +101,11 @@ function Edit-WUSshKey {
         ParameterSetName = $PSCmdlet.ParameterSetName
         Path = $Path
         LiteralPath = $LiteralPath
-        PathSetName = "${operationName}Path"
-        LiteralPathSetName = "${operationName}LiteralPath"
+        PathSetName = 'PassphrasePath', 'CommentPath'
+        LiteralPathSetName = 'PassphraseLiteralPath', 'CommentLiteralPath'
         DenyMultiplePaths = $true
     }
-    $fullKeyPath = Resolve-WUPathFromParameter @resolveParameters |
+    $fullKeyPath = Resolve-WUPathFromParameterSet @resolveParameters |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullKeyPath -Leaf
 

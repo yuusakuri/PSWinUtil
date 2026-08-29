@@ -54,7 +54,7 @@ function Import-WUEnvironmentVariableSetting {
         LiteralPath = $LiteralPath
     }
     $resolvedFiles = @(
-        Resolve-WUPathFromParameter @resolveParameters |
+        Resolve-WUPathFromParameterSet @resolveParameters |
             ConvertTo-WUFullPath
     )
     Assert-WUPathProperty -LiteralPath $resolvedFiles -Leaf

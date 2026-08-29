@@ -80,7 +80,7 @@ function Start-WUPSScriptAsAdmin {
             LiteralPath = $LiteralPath
             DenyMultiplePaths = $true
         }
-        $fullPath = Resolve-WUPathFromParameter @resolveParameters |
+        $fullPath = Resolve-WUPathFromParameterSet @resolveParameters |
             ConvertTo-WUFullPath
         Assert-WUPathProperty -LiteralPath $fullPath -Leaf
         if ([System.IO.Path]::GetExtension($fullPath) -ine '.ps1') {

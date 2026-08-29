@@ -94,14 +94,7 @@ function Test-WUPathProperty {
                 [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($selectedPath)
             ) {
                 try {
-                    $resolveParameters = @{
-                        ParameterSetName = $PSCmdlet.ParameterSetName
-                        Path = $selectedPath
-                        ErrorAction = 'Stop'
-                    }
-                    $pathsToTest = @(
-                        Resolve-WUPathFromParameter @resolveParameters
-                    )
+                    $pathsToTest = @(Resolve-WUPath -Path $selectedPath -ErrorAction Stop)
                 } catch [System.Management.Automation.ItemNotFoundException] {
                     $false
                     continue

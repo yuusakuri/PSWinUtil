@@ -87,7 +87,7 @@ function Test-WUPSScript {
                 LiteralPath = $LiteralPath
             }
             $inputs = @(
-                Resolve-WUPathFromParameter @resolveParameters |
+                Resolve-WUPathFromParameterSet @resolveParameters |
                     ConvertTo-WUFullPath
             )
             Assert-WUPathProperty -LiteralPath $inputs -Leaf

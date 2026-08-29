@@ -128,9 +128,9 @@ Describe 'Resolve-WUPath' {
     }
 }
 
-Describe 'Resolve-WUPathFromParameter' {
+Describe 'Resolve-WUPathFromParameterSet' {
     BeforeEach {
-        $script:ParameterDirectory = Join-Path -Path $TestDrive -ChildPath 'Resolve-WUPathFromParameter'
+        $script:ParameterDirectory = Join-Path -Path $TestDrive -ChildPath 'Resolve-WUPathFromParameterSet'
         $null = New-Item -Path $script:ParameterDirectory -ItemType Directory -Force
         $script:ParameterFirstPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'first.txt'
         $script:ParameterSecondPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'second.txt'
@@ -146,7 +146,7 @@ Describe 'Resolve-WUPathFromParameter' {
             Path = "$script:ParameterDirectory\*.txt"
         }
         $results = @(
-            Resolve-WUPathFromParameter @parameters
+            Resolve-WUPathFromParameterSet @parameters
         )
 
         $results | Should -HaveCount 3
@@ -160,21 +160,21 @@ Describe 'Resolve-WUPathFromParameter' {
             ParameterSetName = 'LiteralPath'
             LiteralPath = $script:ParameterLiteralPath
         }
-        $result = Resolve-WUPathFromParameter @parameters
+        $result = Resolve-WUPathFromParameterSet @parameters
 
         $result.ProviderPath | Should -Be $script:ParameterLiteralPath
     }
 
-    It 'supports custom path parameter set names' {
+    It 'supports multiple custom path parameter set names' {
         $parameters = @{
-            ParameterSetName = 'SourceLiteralPath'
-            LiteralPath = $script:ParameterLiteralPath
-            PathSetName = 'SourcePath'
-            LiteralPathSetName = 'SourceLiteralPath'
+            ParameterSetName = 'DestinationPath'
+            Path = $script:ParameterFirstPath
+            PathSetName = 'SourcePath', 'DestinationPath'
+            LiteralPathSetName = 'SourceLiteralPath', 'DestinationLiteralPath'
         }
-        $result = Resolve-WUPathFromParameter @parameters
+        $result = Resolve-WUPathFromParameterSet @parameters
 
-        $result.ProviderPath | Should -Be $script:ParameterLiteralPath
+        $result.ProviderPath | Should -Be $script:ParameterFirstPath
     }
 
     It 'forwards Relative to Resolve-WUPath' {
@@ -185,7 +185,7 @@ Describe 'Resolve-WUPathFromParameter' {
                 LiteralPath = $script:ParameterFirstPath
                 Relative = $true
             }
-            $result = Resolve-WUPathFromParameter @parameters
+            $result = Resolve-WUPathFromParameterSet @parameters
         } finally {
             Pop-Location
         }
@@ -200,8 +200,53 @@ Describe 'Resolve-WUPathFromParameter' {
             DenyMultiplePaths = $true
         }
         {
-            Resolve-WUPathFromParameter @parameters
+            Resolve-WUPathFromParameterSet @parameters
         } | Should -Throw '*more than one result*'
+    }
+
+    It 'forwards Credential to Resolve-WUPath' {
+        $securePassword = ConvertTo-SecureString -String 'secret' -AsPlainText -Force
+        $credential = [System.Management.Automation.PSCredential]::new(
+            'user',
+            $securePassword
+        )
+        $expectedPath = $script:ParameterFirstPath
+        $expectedCredential = $credential
+        Mock -CommandName Resolve-WUPath -ModuleName PSWinUtil -MockWith {
+            'resolved'
+        }
+        $parameters = @{
+            ParameterSetName = 'LiteralPath'
+            LiteralPath = $script:ParameterFirstPath
+            Credential = $credential
+        }
+
+        $result = Resolve-WUPathFromParameterSet @parameters
+
+        $result | Should -Be 'resolved'
+        Should -Invoke -CommandName Resolve-WUPath -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq $expectedPath -and
+            $Credential -eq $expectedCredential
+        }
+    }
+
+    It 'rejects a selected parameter set without a path value' {
+        {
+            Resolve-WUPathFromParameterSet -ParameterSetName 'Path'
+        } | Should -Throw '*does not contain a valid Path value*'
+    }
+
+    It 'rejects a parameter set mapped to both path parameters' {
+        $parameters = @{
+            ParameterSetName = 'SharedPath'
+            Path = $script:ParameterFirstPath
+            LiteralPath = $script:ParameterFirstPath
+            PathSetName = 'SharedPath'
+            LiteralPathSetName = 'SharedPath'
+        }
+        {
+            Resolve-WUPathFromParameterSet @parameters
+        } | Should -Throw '*cannot select both Path and LiteralPath*'
     }
 
     It 'rejects an unsupported parameter set name' {
@@ -210,7 +255,7 @@ Describe 'Resolve-WUPathFromParameter' {
             Path = $script:ParameterFirstPath
         }
         {
-            Resolve-WUPathFromParameter @parameters
+            Resolve-WUPathFromParameterSet @parameters
         } | Should -Throw "*Parameter set 'Script' is not supported*"
     }
 }
