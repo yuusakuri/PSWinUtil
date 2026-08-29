@@ -34,6 +34,11 @@ function New-WUSshKeyEditArgument {
         '',
         Justification = 'ssh-keygen.exe requires passphrases as command arguments.'
     )]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions',
+        '',
+        Justification = 'The function creates argument values without changing state.'
+    )]
     [CmdletBinding(DefaultParameterSetName = 'Passphrase')]
     [OutputType([string])]
     param(
