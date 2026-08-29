@@ -88,12 +88,12 @@ function Start-WUPSScriptAsAdmin {
         }
         Assert-WUPSScript -LiteralPath $fullPath
 
-        $escapedPath = $fullPath.Replace("'", "''")
-        $scriptCommand = "& '$escapedPath'"
+        $quotedArguments = [System.Collections.Generic.List[string]]::new()
+        $quotedArguments.Add((ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $fullPath))
         foreach ($argument in $ArgumentList) {
-            $escapedArgument = $argument.Replace("'", "''")
-            $scriptCommand += " '$escapedArgument'"
+            $quotedArguments.Add((ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $argument))
         }
+        $scriptCommand = '& {0}' -f ($quotedArguments -join ' ')
         $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($scriptCommand))
         $processArguments = @('-NoProfile', '-EncodedCommand', $encodedCommand)
 

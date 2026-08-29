@@ -57,6 +57,44 @@ Describe 'ConvertTo-WUNativeCommandArgument' {
     }
 }
 
+Describe 'ConvertTo-WUPSSingleQuotedStringLiteral' {
+    It 'returns a complete single-quoted string literal' {
+        ConvertTo-WUPSSingleQuotedStringLiteral -InputObject 'plain text' |
+            Should -Be "'plain text'"
+    }
+
+    It 'doubles embedded single quotation marks' {
+        ConvertTo-WUPSSingleQuotedStringLiteral -InputObject "It's ready" |
+            Should -Be "'It''s ready'"
+    }
+
+    It 'represents an empty string' {
+        ConvertTo-WUPSSingleQuotedStringLiteral -InputObject '' |
+            Should -Be "''"
+    }
+
+    It 'converts an input array in order' {
+        $values = @('first value', '', "third'value")
+
+        $result = @(ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $values)
+
+        $result | Should -HaveCount 3
+        $result[0] | Should -Be "'first value'"
+        $result[1] | Should -Be "''"
+        $result[2] | Should -Be "'third''value'"
+    }
+
+    It 'accepts strings from the pipeline' {
+        $values = @('first', 'second')
+
+        $result = @($values | ConvertTo-WUPSSingleQuotedStringLiteral)
+
+        $result | Should -HaveCount 2
+        $result[0] | Should -Be "'first'"
+        $result[1] | Should -Be "'second'"
+    }
+}
+
 Describe 'Start-WUAndroidEmulator' {
     BeforeEach {
         InModuleScope -ModuleName PSWinUtil {

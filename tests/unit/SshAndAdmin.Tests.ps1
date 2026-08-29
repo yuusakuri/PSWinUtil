@@ -142,17 +142,20 @@ Describe 'Start-WUPSScriptAsAdmin' {
     }
 
     It 'builds an encoded elevated script invocation' {
-        $scriptFile = Join-Path -Path $TestDrive -ChildPath 'script.ps1'
+        $scriptFile = Join-Path -Path $TestDrive -ChildPath "script's.ps1"
         [System.IO.File]::WriteAllText($scriptFile, "param([string]`$Value)`n")
 
-        Start-WUPSScriptAsAdmin -Path $scriptFile -ArgumentList 'value with spaces', "quote'value"
+        Start-WUPSScriptAsAdmin -Path $scriptFile -ArgumentList 'value with spaces', "quote'value", ''
+
+        $quotedScriptFile = ConvertTo-WUPSSingleQuotedStringLiteral -InputObject $scriptFile
+        $expectedCommand = "& $quotedScriptFile 'value with spaces' 'quote''value' ''"
 
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $FilePath -eq 'powershell.exe' -and
             $Verb -eq 'RunAs' -and
             $ArgumentList[0] -eq '-NoProfile' -and
             $ArgumentList[1] -eq '-EncodedCommand' -and
-            [System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($ArgumentList[2])) -match "value with spaces"
+            [System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($ArgumentList[2])) -eq $expectedCommand
         }
     }
 
