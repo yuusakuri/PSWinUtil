@@ -318,6 +318,30 @@ Describe 'Test-WUPathProperty' {
 }
 
 Describe 'Assert-WUPathProperty' {
+    It 'delegates wildcard Path validation to Test-WUPathProperty' {
+        $wildcardPath = Join-Path -Path $TestDrive -ChildPath '*.txt'
+        Mock -CommandName Test-WUPathProperty -ModuleName PSWinUtil -MockWith { $true }
+        Mock -CommandName Resolve-WUPath -ModuleName PSWinUtil
+
+        Assert-WUPathProperty -Path $wildcardPath -Leaf
+
+        Should -Invoke -CommandName Test-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq $wildcardPath -and $Leaf
+        }
+        Should -Invoke -CommandName Resolve-WUPath -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'delegates LiteralPath validation to Test-WUPathProperty' {
+        $literalPath = Join-Path -Path $TestDrive -ChildPath 'item[1].txt'
+        Mock -CommandName Test-WUPathProperty -ModuleName PSWinUtil -MockWith { $true }
+
+        Assert-WUPathProperty -LiteralPath $literalPath -Container
+
+        Should -Invoke -CommandName Test-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq $literalPath -and $Container
+        }
+    }
+
     It 'produces no output for a matching path' {
         $result = Assert-WUPathProperty -Path $TestDrive -Container
 
