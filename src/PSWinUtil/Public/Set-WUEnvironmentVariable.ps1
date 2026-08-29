@@ -115,11 +115,11 @@ function Set-WUEnvironmentVariable {
                 throw 'The environment variable value must be a string or null.'
             }
 
-            foreach ($currentScope in $Scope) {
+            foreach ($targetScope in $Scope) {
                 $settings += [pscustomobject]@{
                     Name = $Name
                     Value = $Value
-                    Scope = $currentScope
+                    Scope = $targetScope
                 }
             }
         } elseif ($PSBoundParameters.ContainsKey('Path')) {

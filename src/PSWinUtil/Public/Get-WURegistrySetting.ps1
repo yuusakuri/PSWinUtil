@@ -45,29 +45,33 @@ function Get-WURegistrySetting {
     )
 
     begin {
-        $selectedScopes = @($Scope | Select-Object -Unique)
-        if ($selectedScopes.Count -gt 1 -and $selectedScopes -contains 'Auto') {
+        $scopes = @($Scope | Select-Object -Unique)
+        if ($scopes.Count -gt 1 -and $scopes -contains 'Auto') {
             throw 'Auto cannot be combined with another scope.'
         }
         $settingData = Import-WURegistrySetting
     }
 
     process {
-        foreach ($currentName in $Name) {
-            if (-not $settingData.ContainsKey($currentName)) {
-                throw "The registry setting was not found: $currentName"
+        foreach ($inputName in $Name) {
+            if (-not $settingData.ContainsKey($inputName)) {
+                throw "The registry setting was not found: $inputName"
             }
 
-            foreach ($currentScope in $selectedScopes) {
-                $selection = Get-WURegistrySettingCandidate `
-                    -Setting $settingData[$currentName] `
-                    -Scope $currentScope
+            foreach ($targetScope in $scopes) {
+                $selectionParameters = @{
+                    Setting = $settingData[$inputName]
+                    Scope = $targetScope
+                }
+                $selection = Get-WURegistrySettingCandidate @selectionParameters
                 $propertyStates = @()
-                foreach ($selectedProperty in $selection.Properties) {
-                    $candidate = $selectedProperty.Candidate
-                    $registryProperty = Get-WURegistryProperty `
-                        -Path $candidate.Path `
-                        -Name $candidate.Name
+                foreach ($propertySelection in $selection.Properties) {
+                    $candidate = $propertySelection.Candidate
+                    $propertyParameters = @{
+                        Path = $candidate.Path
+                        Name = $candidate.Name
+                    }
+                    $registryProperty = Get-WURegistryProperty @propertyParameters
                     $propertyStates += [pscustomobject]@{
                         Candidate = $candidate
                         RegistryProperty = $registryProperty
@@ -116,7 +120,7 @@ function Get-WURegistrySetting {
 
                 [pscustomobject]@{
                     PSTypeName = 'PSWinUtil.RegistrySetting'
-                    Name = $currentName
+                    Name = $inputName
                     Scope = $selection.Scope
                     State = $state
                 }

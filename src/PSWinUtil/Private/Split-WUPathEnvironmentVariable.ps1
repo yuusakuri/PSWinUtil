@@ -33,8 +33,8 @@ function Split-WUPathEnvironmentVariable {
         return
     }
 
-    foreach ($pathItem in $Value.Split([char]';')) {
-        $trimmedPath = $pathItem.Trim()
+    foreach ($path in $Value.Split([char]';')) {
+        $trimmedPath = $path.Trim()
         if (-not [string]::IsNullOrWhiteSpace($trimmedPath)) {
             $trimmedPath
         }

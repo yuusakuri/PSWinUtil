@@ -501,8 +501,8 @@ $invokeTest = {
     }
 
     $testPaths = @(
-        foreach ($currentTestType in $testTypes) {
-            Join-Path -Path $repositoryRoot -ChildPath "tests/$currentTestType"
+        foreach ($targetTestType in $testTypes) {
+            Join-Path -Path $repositoryRoot -ChildPath "tests/$targetTestType"
         }
     )
     $configuration = New-PesterConfiguration

@@ -40,16 +40,16 @@ function ConvertTo-WUFullPath {
     )
 
     process {
-        foreach ($currentPath in $Path) {
+        foreach ($inputPath in $Path) {
             $provider = $null
             $drive = $null
             $fullPath = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
-                $currentPath,
+                $inputPath,
                 [ref]$provider,
                 [ref]$drive
             )
             if ($provider.Name -ne 'FileSystem') {
-                throw "The path must use the FileSystem provider: $currentPath"
+                throw "The path must use the FileSystem provider: $inputPath"
             }
 
             $fullPath

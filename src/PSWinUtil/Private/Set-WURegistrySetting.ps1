@@ -51,8 +51,8 @@ function Set-WURegistrySetting {
         [string[]]$Scope = 'Auto'
     )
 
-    $selectedScopes = @($Scope | Select-Object -Unique)
-    if ($selectedScopes.Count -gt 1 -and $selectedScopes -contains 'Auto') {
+    $scopes = @($Scope | Select-Object -Unique)
+    if ($scopes.Count -gt 1 -and $scopes -contains 'Auto') {
         throw 'Auto cannot be combined with another scope.'
     }
 
@@ -65,10 +65,10 @@ function Set-WURegistrySetting {
         -BoundParameters $PSBoundParameters `
         -Name 'WhatIf', 'Confirm'
 
-    foreach ($currentScope in $selectedScopes) {
+    foreach ($targetScope in $scopes) {
         $selection = Get-WURegistrySettingCandidate `
             -Setting $settingData[$Name] `
-            -Scope $currentScope
+            -Scope $targetScope
         $firstCandidate = $selection.Properties[0].Candidate
         if (-not $firstCandidate.Options.ContainsKey($Option)) {
             throw "The registry setting option was not found: $Name/$Option"
@@ -79,21 +79,19 @@ function Set-WURegistrySetting {
             continue
         }
 
-        foreach ($selectedProperty in $selection.Properties) {
-            $candidate = $selectedProperty.Candidate
-            $selectedOption = $candidate.Options[$Option]
-            if ($selectedOption.Action -eq 'Remove') {
-                Remove-WURegistryProperty `
-                    -Path $candidate.Path `
-                    -Name $candidate.Name `
-                    @shouldProcessParameters
+        foreach ($propertySelection in $selection.Properties) {
+            $candidate = $propertySelection.Candidate
+            $optionDefinition = $candidate.Options[$Option]
+            $propertyParameters = @{
+                Path = $candidate.Path
+                Name = $candidate.Name
+            }
+            if ($optionDefinition.Action -eq 'Remove') {
+                Remove-WURegistryProperty @propertyParameters @shouldProcessParameters
             } else {
-                Set-WURegistryProperty `
-                    -Path $candidate.Path `
-                    -Name $candidate.Name `
-                    -Value $selectedOption.Value `
-                    -Type $candidate.Type `
-                    @shouldProcessParameters
+                $propertyParameters.Value = $optionDefinition.Value
+                $propertyParameters.Type = $candidate.Type
+                Set-WURegistryProperty @propertyParameters @shouldProcessParameters
             }
         }
     }

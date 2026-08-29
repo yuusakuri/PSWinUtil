@@ -62,25 +62,25 @@ function Add-WUPathEnvironmentVariable {
     )
 
     begin {
-        $pathsToAdd = @()
+        $paths = @()
         $shouldProcessParameters = Select-WUBoundParameter `
             -BoundParameters $PSBoundParameters `
             -Name 'WhatIf', 'Confirm'
     }
 
     process {
-        $pathsToAdd += $Path
+        $paths += $Path
     }
 
     end {
-        foreach ($currentScope in $Scope) {
-            $target = [System.EnvironmentVariableTarget]$currentScope
+        foreach ($targetScope in $Scope) {
+            $target = [System.EnvironmentVariableTarget]$targetScope
             $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
             $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
             $newPaths = @()
 
-            foreach ($pathToAdd in $pathsToAdd) {
-                $trimmedPath = $pathToAdd.Trim()
+            foreach ($inputPath in $paths) {
+                $trimmedPath = $inputPath.Trim()
                 $isDuplicate = $false
                 foreach ($existingPath in @($existingPaths + $newPaths)) {
                     if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $trimmedPath) {
@@ -104,11 +104,12 @@ function Add-WUPathEnvironmentVariable {
             }
             $updatedValue = Join-WUPathEnvironmentVariable -Path $updatedPaths
 
-            Set-WUEnvironmentVariable `
-                -Name 'Path' `
-                -Value $updatedValue `
-                -Scope $currentScope `
-                @shouldProcessParameters
+            $setParameters = @{
+                Name = 'Path'
+                Value = $updatedValue
+                Scope = $targetScope
+            }
+            Set-WUEnvironmentVariable @setParameters @shouldProcessParameters
         }
     }
 }

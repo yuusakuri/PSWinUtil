@@ -48,14 +48,15 @@ function Unregister-WUStartupEntry {
         -BoundParameters $PSBoundParameters `
         -Name 'WhatIf', 'Confirm'
 
-    foreach ($currentScope in @($Scope | Select-Object -Unique)) {
-        $registryPath = switch ($currentScope) {
+    foreach ($targetScope in @($Scope | Select-Object -Unique)) {
+        $registryPath = switch ($targetScope) {
             'User' { 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run' }
             'Machine' { 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run' }
         }
-        Remove-WURegistryProperty `
-            -Path $registryPath `
-            -Name $Name `
-            @shouldProcessParameters
+        $removeParameters = @{
+            Path = $registryPath
+            Name = $Name
+        }
+        Remove-WURegistryProperty @removeParameters @shouldProcessParameters
     }
 }

@@ -82,35 +82,34 @@ function Test-WUPathProperty {
     }
 
     process {
-        $usesLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
-        $selectedPaths = $Path
-        if ($usesLiteralPath) {
-            $selectedPaths = $LiteralPath
+        $isLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
+        $paths = $Path
+        if ($isLiteralPath) {
+            $paths = $LiteralPath
         }
 
-        foreach ($selectedPath in $selectedPaths) {
-            $pathsToTest = @($selectedPath)
+        foreach ($inputPath in $paths) {
+            $targetPaths = @($inputPath)
             if (
-                -not $usesLiteralPath -and
-                [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($selectedPath)
+                -not $isLiteralPath -and
+                [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($inputPath)
             ) {
                 try {
-                    $pathsToTest = @(Resolve-WUPath -Path $selectedPath -ErrorAction Stop)
+                    $targetPaths = @(Resolve-WUPath -Path $inputPath -ErrorAction Stop)
                 } catch [System.Management.Automation.ItemNotFoundException] {
                     $false
                     continue
                 }
             }
 
-            if ($pathsToTest.Count -eq 0) {
+            if ($targetPaths.Count -eq 0) {
                 $false
                 continue
             }
 
-            foreach ($pathToTest in $pathsToTest) {
-                $literalPathToTest = $pathToTest
-                if ($pathToTest -is [System.Management.Automation.PathInfo]) {
-                    $literalPathToTest = $pathToTest.Path
+            foreach ($targetPath in $targetPaths) {
+                if ($targetPath -is [System.Management.Automation.PathInfo]) {
+                    $targetPath = $targetPath.Path
                 }
 
                 $pathType = 'Any'
@@ -121,10 +120,12 @@ function Test-WUPathProperty {
                 }
 
                 try {
-                    Test-Path `
-                        -LiteralPath $literalPathToTest `
-                        -PathType $pathType `
-                        -ErrorAction Stop
+                    $testPathParameters = @{
+                        LiteralPath = $targetPath
+                        PathType = $pathType
+                        ErrorAction = 'Stop'
+                    }
+                    Test-Path @testPathParameters
                 } catch {
                     $false
                 }

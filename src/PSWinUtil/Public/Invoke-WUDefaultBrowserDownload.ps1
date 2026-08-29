@@ -93,12 +93,12 @@ function Invoke-WUDefaultBrowserDownload {
         return
     }
 
-    $parameters = @{
+    $downloadParameters = @{
         Uri = $Uri
         FileName = $resolvedFileName
         DownloadDirectory = $fullDownloadDirectory
         TimeoutSeconds = $TimeoutSeconds
         Force = $Force
     }
-    Invoke-WUDefaultBrowserDownloadInternal @parameters
+    Invoke-WUDefaultBrowserDownloadInternal @downloadParameters
 }

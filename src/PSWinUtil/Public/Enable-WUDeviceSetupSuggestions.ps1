@@ -30,12 +30,10 @@ function Enable-WUDeviceSetupSuggestions {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $parameters = @{
+    $settingParameters = @{
         Name = 'DeviceSetupSuggestions'
         Option = 'Enable'
     }
-    $parameters += Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-    Set-WURegistrySetting @parameters
+    $settingParameters += Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting @settingParameters
 }

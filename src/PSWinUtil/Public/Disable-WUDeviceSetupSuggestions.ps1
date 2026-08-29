@@ -30,12 +30,10 @@ function Disable-WUDeviceSetupSuggestions {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $parameters = @{
+    $settingParameters = @{
         Name = 'DeviceSetupSuggestions'
         Option = 'Disable'
     }
-    $parameters += Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-    Set-WURegistrySetting @parameters
+    $settingParameters += Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting @settingParameters
 }

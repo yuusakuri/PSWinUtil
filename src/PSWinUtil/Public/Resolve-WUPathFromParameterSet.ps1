@@ -88,27 +88,27 @@ function Resolve-WUPathFromParameterSet {
         [switch]$DenyMultiplePaths
     )
 
-    $usesPath = $PathSetName -contains $ParameterSetName
-    $usesLiteralPath = $LiteralPathSetName -contains $ParameterSetName
-    if ($usesPath -and $usesLiteralPath) {
+    $isPath = $PathSetName -contains $ParameterSetName
+    $isLiteralPath = $LiteralPathSetName -contains $ParameterSetName
+    if ($isPath -and $isLiteralPath) {
         throw "Parameter set '$ParameterSetName' cannot select both Path and LiteralPath."
     }
-    if (-not $usesPath -and -not $usesLiteralPath) {
+    if (-not $isPath -and -not $isLiteralPath) {
         throw "Parameter set '$ParameterSetName' is not supported."
     }
 
     $pathParameterName = 'Path'
-    $selectedPaths = $Path
-    if ($usesLiteralPath) {
+    $paths = $Path
+    if ($isLiteralPath) {
         $pathParameterName = 'LiteralPath'
-        $selectedPaths = $LiteralPath
+        $paths = $LiteralPath
     }
-    $invalidPaths = @($selectedPaths | Where-Object { [string]::IsNullOrEmpty($_) })
-    if (@($selectedPaths).Count -eq 0 -or $invalidPaths.Count -gt 0) {
+    $invalidPaths = @($paths | Where-Object { [string]::IsNullOrEmpty($_) })
+    if (@($paths).Count -eq 0 -or $invalidPaths.Count -gt 0) {
         throw "Parameter set '$ParameterSetName' does not contain a valid $pathParameterName value."
     }
 
     $resolveParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'Relative', 'Credential', 'DenyMultiplePaths'
-    $resolveParameters[$pathParameterName] = $selectedPaths
+    $resolveParameters[$pathParameterName] = $paths
     Resolve-WUPath @resolveParameters
 }

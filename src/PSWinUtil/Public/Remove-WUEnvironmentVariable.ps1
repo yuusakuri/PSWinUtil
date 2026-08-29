@@ -57,12 +57,13 @@ function Remove-WUEnvironmentVariable {
     }
 
     process {
-        foreach ($currentName in $Name) {
-            Set-WUEnvironmentVariable `
-                -Name $currentName `
-                -Value $null `
-                -Scope $Scope `
-                @shouldProcessParameters
+        foreach ($inputName in $Name) {
+            $setParameters = @{
+                Name = $inputName
+                Value = $null
+                Scope = $Scope
+            }
+            Set-WUEnvironmentVariable @setParameters @shouldProcessParameters
         }
     }
 }

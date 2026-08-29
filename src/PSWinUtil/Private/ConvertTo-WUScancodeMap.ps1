@@ -31,12 +31,12 @@ function ConvertTo-WUScancodeMap {
 
     $normalizedMappings = @()
     $sourceScanCodes = [Collections.Generic.HashSet[uint16]]::new()
-    foreach ($currentMapping in $Mapping) {
-        if ($null -eq $currentMapping) {
+    foreach ($inputMapping in $Mapping) {
+        if ($null -eq $inputMapping) {
             throw 'A Scancode Map mapping cannot be null.'
         }
-        $sourceProperty = $currentMapping.PSObject.Properties['SourceScanCode']
-        $destinationProperty = $currentMapping.PSObject.Properties['DestinationScanCode']
+        $sourceProperty = $inputMapping.PSObject.Properties['SourceScanCode']
+        $destinationProperty = $inputMapping.PSObject.Properties['DestinationScanCode']
         if ($null -eq $sourceProperty -or $null -eq $destinationProperty) {
             throw 'Each Scancode Map mapping requires SourceScanCode and DestinationScanCode.'
         }
@@ -80,11 +80,11 @@ function ConvertTo-WUScancodeMap {
 
     for ($entryIndex = 0; $entryIndex -lt $normalizedMappings.Count; $entryIndex++) {
         $offset = 12 + ($entryIndex * 4)
-        $currentMapping = $normalizedMappings[$entryIndex]
-        $value[$offset] = [byte]($currentMapping.DestinationScanCode -band 0xFF)
-        $value[$offset + 1] = [byte](($currentMapping.DestinationScanCode -shr 8) -band 0xFF)
-        $value[$offset + 2] = [byte]($currentMapping.SourceScanCode -band 0xFF)
-        $value[$offset + 3] = [byte](($currentMapping.SourceScanCode -shr 8) -band 0xFF)
+        $normalizedMapping = $normalizedMappings[$entryIndex]
+        $value[$offset] = [byte]($normalizedMapping.DestinationScanCode -band 0xFF)
+        $value[$offset + 1] = [byte](($normalizedMapping.DestinationScanCode -shr 8) -band 0xFF)
+        $value[$offset + 2] = [byte]($normalizedMapping.SourceScanCode -band 0xFF)
+        $value[$offset + 3] = [byte](($normalizedMapping.SourceScanCode -shr 8) -band 0xFF)
     }
 
     Write-Output -NoEnumerate -InputObject $value

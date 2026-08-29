@@ -77,23 +77,23 @@ function Resolve-WUPath {
     }
 
     process {
-        $usesLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
+        $isLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
         $pathParameterName = 'Path'
-        $selectedPaths = $Path
-        if ($usesLiteralPath) {
+        $paths = $Path
+        if ($isLiteralPath) {
             $pathParameterName = 'LiteralPath'
-            $selectedPaths = $LiteralPath
+            $paths = $LiteralPath
         }
 
         if ($DenyMultiplePaths) {
-            foreach ($selectedPath in $selectedPaths) {
-                $pathsToResolve.Add($selectedPath)
+            foreach ($inputPath in $paths) {
+                $pathsToResolve.Add($inputPath)
             }
         } else {
             $resolveParameters = Select-WUBoundParameter `
                 -BoundParameters $PSBoundParameters `
                 -Name 'Relative', 'Credential'
-            $resolveParameters[$pathParameterName] = $selectedPaths
+            $resolveParameters[$pathParameterName] = $paths
             Resolve-Path @resolveParameters
         }
     }

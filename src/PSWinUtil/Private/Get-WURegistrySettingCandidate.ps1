@@ -38,10 +38,10 @@ function Get-WURegistrySettingCandidate {
         $scopesToTry = @('User', 'Machine')
     }
 
-    foreach ($currentScope in $scopesToTry) {
-        $selectedCandidates = @()
+    foreach ($scopeToTry in $scopesToTry) {
+        $propertySelections = @()
         foreach ($propertyIdentifier in @($Setting.Keys | Sort-Object)) {
-            $selectedCandidate = $null
+            $matchedCandidate = $null
             foreach ($candidate in @($Setting[$propertyIdentifier])) {
                 $candidateScope = $null
                 if ($candidate.Path -match '^Registry::HKEY_CURRENT_USER\\') {
@@ -50,27 +50,27 @@ function Get-WURegistrySettingCandidate {
                     $candidateScope = 'Machine'
                 }
 
-                if ($candidateScope -eq $currentScope) {
-                    $selectedCandidate = $candidate
+                if ($candidateScope -eq $scopeToTry) {
+                    $matchedCandidate = $candidate
                     break
                 }
             }
 
-            if ($null -eq $selectedCandidate) {
-                $selectedCandidates = @()
+            if ($null -eq $matchedCandidate) {
+                $propertySelections = @()
                 break
             }
 
-            $selectedCandidates += [pscustomobject]@{
+            $propertySelections += [pscustomobject]@{
                 PropertyIdentifier = [string]$propertyIdentifier
-                Candidate = $selectedCandidate
+                Candidate = $matchedCandidate
             }
         }
 
-        if ($selectedCandidates.Count -eq $Setting.Count) {
+        if ($propertySelections.Count -eq $Setting.Count) {
             return [pscustomobject]@{
-                Scope = $currentScope
-                Properties = $selectedCandidates
+                Scope = $scopeToTry
+                Properties = $propertySelections
             }
         }
     }

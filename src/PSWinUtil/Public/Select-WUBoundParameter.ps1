@@ -36,7 +36,7 @@ function Select-WUBoundParameter {
         [string[]]$Name
     )
 
-    $parameters = @{}
+    $selectedParameters = @{}
     $containsKeyMethod = $BoundParameters.PSObject.Methods['ContainsKey']
 
     foreach ($parameterName in $Name) {
@@ -46,9 +46,9 @@ function Select-WUBoundParameter {
             $BoundParameters.Contains($parameterName)
         }
         if ($containsParameter) {
-            $parameters[$parameterName] = $BoundParameters[$parameterName]
+            $selectedParameters[$parameterName] = $BoundParameters[$parameterName]
         }
     }
 
-    return $parameters
+    return $selectedParameters
 }

@@ -40,11 +40,11 @@ function ConvertTo-WUNativeCommandArgument {
     )
 
     process {
-        foreach ($currentArgument in $Argument) {
-            if ($PSVersionTable.PSEdition -eq 'Desktop' -and $currentArgument.Length -eq 0) {
+        foreach ($inputArgument in $Argument) {
+            if ($PSVersionTable.PSEdition -eq 'Desktop' -and $inputArgument.Length -eq 0) {
                 '""'
             } else {
-                $currentArgument
+                $inputArgument
             }
         }
     }

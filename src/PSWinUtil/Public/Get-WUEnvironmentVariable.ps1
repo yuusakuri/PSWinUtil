@@ -47,10 +47,10 @@ function Get-WUEnvironmentVariable {
     )
 
     process {
-        foreach ($currentName in $Name) {
-            foreach ($currentScope in $Scope) {
-                $target = [System.EnvironmentVariableTarget]$currentScope
-                [System.Environment]::GetEnvironmentVariable($currentName, $target)
+        foreach ($inputName in $Name) {
+            foreach ($targetScope in $Scope) {
+                $target = [System.EnvironmentVariableTarget]$targetScope
+                [System.Environment]::GetEnvironmentVariable($inputName, $target)
             }
         }
     }

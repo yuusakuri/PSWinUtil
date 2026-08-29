@@ -74,11 +74,11 @@ function Import-WUEnvironmentVariableSetting {
         }
 
         foreach ($environmentEntry in $environmentVariables.GetEnumerator()) {
-            foreach ($currentScope in $Scope) {
+            foreach ($targetScope in $Scope) {
                 $settings += [pscustomobject]@{
                     Name = [string]$environmentEntry.Key
                     Value = [string]$environmentEntry.Value
-                    Scope = $currentScope
+                    Scope = $targetScope
                 }
             }
         }

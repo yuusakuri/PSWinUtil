@@ -79,9 +79,9 @@ function Test-WUPSScript {
 
     process {
         $inputs = @($Script)
-        $usesPath = $PSBoundParameters.ContainsKey('Path')
-        $usesLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
-        $isFileInput = $usesPath -or $usesLiteralPath
+        $isPath = $PSBoundParameters.ContainsKey('Path')
+        $isLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
+        $isFileInput = $isPath -or $isLiteralPath
         if ($isFileInput) {
             $resolveParameters = @{
                 ParameterSetName = $PSCmdlet.ParameterSetName
@@ -95,19 +95,18 @@ function Test-WUPSScript {
             Assert-WUPathProperty -LiteralPath $inputs -Leaf
         }
 
-        foreach ($currentInput in $inputs) {
+        foreach ($inputValue in $inputs) {
             $tokens = $null
             $parseErrors = $null
-            $reportedInput = $currentInput
             if ($isFileInput) {
                 $null = [System.Management.Automation.Language.Parser]::ParseFile(
-                    $reportedInput,
+                    $inputValue,
                     [ref]$tokens,
                     [ref]$parseErrors
                 )
             } else {
                 $null = [System.Management.Automation.Language.Parser]::ParseInput(
-                    $currentInput,
+                    $inputValue,
                     [ref]$tokens,
                     [ref]$parseErrors
                 )
@@ -117,7 +116,7 @@ function Test-WUPSScript {
             if ($Detailed) {
                 [pscustomobject]@{
                     IsValid = $isValid
-                    Input = $reportedInput
+                    Input = $inputValue
                     Errors = @($parseErrors)
                 }
             } else {
