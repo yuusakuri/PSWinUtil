@@ -74,9 +74,9 @@ function Assert-WUPSScript {
         $testParameters = @{
             Detailed = $true
         }
-        if ($PSCmdlet.ParameterSetName -eq 'Path') {
+        if ($PSBoundParameters.ContainsKey('Path')) {
             $testParameters.Path = $Path
-        } elseif ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
+        } elseif ($PSBoundParameters.ContainsKey('LiteralPath')) {
             $testParameters.LiteralPath = $LiteralPath
         } else {
             $testParameters.Script = $Script

@@ -77,9 +77,10 @@ function Resolve-WUPath {
     }
 
     process {
+        $usesLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
         $pathParameterName = 'Path'
         $selectedPaths = $Path
-        if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
+        if ($usesLiteralPath) {
             $pathParameterName = 'LiteralPath'
             $selectedPaths = $LiteralPath
         }

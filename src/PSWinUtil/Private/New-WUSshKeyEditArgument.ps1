@@ -1,10 +1,10 @@
-function Build-WUSshKeyEditArgument {
+function New-WUSshKeyEditArgument {
     <#
     .SYNOPSIS
-    Builds arguments for editing an SSH key.
+    Creates arguments for editing an SSH key.
 
     .DESCRIPTION
-    Builds the ssh-keygen.exe argument values for a passphrase or comment change.
+    Creates the ssh-keygen.exe argument values for a passphrase or comment change.
 
     .PARAMETER KeyPath
     Specifies the fully qualified private key path.
@@ -19,7 +19,7 @@ function Build-WUSshKeyEditArgument {
     Specifies the replacement comment.
 
     .EXAMPLE
-    Build-WUSshKeyEditArgument -KeyPath 'C:\Keys\id_rsa' -CurrentPassphrase '' -Comment 'user@example.com'
+    New-WUSshKeyEditArgument -KeyPath 'C:\Keys\id_rsa' -CurrentPassphrase '' -Comment 'user@example.com'
 
     Returns the arguments for changing the key comment.
 
@@ -33,11 +33,6 @@ function Build-WUSshKeyEditArgument {
         'PSAvoidUsingPlainTextForPassword',
         '',
         Justification = 'ssh-keygen.exe requires passphrases as command arguments.'
-    )]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
-        'PSUseApprovedVerbs',
-        '',
-        Justification = 'Build accurately describes constructing argument values without executing a command.'
     )]
     [CmdletBinding(DefaultParameterSetName = 'Passphrase')]
     [OutputType([string])]
@@ -60,7 +55,7 @@ function Build-WUSshKeyEditArgument {
     )
 
     $nativeCurrentPassphrase = ConvertTo-WUNativeCommandArgument -Argument $CurrentPassphrase
-    if ($PSCmdlet.ParameterSetName -eq 'Passphrase') {
+    if ($PSBoundParameters.ContainsKey('NewPassphrase')) {
         $nativeNewPassphrase = ConvertTo-WUNativeCommandArgument -Argument $NewPassphrase
         '-q', '-p', '-P', $nativeCurrentPassphrase,
         '-N', $nativeNewPassphrase, '-f', $KeyPath

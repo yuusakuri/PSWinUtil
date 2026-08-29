@@ -79,7 +79,9 @@ function Test-WUPSScript {
 
     process {
         $inputs = @($Script)
-        $isFileInput = $PSCmdlet.ParameterSetName -in @('Path', 'LiteralPath')
+        $usesPath = $PSBoundParameters.ContainsKey('Path')
+        $usesLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
+        $isFileInput = $usesPath -or $usesLiteralPath
         if ($isFileInput) {
             $resolveParameters = @{
                 ParameterSetName = $PSCmdlet.ParameterSetName

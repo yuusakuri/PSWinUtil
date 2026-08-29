@@ -88,7 +88,7 @@ Describe 'Edit-WUSshKey' {
         [System.IO.File]::ReadAllText($keyPath) | Should -Be 'key'
     }
 
-    It 'uses the comment parameter set arguments' {
+    It 'uses the comment edit arguments' {
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'comment-key'
         [System.IO.File]::WriteAllText($keyPath, 'key')
 

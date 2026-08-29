@@ -82,15 +82,16 @@ function Test-WUPathProperty {
     }
 
     process {
+        $usesLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
         $selectedPaths = $Path
-        if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
+        if ($usesLiteralPath) {
             $selectedPaths = $LiteralPath
         }
 
         foreach ($selectedPath in $selectedPaths) {
             $pathsToTest = @($selectedPath)
             if (
-                $PSCmdlet.ParameterSetName -eq 'Path' -and
+                -not $usesLiteralPath -and
                 [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($selectedPath)
             ) {
                 try {

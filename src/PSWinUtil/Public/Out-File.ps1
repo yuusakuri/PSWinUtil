@@ -112,7 +112,7 @@ function Out-File {
 
     begin {
         $selectedPath = $FilePath
-        if ($PSCmdlet.ParameterSetName -eq 'ByLiteralPath') {
+        if ($PSBoundParameters.ContainsKey('LiteralPath')) {
             $selectedPath = $LiteralPath
         }
         $action = 'Write formatted file content'

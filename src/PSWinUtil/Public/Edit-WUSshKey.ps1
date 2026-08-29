@@ -92,11 +92,6 @@ function Edit-WUSshKey {
         [string]$CurrentPassphrase
     )
 
-    $operationName = if ($PSCmdlet.ParameterSetName -like 'Passphrase*') {
-        'Passphrase'
-    } else {
-        'Comment'
-    }
     $resolveParameters = @{
         ParameterSetName = $PSCmdlet.ParameterSetName
         Path = $Path
@@ -109,17 +104,18 @@ function Edit-WUSshKey {
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullKeyPath -Leaf
 
-    $operationParameters = @{
+    $argumentParameters = @{
         KeyPath = $fullKeyPath
         CurrentPassphrase = $CurrentPassphrase
     }
-    if ($operationName -eq 'Passphrase') {
-        $operationParameters.NewPassphrase = $NewPassphrase
+    if ($PSBoundParameters.ContainsKey('NewPassphrase')) {
+        $argumentParameters.NewPassphrase = $NewPassphrase
+        $action = 'Change SSH key passphrase'
     } else {
-        $operationParameters.Comment = $Comment
+        $argumentParameters.Comment = $Comment
+        $action = 'Change SSH key comment'
     }
-    $arguments = @(Build-WUSshKeyEditArgument @operationParameters)
-    $action = "Change SSH key $($operationName.ToLowerInvariant())"
+    $arguments = @(New-WUSshKeyEditArgument @argumentParameters)
 
     if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $action)) {
         return
