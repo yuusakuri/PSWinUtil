@@ -205,7 +205,8 @@ Describe 'Resolve-WUPathFromParameterSet' {
     }
 
     It 'forwards Credential to Resolve-WUPath' {
-        $securePassword = ConvertTo-SecureString -String 'secret' -AsPlainText -Force
+        $securePassword = [System.Security.SecureString]::new()
+        $securePassword.AppendChar('x')
         $credential = [System.Management.Automation.PSCredential]::new(
             'user',
             $securePassword
