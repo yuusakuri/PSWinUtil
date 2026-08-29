@@ -118,14 +118,19 @@ function Edit-WUSshKey {
     } else {
         $operationParameters.Comment = $Comment
     }
-    $operation = Get-WUSshKeyEditOperation @operationParameters
-    $sshKeygen = Get-WUSshKeygenCommand
+    $arguments = @(Build-WUSshKeyEditArgument @operationParameters)
+    $action = "Change SSH key $($operationName.ToLowerInvariant())"
 
-    if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $operation.Action)) {
+    if (-not $PSCmdlet.ShouldProcess($fullKeyPath, $action)) {
         return
     }
 
-    Invoke-WUSshKeygen -FilePath $sshKeygen.Source -ArgumentList $operation.ArgumentList
+    $commandOutput = @(& 'ssh-keygen.exe' @arguments 2>&1)
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+        throw "ssh-keygen.exe failed with exit code $exitCode.$([Environment]::NewLine)$message"
+    }
 
     Get-Item -LiteralPath $fullKeyPath
 }

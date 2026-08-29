@@ -15,10 +15,7 @@ Describe 'New-WUSshKey' {
                 [System.IO.File]::WriteAllText("$keyPath.pub", 'public key')
                 $global:LASTEXITCODE = 0
             }
-        }
-        Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Source = 'Invoke-WUTestSshKeygen' }
-            [pscustomobject]@{ Source = 'unused-ssh-keygen.exe' }
+            Set-Alias -Name 'ssh-keygen.exe' -Value 'Invoke-WUTestSshKeygen' -Scope Script
         }
     }
 
@@ -78,10 +75,7 @@ Describe 'Edit-WUSshKey' {
                 $script:CapturedSshArguments = @($args)
                 $global:LASTEXITCODE = 0
             }
-        }
-        Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Source = 'Invoke-WUTestSshKeygen' }
-            [pscustomobject]@{ Source = 'unused-ssh-keygen.exe' }
+            Set-Alias -Name 'ssh-keygen.exe' -Value 'Invoke-WUTestSshKeygen' -Scope Script
         }
     }
 
@@ -144,9 +138,6 @@ Describe 'Edit-WUSshKey' {
 
 Describe 'Start-WUPSScriptAsAdmin' {
     BeforeEach {
-        Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Source = 'powershell.exe' }
-        }
         Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {}
     }
 

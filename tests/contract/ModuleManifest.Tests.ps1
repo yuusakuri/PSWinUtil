@@ -34,6 +34,7 @@ Describe 'Built module manifest' {
             'Select-WUBoundParameter'
             'Resolve-WUPath'
             'Resolve-WUPathFromParameter'
+            'ConvertTo-WUNativeCommandArgument'
             'Set-WUAdvertisingIdMode'
             'Enable-WUAppLaunchTracking'
             'Disable-WUAppLaunchTracking'

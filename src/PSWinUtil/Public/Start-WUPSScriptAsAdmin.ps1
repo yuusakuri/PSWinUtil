@@ -88,7 +88,6 @@ function Start-WUPSScriptAsAdmin {
         }
         Assert-WUPSScript -LiteralPath $fullPath
 
-        $windowsPowerShell = Get-Command -Name 'powershell.exe' -CommandType Application -ErrorAction Stop
         $escapedPath = $fullPath.Replace("'", "''")
         $scriptCommand = "& '$escapedPath'"
         foreach ($argument in $ArgumentList) {
@@ -99,7 +98,7 @@ function Start-WUPSScriptAsAdmin {
         $processArguments = @('-NoProfile', '-EncodedCommand', $encodedCommand)
 
         if ($PSCmdlet.ShouldProcess($fullPath, 'Start PowerShell script as administrator')) {
-            Start-Process -FilePath $windowsPowerShell.Source -ArgumentList $processArguments -Verb 'RunAs'
+            Start-Process -FilePath 'powershell.exe' -ArgumentList $processArguments -Verb 'RunAs'
         }
     }
 }

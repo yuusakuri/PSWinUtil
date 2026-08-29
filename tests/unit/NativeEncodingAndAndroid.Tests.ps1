@@ -40,6 +40,23 @@ Describe 'Set-WUNativeCommandEncoding' {
     }
 }
 
+Describe 'ConvertTo-WUNativeCommandArgument' {
+    It 'preserves an empty argument in Windows PowerShell' {
+        ConvertTo-WUNativeCommandArgument -Argument '' | Should -Be '""'
+    }
+
+    It 'returns nonempty arguments unchanged' {
+        $arguments = @('plain', 'two words', 'say"hello')
+
+        $result = @($arguments | ConvertTo-WUNativeCommandArgument)
+
+        $result | Should -HaveCount 3
+        for ($index = 0; $index -lt $arguments.Count; $index++) {
+            $result[$index] | Should -Be $arguments[$index]
+        }
+    }
+}
+
 Describe 'Start-WUAndroidEmulator' {
     BeforeEach {
         InModuleScope -ModuleName PSWinUtil {
