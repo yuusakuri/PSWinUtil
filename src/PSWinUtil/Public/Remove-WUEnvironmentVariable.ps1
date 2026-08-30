@@ -51,18 +51,17 @@ function Remove-WUEnvironmentVariable {
     )
 
     begin {
-        $shouldProcessParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'WhatIf', 'Confirm'
+        $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
     }
 
     process {
-        foreach ($currentName in $Name) {
-            Set-WUEnvironmentVariable `
-                -Name $currentName `
-                -Value $null `
-                -Scope $Scope `
-                @shouldProcessParameters
+        foreach ($inputName in $Name) {
+            $setParameters = @{
+                Name = $inputName
+                Value = $null
+                Scope = $Scope
+            }
+            Set-WUEnvironmentVariable @setParameters @shouldProcessParameters
         }
     }
 }

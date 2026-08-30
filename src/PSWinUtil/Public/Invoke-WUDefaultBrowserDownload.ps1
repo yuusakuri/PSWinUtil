@@ -79,9 +79,7 @@ function Invoke-WUDefaultBrowserDownload {
         throw "FileName must be a valid leaf file name: $resolvedFileName"
     }
 
-    $fullDownloadDirectory = Resolve-WUPath `
-        -LiteralPath $DownloadDirectory `
-        -DenyMultiplePaths |
+    $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullDownloadDirectory -Container
     $targetPath = Join-Path -Path $fullDownloadDirectory -ChildPath $resolvedFileName
@@ -93,12 +91,12 @@ function Invoke-WUDefaultBrowserDownload {
         return
     }
 
-    $parameters = @{
+    $downloadParameters = @{
         Uri = $Uri
         FileName = $resolvedFileName
         DownloadDirectory = $fullDownloadDirectory
         TimeoutSeconds = $TimeoutSeconds
         Force = $Force
     }
-    Invoke-WUDefaultBrowserDownloadInternal @parameters
+    Invoke-WUDefaultBrowserDownloadInternal @downloadParameters
 }

@@ -9,7 +9,7 @@ function Get-WUFileTreeWithContent {
     When AsXml is specified, the command writes a documents start element, one escaped document element for each item, and a documents end element. Each XML fragment is a separate pipeline value. A directory symbolic link or junction is returned but is not traversed.
 
     .PARAMETER Path
-    Specifies one or more file system paths. Wildcards are supported.
+    Specifies one or more file system paths. Wildcards are supported. The default value is the current location.
 
     .PARAMETER LiteralPath
     Specifies one or more literal file system paths. Wildcards are not supported.
@@ -18,10 +18,15 @@ function Get-WUFileTreeWithContent {
     Specifies the minimum directory depth to return. The input directory is depth 0 and its direct children are depth 1. The default value is 1. This parameter does not exclude a directly specified file.
 
     .PARAMETER MaxDepth
-    Specifies the maximum directory depth to return. A value of 0 applies no maximum depth. The default value is 0. This parameter does not exclude a directly specified file.
+    Specifies the maximum directory depth to return. A value of 0 applies no maximum depth. The default value is 2147483647, which is effectively unlimited. This parameter does not exclude a directly specified file.
 
     .PARAMETER AsXml
     Writes escaped XML fragments instead of PSWinUtil.FileTreeContent objects.
+
+    .EXAMPLE
+    Get-WUFileTreeWithContent
+
+    Gets the items under the current location.
 
     .EXAMPLE
     Get-WUFileTreeWithContent -LiteralPath 'C:\MyProject\src' -MaxDepth 3
@@ -45,12 +50,11 @@ function Get-WUFileTreeWithContent {
     PSWinUtil.FileTreeContent
     System.String
     #>
-    [CmdletBinding(DefaultParameterSetName = 'LiteralPath')]
+    [CmdletBinding(DefaultParameterSetName = 'Path')]
     [OutputType('PSWinUtil.FileTreeContent')]
     [OutputType([string])]
     param(
         [Parameter(
-            Mandatory = $true,
             ParameterSetName = 'Path',
             Position = 0,
             ValueFromPipeline = $true,
@@ -58,7 +62,7 @@ function Get-WUFileTreeWithContent {
         )]
         [ValidateNotNullOrEmpty()]
         [SupportsWildcards()]
-        [string[]]$Path,
+        [string[]]$Path = '.',
 
         [Parameter(
             Mandatory = $true,
@@ -77,7 +81,7 @@ function Get-WUFileTreeWithContent {
 
         [Parameter()]
         [ValidateRange(0, [int]::MaxValue)]
-        [int]$MaxDepth = 0,
+        [int]$MaxDepth = [int]::MaxValue,
 
         [Parameter()]
         [switch]$AsXml
@@ -140,11 +144,13 @@ function Get-WUFileTreeWithContent {
     }
 
     process {
-        $pathParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'Path', 'LiteralPath'
+        $resolveParameters = @{
+            ParameterSetName = $PSCmdlet.ParameterSetName
+            Path = $Path
+            LiteralPath = $LiteralPath
+        }
         $fullPaths = @(
-            Resolve-WUPath @pathParameters |
+            Resolve-WUPathFromParameterSet @resolveParameters |
                 ConvertTo-WUFullPath
         )
         foreach ($fullPath in $fullPaths) {

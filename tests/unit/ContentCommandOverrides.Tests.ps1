@@ -22,9 +22,9 @@ $contentCommandOverridesAvailable = $PSVersionTable.PSEdition -eq 'Desktop'
 Describe 'Content command precedence' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'uses the PSWinUtil functions before the built-in cmdlets' {
         foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
-            $selectedCommand = Get-Command -Name $commandName
-            $selectedCommand.CommandType | Should -Be 'Function'
-            $selectedCommand.ModuleName | Should -Be 'PSWinUtil'
+            $command = Get-Command -Name $commandName
+            $command.CommandType | Should -Be 'Function'
+            $command.ModuleName | Should -Be 'PSWinUtil'
             @(Get-Command -Name $commandName -All | Where-Object { $_.CommandType -eq 'Cmdlet' }).Count |
                 Should -BeGreaterThan 0
         }

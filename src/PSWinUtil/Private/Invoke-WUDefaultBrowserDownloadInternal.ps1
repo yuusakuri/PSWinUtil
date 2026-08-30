@@ -65,9 +65,7 @@ function Invoke-WUDefaultBrowserDownloadInternal {
         throw "FileName must be a valid leaf file name: $FileName"
     }
 
-    $fullDownloadDirectory = Resolve-WUPath `
-        -LiteralPath $DownloadDirectory `
-        -DenyMultiplePaths |
+    $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullDownloadDirectory -Container
     $targetPath = Join-Path -Path $fullDownloadDirectory -ChildPath $FileName

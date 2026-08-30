@@ -61,14 +61,10 @@ function Install-WUAndroidCommandLineTools {
     if ([string]::IsNullOrWhiteSpace($AndroidHome)) {
         throw 'AndroidHome is required. Specify it or set ANDROID_HOME.'
     }
-    $fullAndroidHome = Resolve-WUPath `
-        -LiteralPath $AndroidHome `
-        -DenyMultiplePaths |
+    $fullAndroidHome = Resolve-WUPath -LiteralPath $AndroidHome -DenyMultiplePaths |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullAndroidHome -Container
-    $fullDownloadDirectory = Resolve-WUPath `
-        -LiteralPath $DownloadDirectory `
-        -DenyMultiplePaths |
+    $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
     Assert-WUPathProperty -LiteralPath $fullDownloadDirectory -Container
 

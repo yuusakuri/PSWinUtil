@@ -32,12 +32,6 @@ function Set-WUAdvertisingIdMode {
         [string]$Mode
     )
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'AdvertisingId' `
-        -Option $Mode `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'AdvertisingId' -Option $Mode @shouldProcessParameters
 }

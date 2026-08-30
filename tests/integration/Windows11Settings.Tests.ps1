@@ -71,11 +71,11 @@ BeforeAll {
         param([hashtable[]]$Property)
 
         @(
-            foreach ($currentProperty in $Property) {
+            foreach ($inputProperty in $Property) {
                 [pscustomobject]@{
-                    Path = $currentProperty.Path
-                    Name = $currentProperty.Name
-                    Value = Get-WURegistryProperty -Path $currentProperty.Path -Name $currentProperty.Name
+                    Path = $inputProperty.Path
+                    Name = $inputProperty.Name
+                    Value = Get-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name
                 }
             }
         )
@@ -84,16 +84,16 @@ BeforeAll {
     $script:RestoreRegistryProperties = {
         param([object[]]$Property)
 
-        foreach ($currentProperty in $Property) {
-            if ($null -eq $currentProperty.Value) {
-                Remove-WURegistryProperty -Path $currentProperty.Path -Name $currentProperty.Name -Confirm:$false
+        foreach ($inputProperty in $Property) {
+            if ($null -eq $inputProperty.Value) {
+                Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name -Confirm:$false
                 continue
             }
             $parameters = @{
-                Path = $currentProperty.Path
-                Name = $currentProperty.Name
-                Value = $currentProperty.Value.Value
-                Type = $currentProperty.Value.Type
+                Path = $inputProperty.Path
+                Name = $inputProperty.Name
+                Value = $inputProperty.Value.Value
+                Type = $inputProperty.Value.Type
                 Confirm = $false
             }
             Set-WURegistryProperty @parameters

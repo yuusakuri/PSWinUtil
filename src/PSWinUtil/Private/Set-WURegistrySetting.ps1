@@ -4,7 +4,7 @@ function Set-WURegistrySetting {
     Applies a registry setting option.
 
     .DESCRIPTION
-    Resolves the selected option into registry property changes for one or more scopes and delegates every change to Set-WURegistryProperty or Remove-WURegistryProperty.
+    Selects a configuration for each requested scope, resolves the selected option from every property, and delegates each change to Set-WURegistryProperty or Remove-WURegistryProperty.
 
     .PARAMETER Name
     Specifies a registry setting name from the distributed setting data.
@@ -51,49 +51,45 @@ function Set-WURegistrySetting {
         [string[]]$Scope = 'Auto'
     )
 
-    $selectedScopes = @($Scope | Select-Object -Unique)
-    if ($selectedScopes.Count -gt 1 -and $selectedScopes -contains 'Auto') {
+    $scopes = @($Scope | Select-Object -Unique)
+    if ($scopes.Count -gt 1 -and $scopes -contains 'Auto') {
         throw 'Auto cannot be combined with another scope.'
     }
 
-    $settingData = Import-WURegistrySetting
-    if (-not $settingData.ContainsKey($Name)) {
+    $settings = @((Import-WURegistrySetting).Settings)
+    $setting = @($settings | Where-Object { $_.Name -ieq $Name })[0]
+    if ($null -eq $setting) {
         throw "The registry setting was not found: $Name"
     }
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
-    foreach ($currentScope in $selectedScopes) {
-        $selection = Get-WURegistrySettingCandidate `
-            -Setting $settingData[$Name] `
-            -Scope $currentScope
-        $firstCandidate = $selection.Properties[0].Candidate
-        if (-not $firstCandidate.Options.ContainsKey($Option)) {
+    foreach ($targetScope in $scopes) {
+        $configuration = Get-WURegistrySettingConfiguration -Setting $setting -Scope $targetScope
+        $configurationOption = @(
+            $configuration.Properties[0].Options | Where-Object { $_.Name -ieq $Option }
+        )[0]
+        if ($null -eq $configurationOption) {
             throw "The registry setting option was not found: $Name/$Option"
         }
 
-        $currentState = Get-WURegistrySetting -Name $Name -Scope $selection.Scope
-        if ($currentState.State -ceq $Option) {
+        $currentState = Get-WURegistrySetting -Name $Name -Scope $configuration.Scope
+        if ($currentState.State -ceq $configurationOption.Name) {
             continue
         }
 
-        foreach ($selectedProperty in $selection.Properties) {
-            $candidate = $selectedProperty.Candidate
-            $selectedOption = $candidate.Options[$Option]
-            if ($selectedOption.Action -eq 'Remove') {
-                Remove-WURegistryProperty `
-                    -Path $candidate.Path `
-                    -Name $candidate.Name `
-                    @shouldProcessParameters
+        foreach ($property in $configuration.Properties) {
+            $propertyOption = @($property.Options | Where-Object { $_.Name -ieq $Option })[0]
+            $propertyParameters = @{
+                Path = $property.Path
+                Name = $property.Name
+            }
+            if ($propertyOption.Action -eq 'Remove') {
+                Remove-WURegistryProperty @propertyParameters @shouldProcessParameters
             } else {
-                Set-WURegistryProperty `
-                    -Path $candidate.Path `
-                    -Name $candidate.Name `
-                    -Value $selectedOption.Value `
-                    -Type $candidate.Type `
-                    @shouldProcessParameters
+                $propertyParameters.Value = $propertyOption.Value
+                $propertyParameters.Type = $property.Type
+                Set-WURegistryProperty @propertyParameters @shouldProcessParameters
             }
         }
     }

@@ -79,31 +79,32 @@ function Test-WUPSScript {
 
     process {
         $inputs = @($Script)
-        $isFileInput = $PSCmdlet.ParameterSetName -in @('Path', 'LiteralPath')
+        $isFileInput = $PSCmdlet.ParameterSetName -ne 'Script'
         if ($isFileInput) {
-            $pathParameters = Select-WUBoundParameter `
-                -BoundParameters $PSBoundParameters `
-                -Name 'Path', 'LiteralPath'
+            $resolveParameters = @{
+                ParameterSetName = $PSCmdlet.ParameterSetName
+                Path = $Path
+                LiteralPath = $LiteralPath
+            }
             $inputs = @(
-                Resolve-WUPath @pathParameters |
+                Resolve-WUPathFromParameterSet @resolveParameters |
                     ConvertTo-WUFullPath
             )
             Assert-WUPathProperty -LiteralPath $inputs -Leaf
         }
 
-        foreach ($currentInput in $inputs) {
+        foreach ($inputValue in $inputs) {
             $tokens = $null
             $parseErrors = $null
-            $reportedInput = $currentInput
             if ($isFileInput) {
                 $null = [System.Management.Automation.Language.Parser]::ParseFile(
-                    $reportedInput,
+                    $inputValue,
                     [ref]$tokens,
                     [ref]$parseErrors
                 )
             } else {
                 $null = [System.Management.Automation.Language.Parser]::ParseInput(
-                    $currentInput,
+                    $inputValue,
                     [ref]$tokens,
                     [ref]$parseErrors
                 )
@@ -113,7 +114,7 @@ function Test-WUPSScript {
             if ($Detailed) {
                 [pscustomobject]@{
                     IsValid = $isValid
-                    Input = $reportedInput
+                    Input = $inputValue
                     Errors = @($parseErrors)
                 }
             } else {

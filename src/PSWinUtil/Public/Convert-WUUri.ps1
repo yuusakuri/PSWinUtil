@@ -57,12 +57,12 @@ function Convert-WUUri {
     }
 
     process {
-        foreach ($currentUri in $Uri) {
-            if (-not $currentUri.IsAbsoluteUri) {
-                throw "Uri must be absolute: $currentUri"
+        foreach ($inputUri in $Uri) {
+            if (-not $inputUri.IsAbsoluteUri) {
+                throw "Uri must be absolute: $inputUri"
             }
 
-            $builder = [System.UriBuilder]::new($currentUri)
+            $builder = [System.UriBuilder]::new($inputUri)
             if ($WithoutQuery) {
                 $builder.Query = [string]::Empty
             }

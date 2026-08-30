@@ -79,51 +79,45 @@ function Test-WUPathProperty {
         if ($Leaf -and $Container) {
             throw 'Leaf and Container cannot be specified together.'
         }
+
+        $isLiteralPath = $PSCmdlet.ParameterSetName -eq 'LiteralPath'
+        $pathType = if ($Leaf) { 'Leaf' } elseif ($Container) { 'Container' } else { 'Any' }
     }
 
     process {
-        $selectedPaths = $Path
-        if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
-            $selectedPaths = $LiteralPath
-        }
+        $paths = if ($isLiteralPath) { $LiteralPath } else { $Path }
 
-        foreach ($selectedPath in $selectedPaths) {
-            $pathsToTest = @($selectedPath)
+        foreach ($inputPath in $paths) {
+            $targetPaths = @($inputPath)
             if (
-                $PSCmdlet.ParameterSetName -eq 'Path' -and
-                [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($selectedPath)
+                -not $isLiteralPath -and
+                [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($inputPath)
             ) {
                 try {
-                    $pathsToTest = @(Resolve-Path -Path $selectedPath -ErrorAction Stop)
+                    $targetPaths = @(Resolve-WUPath -Path $inputPath -ErrorAction Stop)
                 } catch [System.Management.Automation.ItemNotFoundException] {
                     $false
                     continue
                 }
             }
 
-            if ($pathsToTest.Count -eq 0) {
+            if ($targetPaths.Count -eq 0) {
                 $false
                 continue
             }
 
-            foreach ($pathToTest in $pathsToTest) {
-                $literalPathToTest = $pathToTest
-                if ($pathToTest -is [System.Management.Automation.PathInfo]) {
-                    $literalPathToTest = $pathToTest.Path
-                }
-
-                $pathType = 'Any'
-                if ($Leaf) {
-                    $pathType = 'Leaf'
-                } elseif ($Container) {
-                    $pathType = 'Container'
+            foreach ($targetPath in $targetPaths) {
+                if ($targetPath -is [System.Management.Automation.PathInfo]) {
+                    $targetPath = $targetPath.Path
                 }
 
                 try {
-                    Test-Path `
-                        -LiteralPath $literalPathToTest `
-                        -PathType $pathType `
-                        -ErrorAction Stop
+                    $testPathParameters = @{
+                        LiteralPath = $targetPath
+                        PathType = $pathType
+                        ErrorAction = 'Stop'
+                    }
+                    Test-Path @testPathParameters
                 } catch {
                     $false
                 }

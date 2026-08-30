@@ -95,11 +95,11 @@ Describe 'Register-WUStartupEntry' {
         Mock -CommandName Assert-WUPathProperty -ModuleName PSWinUtil
         Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil
         Mock -CommandName Get-WUStartupEntry -ModuleName PSWinUtil -MockWith {
-            foreach ($currentScope in @($Scope)) {
+            foreach ($targetScope in @($Scope)) {
                 [pscustomobject]@{
                     PSTypeName = 'PSWinUtil.StartupEntry'
                     Name = $Name
-                    Scope = $currentScope
+                    Scope = $targetScope
                     CommandLine = 'stored command'
                 }
             }

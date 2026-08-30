@@ -51,19 +51,17 @@ function Remove-WUPathEnvironmentVariable {
     )
 
     begin {
-        $pathsToRemove = @()
-        $shouldProcessParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'WhatIf', 'Confirm'
+        $paths = @()
+        $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
     }
 
     process {
-        $pathsToRemove += $Path
+        $paths += $Path
     }
 
     end {
-        foreach ($currentScope in $Scope) {
-            $target = [System.EnvironmentVariableTarget]$currentScope
+        foreach ($targetScope in $Scope) {
+            $target = [System.EnvironmentVariableTarget]$targetScope
             $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
             $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
             $remainingPaths = @()
@@ -71,8 +69,8 @@ function Remove-WUPathEnvironmentVariable {
 
             foreach ($existingPath in $existingPaths) {
                 $isMatch = $false
-                foreach ($pathToRemove in $pathsToRemove) {
-                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $pathToRemove) {
+                foreach ($inputPath in $paths) {
+                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $inputPath) {
                         $isMatch = $true
                         $removedPath = $true
                         break
@@ -89,11 +87,12 @@ function Remove-WUPathEnvironmentVariable {
             }
 
             $updatedValue = Join-WUPathEnvironmentVariable -Path $remainingPaths
-            Set-WUEnvironmentVariable `
-                -Name 'Path' `
-                -Value $updatedValue `
-                -Scope $currentScope `
-                @shouldProcessParameters
+            $setParameters = @{
+                Name = 'Path'
+                Value = $updatedValue
+                Scope = $targetScope
+            }
+            Set-WUEnvironmentVariable @setParameters @shouldProcessParameters
         }
     }
 }

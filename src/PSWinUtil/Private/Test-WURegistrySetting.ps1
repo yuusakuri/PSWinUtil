@@ -4,7 +4,7 @@ function Test-WURegistrySetting {
     Tests registry setting data.
 
     .DESCRIPTION
-    Tests setting names, property candidates, supported registry hives, registry value types, option actions, and complete User or Machine candidate sets.
+    Tests the Settings, Configurations, Properties, and Options hierarchy, including unique names, supported scopes and registry hives, registry value types, option actions, and consistent option names.
 
     .PARAMETER Setting
     Specifies imported registry setting data to test.
@@ -28,137 +28,156 @@ function Test-WURegistrySetting {
         [object]$Setting
     )
 
-    if ($Setting -isnot [System.Collections.Hashtable] -or $Setting.Count -eq 0) {
+    if (
+        $Setting -isnot [System.Collections.Hashtable] -or
+        $Setting.Count -ne 1 -or
+        -not $Setting.ContainsKey('Settings')
+    ) {
         return $false
     }
 
-    $supportedTypes = @('String', 'ExpandString', 'Binary', 'DWord', 'MultiString', 'QWord')
-    foreach ($settingEntry in $Setting.GetEnumerator()) {
+    $settings = @($Setting.Settings)
+    if ($settings.Count -eq 0) {
+        return $false
+    }
+
+    $settingNames = @()
+    $valueTypes = @{
+        String = @([string])
+        ExpandString = @([string])
+        Binary = @([byte[]])
+        DWord = @([byte], [int16], [int], [long], [uint16], [uint32])
+        MultiString = @([string[]])
+        QWord = @([byte], [int16], [int], [long], [uint16], [uint32], [uint64])
+    }
+    foreach ($settingDefinition in $settings) {
         if (
-            $settingEntry.Key -isnot [string] -or
-            [string]::IsNullOrWhiteSpace($settingEntry.Key) -or
-            $settingEntry.Value -isnot [System.Collections.Hashtable] -or
-            $settingEntry.Value.Count -eq 0
+            $settingDefinition -isnot [System.Collections.Hashtable] -or
+            $settingDefinition.Count -ne 2 -or
+            -not $settingDefinition.ContainsKey('Name') -or
+            -not $settingDefinition.ContainsKey('Configurations') -or
+            $settingDefinition.Name -isnot [string] -or
+            [string]::IsNullOrWhiteSpace($settingDefinition.Name) -or
+            $settingDefinition.Name -in $settingNames
         ) {
             return $false
         }
+        $settingNames += $settingDefinition.Name
 
-        $expectedOptionNames = $null
-        $completeScopes = @('User', 'Machine')
-        foreach ($propertyEntry in $settingEntry.Value.GetEnumerator()) {
+        $configurations = @($settingDefinition.Configurations)
+        if ($configurations.Count -eq 0) {
+            return $false
+        }
+
+        $configurationScopes = @()
+        $settingOptionNames = $null
+        foreach ($configuration in $configurations) {
             if (
-                $propertyEntry.Key -isnot [string] -or
-                [string]::IsNullOrWhiteSpace($propertyEntry.Key)
+                $configuration -isnot [System.Collections.Hashtable] -or
+                $configuration.Count -ne 2 -or
+                -not $configuration.ContainsKey('Scope') -or
+                -not $configuration.ContainsKey('Properties') -or
+                $configuration.Scope -notin @('User', 'Machine') -or
+                $configuration.Scope -in $configurationScopes
             ) {
                 return $false
             }
+            $configurationScopes += $configuration.Scope
 
-            $candidates = @($propertyEntry.Value)
-            if ($candidates.Count -eq 0) {
+            $properties = @($configuration.Properties)
+            if ($properties.Count -eq 0) {
                 return $false
             }
 
-            $candidateScopes = @()
-            foreach ($candidate in $candidates) {
+            $propertyNames = @()
+            $configurationOptionNames = $null
+            foreach ($property in $properties) {
                 if (
-                    $candidate -isnot [System.Collections.Hashtable] -or
-                    -not $candidate.ContainsKey('Path') -or
-                    -not $candidate.ContainsKey('Name') -or
-                    -not $candidate.ContainsKey('Type') -or
-                    -not $candidate.ContainsKey('Options') -or
-                    $candidate.Path -isnot [string] -or
-                    $candidate.Name -isnot [string] -or
-                    [string]::IsNullOrWhiteSpace($candidate.Name) -or
-                    $candidate.Type -notin $supportedTypes -or
-                    $candidate.Options -isnot [System.Collections.Hashtable] -or
-                    $candidate.Options.Count -eq 0
+                    $property -isnot [System.Collections.Hashtable] -or
+                    $property.Count -ne 4 -or
+                    -not $property.ContainsKey('Name') -or
+                    -not $property.ContainsKey('Path') -or
+                    -not $property.ContainsKey('Type') -or
+                    -not $property.ContainsKey('Options') -or
+                    $property.Name -isnot [string] -or
+                    [string]::IsNullOrWhiteSpace($property.Name) -or
+                    $property.Name -in $propertyNames -or
+                    $property.Path -isnot [string] -or
+                    [string]::IsNullOrWhiteSpace($property.Path) -or
+                    $property.Type -notin $valueTypes.Keys
                 ) {
                     return $false
                 }
+                $propertyNames += $property.Name
 
-                $candidateScope = $null
-                if ($candidate.Path -match '^Registry::HKEY_CURRENT_USER\\.+') {
-                    $candidateScope = 'User'
-                } elseif ($candidate.Path -match '^Registry::HKEY_(LOCAL_MACHINE|CURRENT_CONFIG)\\.+') {
-                    $candidateScope = 'Machine'
-                } else {
-                    return $false
-                }
-                if ($candidateScope -in $candidateScopes) {
-                    return $false
-                }
-                $candidateScopes += $candidateScope
-
-                $optionNames = @($candidate.Options.Keys | Sort-Object)
-                if ($null -eq $expectedOptionNames) {
-                    $expectedOptionNames = $optionNames
-                } elseif (@(Compare-Object -ReferenceObject $expectedOptionNames -DifferenceObject $optionNames).Count -gt 0) {
+                if ($configuration.Scope -eq 'User') {
+                    if ($property.Path -notmatch '^Registry::HKEY_CURRENT_USER\\.+') {
+                        return $false
+                    }
+                } elseif ($property.Path -notmatch '^Registry::HKEY_(LOCAL_MACHINE|CURRENT_CONFIG)\\.+') {
                     return $false
                 }
 
-                foreach ($optionEntry in $candidate.Options.GetEnumerator()) {
+                $options = @($property.Options)
+                if ($options.Count -eq 0) {
+                    return $false
+                }
+
+                $optionNames = @()
+                foreach ($option in $options) {
                     if (
-                        $optionEntry.Key -isnot [string] -or
-                        [string]::IsNullOrWhiteSpace($optionEntry.Key) -or
-                        $optionEntry.Value -isnot [System.Collections.Hashtable] -or
-                        -not $optionEntry.Value.ContainsKey('Action') -or
-                        $optionEntry.Value.Action -notin @('Set', 'Remove')
+                        $option -isnot [System.Collections.Hashtable] -or
+                        -not $option.ContainsKey('Name') -or
+                        -not $option.ContainsKey('Action') -or
+                        $option.Name -isnot [string] -or
+                        [string]::IsNullOrWhiteSpace($option.Name) -or
+                        $option.Name -in $optionNames -or
+                        $option.Action -notin @('Set', 'Remove')
                     ) {
                         return $false
                     }
+                    $optionNames += $option.Name
 
-                    if (
-                        $optionEntry.Value.Action -eq 'Set' -and
-                        (
-                            -not $optionEntry.Value.ContainsKey('Value') -or
-                            $null -eq $optionEntry.Value.Value
-                        )
-                    ) {
-                        return $false
-                    }
-
-                    if ($optionEntry.Value.Action -eq 'Set') {
-                        $settingValue = $optionEntry.Value.Value
-                        $valueIsValid = switch ($candidate.Type) {
-                            'String' { $settingValue -is [string]; break }
-                            'ExpandString' { $settingValue -is [string]; break }
-                            'Binary' { $settingValue -is [byte[]]; break }
-                            'DWord' {
-                                $settingValue -is [byte] -or
-                                $settingValue -is [int16] -or
-                                $settingValue -is [int] -or
-                                $settingValue -is [long] -or
-                                $settingValue -is [uint16] -or
-                                $settingValue -is [uint32]
-                                break
-                            }
-                            'MultiString' {
-                                $settingValue -is [string[]]
-                                break
-                            }
-                            'QWord' {
-                                $settingValue -is [byte] -or
-                                $settingValue -is [int16] -or
-                                $settingValue -is [int] -or
-                                $settingValue -is [long] -or
-                                $settingValue -is [uint16] -or
-                                $settingValue -is [uint32] -or
-                                $settingValue -is [uint64]
-                                break
-                            }
-                        }
-                        if (-not $valueIsValid) {
+                    if ($option.Action -eq 'Remove') {
+                        if ($option.Count -ne 2) {
                             return $false
                         }
+                        continue
                     }
+
+                    if (
+                        $option.Count -ne 3 -or
+                        -not $option.ContainsKey('Value') -or
+                        $null -eq $option.Value
+                    ) {
+                        return $false
+                    }
+
+                    $valueIsValid = $false
+                    foreach ($valueType in $valueTypes[$property.Type]) {
+                        if ($valueType.IsInstanceOfType($option.Value)) {
+                            $valueIsValid = $true
+                            break
+                        }
+                    }
+                    if (-not $valueIsValid) {
+                        return $false
+                    }
+                }
+
+                $optionNames = @($optionNames | Sort-Object)
+                if ($null -eq $configurationOptionNames) {
+                    $configurationOptionNames = $optionNames
+                } elseif (@(Compare-Object -ReferenceObject $configurationOptionNames -DifferenceObject $optionNames).Count -gt 0) {
+                    return $false
                 }
             }
 
-            $completeScopes = @($completeScopes | Where-Object { $_ -in $candidateScopes })
-        }
-
-        if ($completeScopes.Count -eq 0) {
-            return $false
+            if ($null -eq $settingOptionNames) {
+                $settingOptionNames = $configurationOptionNames
+            } elseif (@(Compare-Object -ReferenceObject $settingOptionNames -DifferenceObject $configurationOptionNames).Count -gt 0) {
+                return $false
+            }
         }
     }
 

@@ -25,12 +25,10 @@ function Disable-WUClassicContextMenu {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $parameters = @{
+    $removeParameters = @{
         Path = 'Registry::HKEY_CURRENT_USER\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
         Name = ''
     }
-    $parameters += Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-    Remove-WURegistryProperty @parameters
+    $removeParameters += Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Remove-WURegistryProperty @removeParameters
 }

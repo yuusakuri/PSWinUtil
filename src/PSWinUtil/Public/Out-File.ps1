@@ -111,15 +111,15 @@ function Out-File {
     )
 
     begin {
-        $selectedPath = $FilePath
-        if ($PSCmdlet.ParameterSetName -eq 'ByLiteralPath') {
-            $selectedPath = $LiteralPath
+        $targetPath = $FilePath
+        if ($PSBoundParameters.ContainsKey('LiteralPath')) {
+            $targetPath = $LiteralPath
         }
         $action = 'Write formatted file content'
         if ($Append) {
             $action = 'Append formatted file content'
         }
-        $approved = $PSCmdlet.ShouldProcess($selectedPath, $action)
+        $approved = $PSCmdlet.ShouldProcess($targetPath, $action)
         if (-not $approved) {
             return
         }
@@ -134,10 +134,10 @@ function Out-File {
         $normalizeOutput = $PSBoundParameters.Encoding -ieq 'UTF8'
 
         if ($normalizeOutput) {
-            $fullPath = ConvertTo-WUFullPath -Path $selectedPath
+            $fullPath = ConvertTo-WUFullPath -Path $targetPath
             $targetExists = [System.IO.File]::Exists($fullPath)
             if ($NoClobber -and -not $Append -and $targetExists) {
-                throw "The file '$selectedPath' already exists."
+                throw "The file '$targetPath' already exists."
             }
             if ($Append -and $targetExists) {
                 Convert-WUTextFileToUtf8Lf -Path $fullPath
@@ -148,7 +148,7 @@ function Out-File {
                 $originalAttributes = [System.IO.File]::GetAttributes($fullPath)
                 $isReadOnly = ($originalAttributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0
                 if ($isReadOnly -and -not $Force) {
-                    throw "The file '$selectedPath' is read-only. Use Force to write it."
+                    throw "The file '$targetPath' is read-only. Use Force to write it."
                 }
                 if ($isReadOnly) {
                     $writableAttributes = $originalAttributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
@@ -194,11 +194,11 @@ function Out-File {
             $writeLines = {
                 param([object[]]$Line)
 
-                foreach ($currentLine in $Line) {
+                foreach ($inputLine in $Line) {
                     if ($NoNewline) {
-                        $streamWriter.Write([string]$currentLine)
+                        $streamWriter.Write([string]$inputLine)
                     } else {
-                        $streamWriter.WriteLine([string]$currentLine)
+                        $streamWriter.WriteLine([string]$inputLine)
                     }
                 }
             }

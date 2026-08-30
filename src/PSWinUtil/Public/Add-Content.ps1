@@ -125,14 +125,14 @@ function Add-Content {
     }
 
     begin {
-        $selectedPaths = @()
+        $paths = @()
         if ($null -ne $Path) {
-            $selectedPaths += $Path
+            $paths += $Path
         }
         if ($null -ne $LiteralPath) {
-            $selectedPaths += $LiteralPath
+            $paths += $LiteralPath
         }
-        $targetDescription = $selectedPaths -join ', '
+        $targetDescription = $paths -join ', '
         $approved = $PSCmdlet.ShouldProcess($targetDescription, 'Add file content')
         if (-not $approved) {
             return

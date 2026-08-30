@@ -78,13 +78,11 @@ function Register-WUStartupEntry {
         throw 'A startup command line cannot be longer than 260 characters.'
     }
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
-    $selectedScopes = @($Scope | Select-Object -Unique)
-    foreach ($currentScope in $selectedScopes) {
-        $registryPath = switch ($currentScope) {
+    $scopes = @($Scope | Select-Object -Unique)
+    foreach ($targetScope in $scopes) {
+        $registryPath = switch ($targetScope) {
             'User' { 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run' }
             'Machine' { 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run' }
         }
@@ -98,6 +96,6 @@ function Register-WUStartupEntry {
     }
 
     if ($PassThru) {
-        Get-WUStartupEntry -Name $Name -Scope $selectedScopes
+        Get-WUStartupEntry -Name $Name -Scope $scopes
     }
 }

@@ -128,6 +128,139 @@ Describe 'Resolve-WUPath' {
     }
 }
 
+Describe 'Resolve-WUPathFromParameterSet' {
+    BeforeEach {
+        $script:ParameterDirectory = Join-Path -Path $TestDrive -ChildPath 'Resolve-WUPathFromParameterSet'
+        $null = New-Item -Path $script:ParameterDirectory -ItemType Directory -Force
+        $script:ParameterFirstPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'first.txt'
+        $script:ParameterSecondPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'second.txt'
+        $script:ParameterLiteralPath = Join-Path -Path $script:ParameterDirectory -ChildPath 'item[1].txt'
+        [System.IO.File]::WriteAllText($script:ParameterFirstPath, 'first')
+        [System.IO.File]::WriteAllText($script:ParameterSecondPath, 'second')
+        [System.IO.File]::WriteAllText($script:ParameterLiteralPath, 'literal')
+    }
+
+    It 'resolves Path for the default Path parameter set name' {
+        $parameters = @{
+            ParameterSetName = 'Path'
+            Path = "$script:ParameterDirectory\*.txt"
+        }
+        $results = @(
+            Resolve-WUPathFromParameterSet @parameters
+        )
+
+        $results | Should -HaveCount 3
+        @($results.ProviderPath) | Should -Contain $script:ParameterFirstPath
+        @($results.ProviderPath) | Should -Contain $script:ParameterSecondPath
+        @($results.ProviderPath) | Should -Contain $script:ParameterLiteralPath
+    }
+
+    It 'resolves LiteralPath for the default LiteralPath parameter set name' {
+        $parameters = @{
+            ParameterSetName = 'LiteralPath'
+            LiteralPath = $script:ParameterLiteralPath
+        }
+        $result = Resolve-WUPathFromParameterSet @parameters
+
+        $result.ProviderPath | Should -Be $script:ParameterLiteralPath
+    }
+
+    It 'supports multiple custom path parameter set names' {
+        $parameters = @{
+            ParameterSetName = 'DestinationPath'
+            Path = $script:ParameterFirstPath
+            PathSetName = 'SourcePath', 'DestinationPath'
+            LiteralPathSetName = 'SourceLiteralPath', 'DestinationLiteralPath'
+        }
+        $result = Resolve-WUPathFromParameterSet @parameters
+
+        $result.ProviderPath | Should -Be $script:ParameterFirstPath
+    }
+
+    It 'forwards Relative to Resolve-WUPath' {
+        Push-Location -LiteralPath $script:ParameterDirectory
+        try {
+            $parameters = @{
+                ParameterSetName = 'LiteralPath'
+                LiteralPath = $script:ParameterFirstPath
+                Relative = $true
+            }
+            $result = Resolve-WUPathFromParameterSet @parameters
+        } finally {
+            Pop-Location
+        }
+
+        $result | Should -Be '.\first.txt'
+    }
+
+    It 'forwards DenyMultiplePaths to Resolve-WUPath' {
+        $parameters = @{
+            ParameterSetName = 'Path'
+            Path = "$script:ParameterDirectory\*.txt"
+            DenyMultiplePaths = $true
+        }
+        {
+            Resolve-WUPathFromParameterSet @parameters
+        } | Should -Throw '*more than one result*'
+    }
+
+    It 'forwards Credential to Resolve-WUPath' {
+        $securePassword = [System.Security.SecureString]::new()
+        $securePassword.AppendChar('x')
+        $credential = [System.Management.Automation.PSCredential]::new(
+            'user',
+            $securePassword
+        )
+        $expectedPath = $script:ParameterFirstPath
+        $expectedCredential = $credential
+        Mock -CommandName Resolve-WUPath -ModuleName PSWinUtil -MockWith {
+            'resolved'
+        }
+        $parameters = @{
+            ParameterSetName = 'LiteralPath'
+            LiteralPath = $script:ParameterFirstPath
+            Credential = $credential
+        }
+
+        $result = Resolve-WUPathFromParameterSet @parameters
+
+        $result | Should -Be 'resolved'
+        Should -Invoke -CommandName Resolve-WUPath -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq $expectedPath -and
+            $Credential -eq $expectedCredential
+        }
+    }
+
+    It 'rejects a selected parameter set without a path value' {
+        {
+            Resolve-WUPathFromParameterSet -ParameterSetName 'Path'
+        } | Should -Throw '*does not contain a valid Path value*'
+    }
+
+    It 'rejects a parameter set mapped to both path parameters' {
+        $parameters = @{
+            ParameterSetName = 'SharedPath'
+            Path = $script:ParameterFirstPath
+            LiteralPath = $script:ParameterFirstPath
+            PathSetName = 'SharedPath'
+            LiteralPathSetName = 'SharedPath'
+        }
+        {
+            Resolve-WUPathFromParameterSet @parameters
+        } | Should -Throw '*cannot select both Path and LiteralPath*'
+    }
+
+    It 'rejects an unsupported parameter set name' {
+        $parameters = @{
+            ParameterSetName = 'Script'
+            Path = $script:ParameterFirstPath
+        }
+        {
+            Resolve-WUPathFromParameterSet @parameters
+        } | Should -Throw "*Parameter set 'Script' is not supported*"
+    }
+}
+
 Describe 'Test-WUPathProperty' {
     BeforeEach {
         $script:TestFile = Join-Path -Path $TestDrive -ChildPath 'item.txt'
@@ -185,6 +318,30 @@ Describe 'Test-WUPathProperty' {
 }
 
 Describe 'Assert-WUPathProperty' {
+    It 'delegates wildcard Path validation to Test-WUPathProperty' {
+        $wildcardPath = Join-Path -Path $TestDrive -ChildPath '*.txt'
+        Mock -CommandName Test-WUPathProperty -ModuleName PSWinUtil -MockWith { $true }
+        Mock -CommandName Resolve-WUPath -ModuleName PSWinUtil
+
+        Assert-WUPathProperty -Path $wildcardPath -Leaf
+
+        Should -Invoke -CommandName Test-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq $wildcardPath -and $Leaf
+        }
+        Should -Invoke -CommandName Resolve-WUPath -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'delegates LiteralPath validation to Test-WUPathProperty' {
+        $literalPath = Join-Path -Path $TestDrive -ChildPath 'item[1].txt'
+        Mock -CommandName Test-WUPathProperty -ModuleName PSWinUtil -MockWith { $true }
+
+        Assert-WUPathProperty -LiteralPath $literalPath -Container
+
+        Should -Invoke -CommandName Test-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq $literalPath -and $Container
+        }
+    }
+
     It 'produces no output for a matching path' {
         $result = Assert-WUPathProperty -Path $TestDrive -Container
 

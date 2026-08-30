@@ -13,9 +13,7 @@ function Select-WUBoundParameter {
     Specifies the parameter names to select.
 
     .EXAMPLE
-    $parameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $parameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     Creates a hashtable containing the bound WhatIf and Confirm parameters.
 
@@ -36,7 +34,7 @@ function Select-WUBoundParameter {
         [string[]]$Name
     )
 
-    $parameters = @{}
+    $selectedParameters = @{}
     $containsKeyMethod = $BoundParameters.PSObject.Methods['ContainsKey']
 
     foreach ($parameterName in $Name) {
@@ -46,9 +44,9 @@ function Select-WUBoundParameter {
             $BoundParameters.Contains($parameterName)
         }
         if ($containsParameter) {
-            $parameters[$parameterName] = $BoundParameters[$parameterName]
+            $selectedParameters[$parameterName] = $BoundParameters[$parameterName]
         }
     }
 
-    return $parameters
+    return $selectedParameters
 }

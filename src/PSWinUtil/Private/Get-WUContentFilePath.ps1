@@ -27,19 +27,17 @@ function Get-WUContentFilePath {
         [System.Collections.IDictionary]$BoundParameter
     )
 
-    $parameters = @{
+    $itemParameters = @{
         ErrorAction = 'Stop'
     }
-    $parameters += Select-WUBoundParameter `
-        -BoundParameters $BoundParameter `
-        -Name 'Filter', 'Include', 'Exclude', 'Force'
+    $itemParameters += Select-WUBoundParameter -BoundParameters $BoundParameter -Name 'Filter', 'Include', 'Exclude', 'Force'
     if ($BoundParameter.ContainsKey('LiteralPath')) {
-        $parameters.LiteralPath = $BoundParameter.LiteralPath
+        $itemParameters.LiteralPath = $BoundParameter.LiteralPath
     } else {
-        $parameters.Path = $BoundParameter.Path
+        $itemParameters.Path = $BoundParameter.Path
     }
 
-    Microsoft.PowerShell.Management\Get-Item @parameters |
+    Microsoft.PowerShell.Management\Get-Item @itemParameters |
         Where-Object {
             -not $_.PSIsContainer -and
             $_.PSProvider.Name -eq 'FileSystem'

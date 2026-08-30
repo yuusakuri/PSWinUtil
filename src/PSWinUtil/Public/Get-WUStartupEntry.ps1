@@ -44,13 +44,13 @@ function Get-WUStartupEntry {
         User = 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run'
         Machine = 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run'
     }
-    $selectedScopes = @($scopePaths.Keys)
+    $scopes = @($scopePaths.Keys)
     if ($Scope -notcontains 'All') {
-        $selectedScopes = @($Scope | Select-Object -Unique)
+        $scopes = @($Scope | Select-Object -Unique)
     }
 
-    foreach ($selectedScope in $selectedScopes) {
-        $registryPath = $scopePaths[$selectedScope]
+    foreach ($targetScope in $scopes) {
+        $registryPath = $scopePaths[$targetScope]
         if (-not (Test-Path -LiteralPath $registryPath -PathType Container)) {
             continue
         }
@@ -65,7 +65,7 @@ function Get-WUStartupEntry {
             [pscustomobject]@{
                 PSTypeName = 'PSWinUtil.StartupEntry'
                 Name = $valueName
-                Scope = $selectedScope
+                Scope = $targetScope
                 CommandLine = $registryKey.GetValue(
                     $valueName,
                     $null,

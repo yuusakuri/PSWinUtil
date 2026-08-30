@@ -73,26 +73,20 @@ function Resolve-WUPath {
     )
 
     begin {
+        $pathParameterName = $PSCmdlet.ParameterSetName
+        $resolveParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'Relative', 'Credential'
         $pathsToResolve = [System.Collections.Generic.List[string]]::new()
     }
 
     process {
-        $pathParameterName = 'Path'
-        $selectedPaths = $Path
-        if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
-            $pathParameterName = 'LiteralPath'
-            $selectedPaths = $LiteralPath
-        }
+        $paths = if ($pathParameterName -eq 'LiteralPath') { $LiteralPath } else { $Path }
 
         if ($DenyMultiplePaths) {
-            foreach ($selectedPath in $selectedPaths) {
-                $pathsToResolve.Add($selectedPath)
+            foreach ($inputPath in $paths) {
+                $pathsToResolve.Add($inputPath)
             }
         } else {
-            $resolveParameters = Select-WUBoundParameter `
-                -BoundParameters $PSBoundParameters `
-                -Name 'Relative', 'Credential'
-            $resolveParameters[$pathParameterName] = $selectedPaths
+            $resolveParameters[$pathParameterName] = $paths
             Resolve-Path @resolveParameters
         }
     }
@@ -102,9 +96,6 @@ function Resolve-WUPath {
             return
         }
 
-        $resolveParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'Relative', 'Credential'
         $resolveParameters[$pathParameterName] = $pathsToResolve.ToArray()
         $resolveParameters['ErrorAction'] = 'Stop'
         $resolvedPaths = @(Resolve-Path @resolveParameters)

@@ -4,7 +4,7 @@ function Assert-WUPathProperty {
     Requires PowerShell paths to match selected properties.
 
     .DESCRIPTION
-    Expands wildcard Path values, uses Test-WUPathProperty, and reports an error when a path is missing or does not match the selected provider item type. LiteralPath values are checked without wildcard interpretation. AllowNonExisting permits a missing path while still validating an existing path. Successful checks produce no output.
+    Tests PowerShell paths with Test-WUPathProperty and reports an error when a path does not match the selected provider item type. AllowNonExisting permits a missing path while still validating an existing path. Successful checks produce no output.
 
     .PARAMETER Path
     Specifies one or more PowerShell paths to check. Wildcards are supported.
@@ -89,57 +89,29 @@ function Assert-WUPathProperty {
         if ($Leaf -and $Container) {
             throw 'Leaf and Container cannot be specified together.'
         }
+
+        $pathParameterName = $PSCmdlet.ParameterSetName
+        $testArguments = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'Leaf', 'Container'
     }
 
     process {
-        $selectedPaths = $Path
-        if ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
-            $selectedPaths = $LiteralPath
-        }
+        $paths = if ($pathParameterName -eq 'LiteralPath') { $LiteralPath } else { $Path }
 
-        foreach ($selectedPath in $selectedPaths) {
-            $pathsToTest = @($selectedPath)
-            if (
-                $PSCmdlet.ParameterSetName -eq 'Path' -and
-                [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($selectedPath)
-            ) {
-                try {
-                    $pathsToTest = @(Resolve-Path -Path $selectedPath -ErrorAction Stop)
-                } catch [System.Management.Automation.ItemNotFoundException] {
-                    if ($AllowNonExisting) {
-                        continue
-                    }
-                    throw
+        foreach ($inputPath in $paths) {
+            if ($AllowNonExisting) {
+                $existenceArguments = @{
+                    ErrorAction = 'Stop'
+                }
+                $existenceArguments[$pathParameterName] = $inputPath
+                if (-not (Test-Path @existenceArguments)) {
+                    continue
                 }
             }
 
-            if ($pathsToTest.Count -eq 0) {
-                if ($AllowNonExisting) {
-                    continue
-                }
-                throw [System.Management.Automation.ItemNotFoundException]::new()
-            }
-
-            foreach ($pathToTest in $pathsToTest) {
-                $literalPathToTest = $pathToTest
-                if ($pathToTest -is [System.Management.Automation.PathInfo]) {
-                    $literalPathToTest = $pathToTest.Path
-                }
-
-                if (
-                    $AllowNonExisting -and
-                    -not (Test-Path -LiteralPath $literalPathToTest -ErrorAction Stop)
-                ) {
-                    continue
-                }
-
-                $testParameters = Select-WUBoundParameter `
-                    -BoundParameters $PSBoundParameters `
-                    -Name 'Leaf', 'Container'
-                $testParameters['LiteralPath'] = $literalPathToTest
-                if (-not (Test-WUPathProperty @testParameters)) {
-                    throw "The path does not match the required properties: $literalPathToTest"
-                }
+            $testArguments[$pathParameterName] = $inputPath
+            $results = @(Test-WUPathProperty @testArguments)
+            if ($results -contains $false) {
+                throw "The path does not match the required properties: $inputPath"
             }
         }
     }

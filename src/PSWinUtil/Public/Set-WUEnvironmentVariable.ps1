@@ -110,19 +110,19 @@ function Set-WUEnvironmentVariable {
     }
 
     process {
-        if ($PSCmdlet.ParameterSetName -eq 'ByName') {
+        if ($PSBoundParameters.ContainsKey('Name')) {
             if ($null -ne $Value -and $Value -isnot [string]) {
                 throw 'The environment variable value must be a string or null.'
             }
 
-            foreach ($currentScope in $Scope) {
+            foreach ($targetScope in $Scope) {
                 $settings += [pscustomobject]@{
                     Name = $Name
                     Value = $Value
-                    Scope = $currentScope
+                    Scope = $targetScope
                 }
             }
-        } elseif ($PSCmdlet.ParameterSetName -eq 'ByFile') {
+        } elseif ($PSBoundParameters.ContainsKey('Path')) {
             $dataPaths += $Path
         } else {
             $dataPaths += $LiteralPath
@@ -130,14 +130,14 @@ function Set-WUEnvironmentVariable {
     }
 
     end {
-        if ($PSCmdlet.ParameterSetName -eq 'ByFile') {
+        if ($PSBoundParameters.ContainsKey('Path')) {
             $settings = @(Import-WUEnvironmentVariableSetting -Path $dataPaths -Scope $Scope)
-        } elseif ($PSCmdlet.ParameterSetName -eq 'ByLiteralFile') {
-            $settings = @(
-                Import-WUEnvironmentVariableSetting `
-                    -LiteralPath $dataPaths `
-                    -Scope $Scope
-            )
+        } elseif ($PSBoundParameters.ContainsKey('LiteralPath')) {
+            $importParameters = @{
+                LiteralPath = $dataPaths
+                Scope = $Scope
+            }
+            $settings = @(Import-WUEnvironmentVariableSetting @importParameters)
         }
 
         foreach ($setting in $settings) {

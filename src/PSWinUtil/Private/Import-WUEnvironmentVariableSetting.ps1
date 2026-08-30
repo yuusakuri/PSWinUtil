@@ -48,11 +48,13 @@ function Import-WUEnvironmentVariableSetting {
         [string[]]$Scope
     )
 
-    $resolveParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'Path', 'LiteralPath'
+    $resolveParameters = @{
+        ParameterSetName = $PSCmdlet.ParameterSetName
+        Path = $Path
+        LiteralPath = $LiteralPath
+    }
     $resolvedFiles = @(
-        Resolve-WUPath @resolveParameters |
+        Resolve-WUPathFromParameterSet @resolveParameters |
             ConvertTo-WUFullPath
     )
     Assert-WUPathProperty -LiteralPath $resolvedFiles -Leaf
@@ -64,19 +66,17 @@ function Import-WUEnvironmentVariableSetting {
 
     $settings = @()
     foreach ($resolvedFile in @($resolvedFiles | Select-Object -Unique)) {
-        $environmentVariables = Import-PowerShellDataFile `
-            -LiteralPath $resolvedFile `
-            -ErrorAction Stop
+        $environmentVariables = Import-PowerShellDataFile -LiteralPath $resolvedFile -ErrorAction Stop
         if (-not (Test-WUEnvironmentVariableSetting -Setting $environmentVariables)) {
             throw "The environment data file must contain valid environment variable settings: $resolvedFile"
         }
 
         foreach ($environmentEntry in $environmentVariables.GetEnumerator()) {
-            foreach ($currentScope in $Scope) {
+            foreach ($targetScope in $Scope) {
                 $settings += [pscustomobject]@{
                     Name = [string]$environmentEntry.Key
                     Value = [string]$environmentEntry.Value
-                    Scope = $currentScope
+                    Scope = $targetScope
                 }
             }
         }

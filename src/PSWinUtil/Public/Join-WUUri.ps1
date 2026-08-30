@@ -46,12 +46,12 @@ function Join-WUUri {
     )
 
     process {
-        foreach ($currentBaseUri in $BaseUri) {
-            if (-not $currentBaseUri.IsAbsoluteUri) {
-                throw "BaseUri must be absolute: $currentBaseUri"
+        foreach ($inputBaseUri in $BaseUri) {
+            if (-not $inputBaseUri.IsAbsoluteUri) {
+                throw "BaseUri must be absolute: $inputBaseUri"
             }
 
-            [uri]::new($currentBaseUri, $RelativeUri)
+            [uri]::new($inputBaseUri, $RelativeUri)
         }
     }
 }

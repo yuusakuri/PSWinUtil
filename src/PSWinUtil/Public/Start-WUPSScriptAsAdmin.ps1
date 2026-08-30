@@ -74,10 +74,13 @@ function Start-WUPSScriptAsAdmin {
     )
 
     process {
-        $pathParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'Path', 'LiteralPath'
-        $fullPath = Resolve-WUPath @pathParameters -DenyMultiplePaths |
+        $resolveParameters = @{
+            ParameterSetName = $PSCmdlet.ParameterSetName
+            Path = $Path
+            LiteralPath = $LiteralPath
+            DenyMultiplePaths = $true
+        }
+        $fullPath = Resolve-WUPathFromParameterSet @resolveParameters |
             ConvertTo-WUFullPath
         Assert-WUPathProperty -LiteralPath $fullPath -Leaf
         if ([System.IO.Path]::GetExtension($fullPath) -ine '.ps1') {
@@ -85,18 +88,17 @@ function Start-WUPSScriptAsAdmin {
         }
         Assert-WUPSScript -LiteralPath $fullPath
 
-        $windowsPowerShell = Get-Command -Name 'powershell.exe' -CommandType Application -ErrorAction Stop
-        $escapedPath = $fullPath.Replace("'", "''")
-        $scriptCommand = "& '$escapedPath'"
+        $quotedArguments = [System.Collections.Generic.List[string]]::new()
+        $quotedArguments.Add((ConvertTo-WUPSStringLiteral -InputObject $fullPath))
         foreach ($argument in $ArgumentList) {
-            $escapedArgument = $argument.Replace("'", "''")
-            $scriptCommand += " '$escapedArgument'"
+            $quotedArguments.Add((ConvertTo-WUPSStringLiteral -InputObject $argument))
         }
+        $scriptCommand = '& {0}' -f ($quotedArguments -join ' ')
         $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($scriptCommand))
         $processArguments = @('-NoProfile', '-EncodedCommand', $encodedCommand)
 
         if ($PSCmdlet.ShouldProcess($fullPath, 'Start PowerShell script as administrator')) {
-            Start-Process -FilePath $windowsPowerShell.Source -ArgumentList $processArguments -Verb 'RunAs'
+            Start-Process -FilePath 'powershell.exe' -ArgumentList $processArguments -Verb 'RunAs'
         }
     }
 }

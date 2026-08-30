@@ -40,6 +40,76 @@ Describe 'Set-WUNativeCommandEncoding' {
     }
 }
 
+Describe 'ConvertTo-WUNativeCommandArgument' {
+    It 'preserves an empty argument in Windows PowerShell' {
+        ConvertTo-WUNativeCommandArgument -Argument '' | Should -Be '""'
+    }
+
+    It 'returns nonempty arguments unchanged' {
+        $arguments = @('plain', 'two words', 'say"hello')
+
+        $result = @($arguments | ConvertTo-WUNativeCommandArgument)
+
+        $result | Should -HaveCount 3
+        for ($index = 0; $index -lt $arguments.Count; $index++) {
+            $result[$index] | Should -Be $arguments[$index]
+        }
+    }
+}
+
+Describe 'ConvertTo-WUPSStringLiteral' {
+    It 'uses single quotation marks by default' {
+        ConvertTo-WUPSStringLiteral -InputObject 'plain text' |
+            Should -Be "'plain text'"
+    }
+
+    It 'doubles embedded single quotation marks' {
+        ConvertTo-WUPSStringLiteral -InputObject "It's ready" |
+            Should -Be "'It''s ready'"
+    }
+
+    It 'represents an empty single-quoted string' {
+        ConvertTo-WUPSStringLiteral -InputObject '' |
+            Should -Be "''"
+    }
+
+    It 'escapes a double-quoted string without changing its value' {
+        $value = '$HOME "quoted" ` $(Get-Item .)'
+        $expectedLiteral = '"' + '`$HOME `"quoted`" `` `$(Get-Item .)' + '"'
+
+        $literal = ConvertTo-WUPSStringLiteral -InputObject $value -QuoteType Double
+
+        $literal | Should -Be $expectedLiteral
+        & ([scriptblock]::Create($literal)) | Should -Be $value
+    }
+
+    It 'represents an empty double-quoted string' {
+        ConvertTo-WUPSStringLiteral -InputObject '' -QuoteType Double |
+            Should -Be '""'
+    }
+
+    It 'converts an input array in order' {
+        $values = @('first value', '', "third'value")
+
+        $result = @(ConvertTo-WUPSStringLiteral -InputObject $values)
+
+        $result | Should -HaveCount 3
+        $result[0] | Should -Be "'first value'"
+        $result[1] | Should -Be "''"
+        $result[2] | Should -Be "'third''value'"
+    }
+
+    It 'accepts strings from the pipeline' {
+        $values = @('first', 'second')
+
+        $result = @($values | ConvertTo-WUPSStringLiteral)
+
+        $result | Should -HaveCount 2
+        $result[0] | Should -Be "'first'"
+        $result[1] | Should -Be "'second'"
+    }
+}
+
 Describe 'Start-WUAndroidEmulator' {
     BeforeEach {
         InModuleScope -ModuleName PSWinUtil {

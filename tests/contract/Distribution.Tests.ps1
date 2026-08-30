@@ -18,8 +18,8 @@ Describe 'Distribution contents' {
             -ChildPath 'data/RegistrySettings.psd1'
 
         Test-Path -LiteralPath $registrySettingPath -PathType Leaf | Should -BeTrue
-        $settings = Import-PowerShellDataFile -Path $registrySettingPath
-        $settings.ContainsKey('DarkMode') | Should -BeTrue
+        $settingData = Import-PowerShellDataFile -Path $registrySettingPath
+        @($settingData.Settings.Name) | Should -Contain 'DarkMode'
     }
 
     It 'can be imported through the development command' {

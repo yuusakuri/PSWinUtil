@@ -71,16 +71,8 @@ function Assert-WUPSScript {
     )
 
     process {
-        $testParameters = @{
-            Detailed = $true
-        }
-        if ($PSCmdlet.ParameterSetName -eq 'Path') {
-            $testParameters.Path = $Path
-        } elseif ($PSCmdlet.ParameterSetName -eq 'LiteralPath') {
-            $testParameters.LiteralPath = $LiteralPath
-        } else {
-            $testParameters.Script = $Script
-        }
+        $testParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'Path', 'LiteralPath', 'Script'
+        $testParameters.Detailed = $true
 
         foreach ($result in @(Test-WUPSScript @testParameters)) {
             if (-not $result.IsValid) {
