@@ -90,17 +90,12 @@ function Assert-WUPathProperty {
             throw 'Leaf and Container cannot be specified together.'
         }
 
+        $pathParameterName = $PSCmdlet.ParameterSetName
         $testArguments = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'Leaf', 'Container'
     }
 
     process {
-        $isLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
-        $paths = if ($isLiteralPath) {
-            $LiteralPath
-        } else {
-            $Path
-        }
-        $pathParameterName = if ($isLiteralPath) { 'LiteralPath' } else { 'Path' }
+        $paths = if ($pathParameterName -eq 'LiteralPath') { $LiteralPath } else { $Path }
 
         foreach ($inputPath in $paths) {
             if ($AllowNonExisting) {

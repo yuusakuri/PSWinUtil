@@ -54,9 +54,7 @@ function Compare-WURegistryValue {
     }
 
     for ($index = 0; $index -lt $ReferenceValue.Count; $index++) {
-        if (-not (Compare-WURegistryValue `
-                    -ReferenceValue $ReferenceValue[$index] `
-                    -DifferenceValue $DifferenceValue[$index])) {
+        if (-not (Compare-WURegistryValue -ReferenceValue $ReferenceValue[$index] -DifferenceValue $DifferenceValue[$index])) {
             return $false
         }
     }

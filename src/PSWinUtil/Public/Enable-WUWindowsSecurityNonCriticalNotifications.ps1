@@ -30,12 +30,6 @@ function Enable-WUWindowsSecurityNonCriticalNotifications {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'WindowsSecurityNonCriticalNotifications' `
-        -Option 'Enable' `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'WindowsSecurityNonCriticalNotifications' -Option 'Enable' @shouldProcessParameters
 }

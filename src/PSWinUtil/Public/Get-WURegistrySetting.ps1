@@ -60,27 +60,19 @@ function Get-WURegistrySetting {
             }
 
             foreach ($targetScope in $scopes) {
-                $configurationParameters = @{
-                    Setting = $setting
-                    Scope = $targetScope
-                }
-                $configuration = Get-WURegistrySettingConfiguration @configurationParameters
-                $propertyStates = @()
-                foreach ($property in $configuration.Properties) {
-                    $propertyParameters = @{
-                        Path = $property.Path
-                        Name = $property.Name
+                $configuration = Get-WURegistrySettingConfiguration -Setting $setting -Scope $targetScope
+                $propertyStates = @(
+                    foreach ($property in $configuration.Properties) {
+                        $registryProperty = Get-WURegistryProperty -Path $property.Path -Name $property.Name
+                        [pscustomobject]@{
+                            Property = $property
+                            RegistryProperty = $registryProperty
+                        }
                     }
-                    $registryProperty = Get-WURegistryProperty @propertyParameters
-                    $propertyStates += [pscustomobject]@{
-                        Property = $property
-                        RegistryProperty = $registryProperty
-                    }
-                }
+                )
 
                 $state = $null
-                $optionNames = @($configuration.Properties[0].Options.Name | Sort-Object)
-                foreach ($optionName in $optionNames) {
+                foreach ($optionName in @($configuration.Properties[0].Options.Name | Sort-Object)) {
                     $optionMatches = $true
                     foreach ($propertyState in $propertyStates) {
                         $option = @(
@@ -102,11 +94,7 @@ function Get-WURegistrySetting {
                             break
                         }
 
-                        $comparisonParameters = @{
-                            ReferenceValue = $option.Value
-                            DifferenceValue = $propertyState.RegistryProperty.Value
-                        }
-                        if (-not (Compare-WURegistryValue @comparisonParameters)) {
+                        if (-not (Compare-WURegistryValue -ReferenceValue $option.Value -DifferenceValue $propertyState.RegistryProperty.Value)) {
                             $optionMatches = $false
                             break
                         }

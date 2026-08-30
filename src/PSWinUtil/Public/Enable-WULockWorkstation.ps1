@@ -25,12 +25,6 @@ function Enable-WULockWorkstation {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'LockWorkstation' `
-        -Option 'Enable' `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'LockWorkstation' -Option 'Enable' @shouldProcessParameters
 }

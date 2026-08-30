@@ -13,9 +13,7 @@ function Select-WUBoundParameter {
     Specifies the parameter names to select.
 
     .EXAMPLE
-    $parameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $parameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     Creates a hashtable containing the bound WhatIf and Confirm parameters.
 

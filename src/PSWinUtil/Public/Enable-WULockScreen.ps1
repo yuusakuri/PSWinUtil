@@ -25,12 +25,6 @@ function Enable-WULockScreen {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'LockScreen' `
-        -Option 'Enable' `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'LockScreen' -Option 'Enable' @shouldProcessParameters
 }

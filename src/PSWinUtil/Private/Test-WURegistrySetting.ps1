@@ -42,7 +42,14 @@ function Test-WURegistrySetting {
     }
 
     $settingNames = @()
-    $supportedTypes = @('String', 'ExpandString', 'Binary', 'DWord', 'MultiString', 'QWord')
+    $valueTypes = @{
+        String = @([string])
+        ExpandString = @([string])
+        Binary = @([byte[]])
+        DWord = @([byte], [int16], [int], [long], [uint16], [uint32])
+        MultiString = @([string[]])
+        QWord = @([byte], [int16], [int], [long], [uint16], [uint32], [uint64])
+    }
     foreach ($settingDefinition in $settings) {
         if (
             $settingDefinition -isnot [System.Collections.Hashtable] -or
@@ -97,7 +104,7 @@ function Test-WURegistrySetting {
                     $property.Name -in $propertyNames -or
                     $property.Path -isnot [string] -or
                     [string]::IsNullOrWhiteSpace($property.Path) -or
-                    $property.Type -notin $supportedTypes
+                    $property.Type -notin $valueTypes.Keys
                 ) {
                     return $false
                 }
@@ -146,32 +153,10 @@ function Test-WURegistrySetting {
                         return $false
                     }
 
-                    $settingValue = $option.Value
-                    $valueIsValid = switch ($property.Type) {
-                        'String' { $settingValue -is [string]; break }
-                        'ExpandString' { $settingValue -is [string]; break }
-                        'Binary' { $settingValue -is [byte[]]; break }
-                        'DWord' {
-                            $settingValue -is [byte] -or
-                            $settingValue -is [int16] -or
-                            $settingValue -is [int] -or
-                            $settingValue -is [long] -or
-                            $settingValue -is [uint16] -or
-                            $settingValue -is [uint32]
-                            break
-                        }
-                        'MultiString' {
-                            $settingValue -is [string[]]
-                            break
-                        }
-                        'QWord' {
-                            $settingValue -is [byte] -or
-                            $settingValue -is [int16] -or
-                            $settingValue -is [int] -or
-                            $settingValue -is [long] -or
-                            $settingValue -is [uint16] -or
-                            $settingValue -is [uint32] -or
-                            $settingValue -is [uint64]
+                    $valueIsValid = $false
+                    foreach ($valueType in $valueTypes[$property.Type]) {
+                        if ($valueType.IsInstanceOfType($option.Value)) {
+                            $valueIsValid = $true
                             break
                         }
                     }

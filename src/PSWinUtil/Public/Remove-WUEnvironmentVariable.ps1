@@ -51,9 +51,7 @@ function Remove-WUEnvironmentVariable {
     )
 
     begin {
-        $shouldProcessParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'WhatIf', 'Confirm'
+        $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
     }
 
     process {

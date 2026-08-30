@@ -44,9 +44,7 @@ function Unregister-WUStartupEntry {
         [string[]]$Scope = 'User'
     )
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     foreach ($targetScope in @($Scope | Select-Object -Unique)) {
         $registryPath = switch ($targetScope) {

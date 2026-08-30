@@ -30,12 +30,6 @@ function Disable-WUWindowsMediaPlayerFirstUseDialogBoxes {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'WindowsMediaPlayerFirstUseDialogBoxes' `
-        -Option 'Disable' `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'WindowsMediaPlayerFirstUseDialogBoxes' -Option 'Disable' @shouldProcessParameters
 }

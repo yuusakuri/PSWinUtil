@@ -30,12 +30,6 @@ function Enable-WUAppSuggestions {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'AppSuggestions' `
-        -Option 'Enable' `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'AppSuggestions' -Option 'Enable' @shouldProcessParameters
 }

@@ -66,9 +66,7 @@ function Import-WUEnvironmentVariableSetting {
 
     $settings = @()
     foreach ($resolvedFile in @($resolvedFiles | Select-Object -Unique)) {
-        $environmentVariables = Import-PowerShellDataFile `
-            -LiteralPath $resolvedFile `
-            -ErrorAction Stop
+        $environmentVariables = Import-PowerShellDataFile -LiteralPath $resolvedFile -ErrorAction Stop
         if (-not (Test-WUEnvironmentVariableSetting -Setting $environmentVariables)) {
             throw "The environment data file must contain valid environment variable settings: $resolvedFile"
         }

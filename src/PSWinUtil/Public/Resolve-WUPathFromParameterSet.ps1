@@ -97,12 +97,8 @@ function Resolve-WUPathFromParameterSet {
         throw "Parameter set '$ParameterSetName' is not supported."
     }
 
-    $pathParameterName = 'Path'
-    $paths = $Path
-    if ($isLiteralPath) {
-        $pathParameterName = 'LiteralPath'
-        $paths = $LiteralPath
-    }
+    $pathParameterName = if ($isLiteralPath) { 'LiteralPath' } else { 'Path' }
+    $paths = if ($isLiteralPath) { $LiteralPath } else { $Path }
     $invalidPaths = @($paths | Where-Object { [string]::IsNullOrEmpty($_) })
     if (@($paths).Count -eq 0 -or $invalidPaths.Count -gt 0) {
         throw "Parameter set '$ParameterSetName' does not contain a valid $pathParameterName value."

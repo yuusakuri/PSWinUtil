@@ -10,8 +10,7 @@ function Open-WURegistryKeyForWrite {
     Specifies an existing HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, or HKEY_CURRENT_CONFIG registry provider path.
 
     .EXAMPLE
-    $key = Open-WURegistryKeyForWrite `
-        -Path 'Registry::HKEY_CURRENT_USER\Software\Example'
+    $key = Open-WURegistryKeyForWrite -Path 'Registry::HKEY_CURRENT_USER\Software\Example'
 
     Opens the Example key for writing.
 

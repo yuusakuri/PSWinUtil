@@ -32,10 +32,6 @@ function Set-WUTaskbarAlignment {
         [string]$Alignment
     )
 
-    $settingParameters = @{
-        Name = 'TaskbarAlignment'
-        Option = $Alignment
-    }
-    $settingParameters += Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
-    Set-WURegistrySetting @settingParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'TaskbarAlignment' -Option $Alignment @shouldProcessParameters
 }

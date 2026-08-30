@@ -25,10 +25,6 @@ function Set-WUJapaneseImeHalfWidthInput {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $settingParameters = @{
-        Name = 'JapaneseImeHalfWidthInput'
-        Option = 'Set'
-    }
-    $settingParameters += Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
-    Set-WURegistrySetting @settingParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'JapaneseImeHalfWidthInput' -Option 'Set' @shouldProcessParameters
 }

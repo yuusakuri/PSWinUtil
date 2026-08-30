@@ -52,9 +52,7 @@ function Remove-WUPathEnvironmentVariable {
 
     begin {
         $paths = @()
-        $shouldProcessParameters = Select-WUBoundParameter `
-            -BoundParameters $PSBoundParameters `
-            -Name 'WhatIf', 'Confirm'
+        $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
     }
 
     process {

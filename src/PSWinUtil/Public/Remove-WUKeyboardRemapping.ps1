@@ -49,9 +49,7 @@ function Remove-WUKeyboardRemapping {
         return
     }
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     if ($All) {
         Remove-WURegistryProperty -Path $registryPath -Name 'Scancode Map' @shouldProcessParameters

@@ -34,10 +34,7 @@ function Get-WURegistrySettingConfiguration {
         [string]$Scope
     )
 
-    $targetScopes = @($Scope)
-    if ($Scope -eq 'Auto') {
-        $targetScopes = @('User', 'Machine')
-    }
+    $targetScopes = if ($Scope -eq 'Auto') { @('User', 'Machine') } else { @($Scope) }
 
     foreach ($targetScope in $targetScopes) {
         $configuration = @(

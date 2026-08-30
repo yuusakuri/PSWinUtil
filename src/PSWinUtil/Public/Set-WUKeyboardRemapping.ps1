@@ -66,9 +66,7 @@ function Set-WUKeyboardRemapping {
     }
 
     $value = ConvertTo-WUScancodeMap -Mapping $mappings
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
     $setParameters = @{
         Path = $registryPath
         Name = 'Scancode Map'

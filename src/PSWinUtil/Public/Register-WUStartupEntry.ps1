@@ -78,9 +78,7 @@ function Register-WUStartupEntry {
         throw 'A startup command line cannot be longer than 260 characters.'
     }
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     $scopes = @($Scope | Select-Object -Unique)
     foreach ($targetScope in $scopes) {

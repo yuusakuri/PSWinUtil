@@ -215,6 +215,46 @@ Describe 'Registry setting schema' {
         } | Should -BeFalse
     }
 
+    It 'accepts values represented by every supported registry type' {
+        InModuleScope -ModuleName PSWinUtil {
+            $typeCases = @(
+                @{ Type = 'String'; Value = 'value' }
+                @{ Type = 'ExpandString'; Value = '%TEMP%' }
+                @{ Type = 'Binary'; Value = [byte[]]@(1, 2) }
+                @{ Type = 'DWord'; Value = [uint32]::MaxValue }
+                @{ Type = 'MultiString'; Value = [string[]]@('one', 'two') }
+                @{ Type = 'QWord'; Value = [uint64]::MaxValue }
+            )
+
+            foreach ($typeCase in $typeCases) {
+                $settingData = @{
+                    Settings = @(
+                        @{
+                            Name = 'Valid'
+                            Configurations = @(
+                                @{
+                                    Scope = 'User'
+                                    Properties = @(
+                                        @{
+                                            Name = 'Value'
+                                            Path = 'Registry::HKEY_CURRENT_USER\Software\Valid'
+                                            Type = $typeCase.Type
+                                            Options = @(
+                                                @{ Name = 'Set'; Action = 'Set'; Value = $typeCase.Value }
+                                            )
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+
+                Test-WURegistrySetting -Setting $settingData | Should -BeTrue
+            }
+        }
+    }
+
     It 'imports and validates the distributed setting data' {
         InModuleScope -ModuleName PSWinUtil {
             $settingData = Import-WURegistrySetting

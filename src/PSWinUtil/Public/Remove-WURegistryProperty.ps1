@@ -13,9 +13,7 @@ function Remove-WURegistryProperty {
     Specifies the registry property name. An empty string selects the default value.
 
     .EXAMPLE
-    Remove-WURegistryProperty `
-        -Path 'Registry::HKEY_CURRENT_USER\Software\Example' `
-        -Name 'Enabled'
+    Remove-WURegistryProperty -Path 'Registry::HKEY_CURRENT_USER\Software\Example' -Name 'Enabled'
 
     Removes the Enabled registry property when it exists.
 

@@ -65,11 +65,7 @@ function Set-WURegistrySetting {
     $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     foreach ($targetScope in $scopes) {
-        $configurationParameters = @{
-            Setting = $setting
-            Scope = $targetScope
-        }
-        $configuration = Get-WURegistrySettingConfiguration @configurationParameters
+        $configuration = Get-WURegistrySettingConfiguration -Setting $setting -Scope $targetScope
         $configurationOption = @(
             $configuration.Properties[0].Options | Where-Object { $_.Name -ieq $Option }
         )[0]

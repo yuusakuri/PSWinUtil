@@ -22,11 +22,7 @@ function Set-WURegistryProperty {
     Returns the stored registry property.
 
     .EXAMPLE
-    Set-WURegistryProperty `
-        -Path 'Registry::HKEY_CURRENT_USER\Software\Example' `
-        -Name 'Enabled' `
-        -Value 1 `
-        -Type DWord
+    Set-WURegistryProperty -Path 'Registry::HKEY_CURRENT_USER\Software\Example' -Name 'Enabled' -Value 1 -Type DWord
 
     Creates or updates the Enabled registry property.
 
@@ -72,9 +68,7 @@ function Set-WURegistryProperty {
     if (
         $null -ne $currentProperty -and
         $currentProperty.Type -ieq $Type -and
-        (Compare-WURegistryValue `
-            -ReferenceValue $normalizedValue `
-            -DifferenceValue $currentProperty.Value)
+        (Compare-WURegistryValue -ReferenceValue $normalizedValue -DifferenceValue $currentProperty.Value)
     ) {
         if ($PassThru) {
             $currentProperty
@@ -103,13 +97,15 @@ function Set-WURegistryProperty {
             $registryKey.Dispose()
         }
     } else {
-        $null = New-ItemProperty `
-            -LiteralPath $Path `
-            -Name $Name `
-            -Value $normalizedValue `
-            -PropertyType $Type `
-            -Force `
-            -ErrorAction Stop
+        $propertyParameters = @{
+            LiteralPath = $Path
+            Name = $Name
+            Value = $normalizedValue
+            PropertyType = $Type
+            Force = $true
+            ErrorAction = 'Stop'
+        }
+        $null = New-ItemProperty @propertyParameters
     }
 
     if ($PassThru) {

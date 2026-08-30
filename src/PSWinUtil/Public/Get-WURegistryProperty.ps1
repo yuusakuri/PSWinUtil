@@ -13,9 +13,7 @@ function Get-WURegistryProperty {
     Specifies the registry property name. An empty string selects the default value.
 
     .EXAMPLE
-    Get-WURegistryProperty `
-        -Path 'Registry::HKEY_CURRENT_USER\Software\Example' `
-        -Name 'Enabled'
+    Get-WURegistryProperty -Path 'Registry::HKEY_CURRENT_USER\Software\Example' -Name 'Enabled'
 
     Gets the Enabled registry property.
 

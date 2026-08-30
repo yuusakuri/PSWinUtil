@@ -32,12 +32,6 @@ function Set-WUWindowsUpdateNotificationLevel {
         [string]$Level
     )
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
-
-    Set-WURegistrySetting `
-        -Name 'WindowsUpdateNotificationLevel' `
-        -Option $Level `
-        @shouldProcessParameters
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
+    Set-WURegistrySetting -Name 'WindowsUpdateNotificationLevel' -Option $Level @shouldProcessParameters
 }

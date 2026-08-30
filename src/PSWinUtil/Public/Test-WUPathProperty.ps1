@@ -79,14 +79,13 @@ function Test-WUPathProperty {
         if ($Leaf -and $Container) {
             throw 'Leaf and Container cannot be specified together.'
         }
+
+        $isLiteralPath = $PSCmdlet.ParameterSetName -eq 'LiteralPath'
+        $pathType = if ($Leaf) { 'Leaf' } elseif ($Container) { 'Container' } else { 'Any' }
     }
 
     process {
-        $isLiteralPath = $PSBoundParameters.ContainsKey('LiteralPath')
-        $paths = $Path
-        if ($isLiteralPath) {
-            $paths = $LiteralPath
-        }
+        $paths = if ($isLiteralPath) { $LiteralPath } else { $Path }
 
         foreach ($inputPath in $paths) {
             $targetPaths = @($inputPath)
@@ -110,13 +109,6 @@ function Test-WUPathProperty {
             foreach ($targetPath in $targetPaths) {
                 if ($targetPath -is [System.Management.Automation.PathInfo]) {
                     $targetPath = $targetPath.Path
-                }
-
-                $pathType = 'Any'
-                if ($Leaf) {
-                    $pathType = 'Leaf'
-                } elseif ($Container) {
-                    $pathType = 'Container'
                 }
 
                 try {
