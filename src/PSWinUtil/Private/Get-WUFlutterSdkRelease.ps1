@@ -45,10 +45,7 @@ function Get-WUFlutterSdkRelease {
     $releaseIndexUri = 'https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json'
     $progressPreference = 'SilentlyContinue'
     try {
-        $response = Invoke-WebRequest `
-            -UseBasicParsing `
-            -Uri $releaseIndexUri `
-            -ErrorAction Stop
+        $response = Invoke-WebRequest -UseBasicParsing -Uri $releaseIndexUri -ErrorAction Stop
         $releaseData = $response.Content | ConvertFrom-Json -ErrorAction Stop
     } catch {
         throw "Could not read the Flutter SDK release index. $($_.Exception.Message)"
@@ -88,11 +85,10 @@ function Get-WUFlutterSdkRelease {
     if ([string]::IsNullOrWhiteSpace($Version)) {
         $currentReleaseHash = [string]$releaseData.current_release.$Channel
         if (-not [string]::IsNullOrWhiteSpace($currentReleaseHash)) {
-            $currentReleases = @(
+            $targetRelease = @(
                 $matchingReleases |
                     Where-Object { $_.hash -eq $currentReleaseHash }
-            )
-            $targetRelease = $currentReleases | Select-Object -First 1
+            )[0]
         }
     }
     if ($null -eq $targetRelease) {

@@ -45,10 +45,7 @@ function Invoke-WUFlutterSdkCommand {
         [switch]$IgnoreExitCode
     )
 
-    $application = Get-Command `
-        -Name $Command `
-        -CommandType Application `
-        -ErrorAction Stop |
+    $application = Get-Command -Name $Command -CommandType Application -ErrorAction Stop |
         Select-Object -First 1
     $previousErrorActionPreference = $ErrorActionPreference
     try {
@@ -64,7 +61,7 @@ function Invoke-WUFlutterSdkCommand {
     }
 
     if ($exitCode -ne 0 -and -not $IgnoreExitCode) {
-        $displayCommand = @($Command) + $ArgumentList -join ' '
+        $displayCommand = (@($Command) + $ArgumentList) -join ' '
         throw "The Flutter SDK command failed with exit code $exitCode`: $displayCommand"
     }
 }

@@ -76,36 +76,18 @@ function Install-WUFlutterSdk {
 
     process {
         $fullDestinationPath = ConvertTo-WUFullPath -Path $DestinationPath
-        Assert-WUPathProperty `
-            -LiteralPath $fullDestinationPath `
-            -Container `
-            -AllowNonExisting
+        Assert-WUPathProperty -LiteralPath $fullDestinationPath -Container -AllowNonExisting
 
         $flutterPath = Join-Path -Path $fullDestinationPath -ChildPath 'flutter'
-        Assert-WUPathProperty `
-            -LiteralPath $flutterPath `
-            -Container `
-            -AllowNonExisting
+        Assert-WUPathProperty -LiteralPath $flutterPath -Container -AllowNonExisting
 
-        $versionDescription = $Version
-        if ([string]::IsNullOrWhiteSpace($versionDescription)) {
-            $versionDescription = "current $Channel"
-        }
+        $versionDescription = if ([string]::IsNullOrWhiteSpace($Version)) { "current $Channel" } else { $Version }
         $actionDescription = "Install Flutter SDK $versionDescription for $Architecture"
         if (-not $PSCmdlet.ShouldProcess($flutterPath, $actionDescription)) {
             return
         }
 
-        $releaseParameters = @{
-            Version = $Version
-            Channel = $Channel
-            Architecture = $Architecture
-        }
-
-        $temporaryDirectory = Join-Path `
-            -Path ([IO.Path]::GetTempPath()) `
-            -ChildPath "PSWinUtil-Flutter-$([guid]::NewGuid().ToString('N'))"
-        $downloadedPath = $null
+        $temporaryDirectory = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath "PSWinUtil-Flutter-$([guid]::NewGuid().ToString('N'))"
         $stagingDirectory = $null
         $backupPath = $null
         $destinationCreated = $false
@@ -115,31 +97,20 @@ function Install-WUFlutterSdk {
         $originalProcessPath = $null
         try {
             if (-not (Test-Path -LiteralPath $fullDestinationPath -PathType Container)) {
-                $null = New-Item `
-                    -Path $fullDestinationPath `
-                    -ItemType Directory `
-                    -Force `
-                    -ErrorAction Stop
+                $null = New-Item -Path $fullDestinationPath -ItemType Directory -Force -ErrorAction Stop
                 $destinationCreated = $true
             }
             $null = New-Item -Path $temporaryDirectory -ItemType Directory -Force -ErrorAction Stop
-            $release = Get-WUFlutterSdkRelease @releaseParameters
+            $release = Get-WUFlutterSdkRelease -Version $Version -Channel $Channel -Architecture $Architecture
             $packageFileName = [IO.Path]::GetFileName($release.Uri.AbsolutePath)
             if ([string]::IsNullOrWhiteSpace($packageFileName)) {
                 throw "The package file name could not be determined from URL: $($release.Uri)"
             }
 
             $downloadedPath = Join-Path -Path $temporaryDirectory -ChildPath $packageFileName
-            $downloadParameters = @{
-                Uri = $release.Uri
-                Path = $downloadedPath
-                TimeoutSeconds = $TimeoutSeconds
-            }
-            $downloadedPath = Invoke-WUHttpFileDownload @downloadParameters
+            $downloadedPath = Invoke-WUHttpFileDownload -Uri $release.Uri -Path $downloadedPath -TimeoutSeconds $TimeoutSeconds
 
-            $stagingDirectory = Join-Path `
-                -Path $fullDestinationPath `
-                -ChildPath ".flutter-install-$([guid]::NewGuid().ToString('N'))"
+            $stagingDirectory = Join-Path -Path $fullDestinationPath -ChildPath ".flutter-install-$([guid]::NewGuid().ToString('N'))"
             $null = New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop
 
             Add-Type -AssemblyName 'System.IO.Compression.FileSystem' -ErrorAction Stop
@@ -170,9 +141,7 @@ function Install-WUFlutterSdk {
             $stagedFlutterPath = Join-Path -Path $stagingDirectory -ChildPath 'flutter'
 
             if (Test-Path -LiteralPath $flutterPath -PathType Container) {
-                $backupPath = Join-Path `
-                    -Path $fullDestinationPath `
-                    -ChildPath ".flutter-backup-$([guid]::NewGuid().ToString('N'))"
+                $backupPath = Join-Path -Path $fullDestinationPath -ChildPath ".flutter-backup-$([guid]::NewGuid().ToString('N'))"
                 Move-Item -LiteralPath $flutterPath -Destination $backupPath -ErrorAction Stop
             }
 
@@ -189,23 +158,12 @@ function Install-WUFlutterSdk {
                 [EnvironmentVariableTarget]::Process
             )
             $environmentUpdateStarted = $true
-            Add-WUPathEnvironmentVariable `
-                -Path $flutterBinPath `
-                -Scope 'User' `
-                -Prepend `
-                -Confirm:$false
-            Add-WUPathEnvironmentVariable `
-                -Path $flutterBinPath `
-                -Scope 'Process' `
-                -Prepend `
-                -Confirm:$false
+            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend -Confirm:$false
+            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'Process' -Prepend -Confirm:$false
 
             Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
             Invoke-WUFlutterSdkCommand -Command 'dart' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand `
-                -Command 'flutter' `
-                -ArgumentList 'doctor' `
-                -IgnoreExitCode
+            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList 'doctor' -IgnoreExitCode
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
                 Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
@@ -232,43 +190,25 @@ function Install-WUFlutterSdk {
                 }
             }
             if ($newInstallationMoved -and (Test-Path -LiteralPath $flutterPath)) {
-                Remove-Item `
-                    -LiteralPath $flutterPath `
-                    -Recurse `
-                    -Force `
-                    -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $flutterPath -Recurse -Force -ErrorAction SilentlyContinue
             }
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
-                Move-Item `
-                    -LiteralPath $backupPath `
-                    -Destination $flutterPath `
-                    -ErrorAction SilentlyContinue
+                Move-Item -LiteralPath $backupPath -Destination $flutterPath -ErrorAction SilentlyContinue
             }
             throw $operationError
         } finally {
             if ($null -ne $stagingDirectory -and (Test-Path -LiteralPath $stagingDirectory)) {
-                Remove-Item `
-                    -LiteralPath $stagingDirectory `
-                    -Recurse `
-                    -Force `
-                    -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $stagingDirectory -Recurse -Force -ErrorAction SilentlyContinue
             }
             if (Test-Path -LiteralPath $temporaryDirectory) {
-                Remove-Item `
-                    -LiteralPath $temporaryDirectory `
-                    -Recurse `
-                    -Force `
-                    -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force -ErrorAction SilentlyContinue
             }
             if (
                 $destinationCreated -and
                 (Test-Path -LiteralPath $fullDestinationPath -PathType Container) -and
                 @(Get-ChildItem -LiteralPath $fullDestinationPath -Force).Count -eq 0
             ) {
-                Remove-Item `
-                    -LiteralPath $fullDestinationPath `
-                    -Force `
-                    -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $fullDestinationPath -Force -ErrorAction SilentlyContinue
             }
         }
     }

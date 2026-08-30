@@ -61,12 +61,7 @@ function Get-WUFlutterSdkUrl {
     )
 
     process {
-        $releaseParameters = @{
-            Version = $Version
-            Channel = $Channel
-            Architecture = $Architecture
-        }
-        $release = Get-WUFlutterSdkRelease @releaseParameters
+        $release = Get-WUFlutterSdkRelease -Version $Version -Channel $Channel -Architecture $Architecture
         $release.Uri.AbsoluteUri
     }
 }

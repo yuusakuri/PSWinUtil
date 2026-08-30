@@ -122,9 +122,7 @@ Describe 'Invoke-WUFlutterSdkCommand' {
             & $script:Module {
                 param($Executable)
 
-                Invoke-WUFlutterSdkCommand `
-                    -Command $Executable `
-                    -ArgumentList '-NoProfile', '-Command', 'Write-Output command-output; exit 0'
+                Invoke-WUFlutterSdkCommand -Command $Executable -ArgumentList '-NoProfile', '-Command', 'Write-Output command-output; exit 0'
             } $script:PowerShellExecutable 6>&1
         )
 
@@ -137,9 +135,7 @@ Describe 'Invoke-WUFlutterSdkCommand' {
             & $script:Module {
                 param($Executable)
 
-                Invoke-WUFlutterSdkCommand `
-                    -Command $Executable `
-                    -ArgumentList '-NoProfile', '-Command', 'exit 7'
+                Invoke-WUFlutterSdkCommand -Command $Executable -ArgumentList '-NoProfile', '-Command', 'exit 7'
             } $script:PowerShellExecutable
         } | Should -Throw '*exit code 7*'
     }
@@ -149,10 +145,7 @@ Describe 'Invoke-WUFlutterSdkCommand' {
             & $script:Module {
                 param($Executable)
 
-                Invoke-WUFlutterSdkCommand `
-                    -Command $Executable `
-                    -ArgumentList '-NoProfile', '-Command', 'Write-Output report-output; exit 9' `
-                    -IgnoreExitCode
+                Invoke-WUFlutterSdkCommand -Command $Executable -ArgumentList '-NoProfile', '-Command', 'Write-Output report-output; exit 9' -IgnoreExitCode
             } $script:PowerShellExecutable
         } | Should -Not -Throw
     }
@@ -254,10 +247,7 @@ Describe 'Install-WUFlutterSdk' {
     }
 
     It 'installs the package, configures both PATH scopes, and runs the SDK commands' {
-        $result = Install-WUFlutterSdk `
-            -Version '3.47.1' `
-            -DestinationPath $script:DestinationPath `
-            -TimeoutSeconds 120
+        $result = Install-WUFlutterSdk -Version '3.47.1' -DestinationPath $script:DestinationPath -TimeoutSeconds 120
         $flutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         $flutterBinPath = Join-Path -Path $flutterPath -ChildPath 'bin'
 
