@@ -34,14 +34,14 @@ function Get-WURegistrySettingConfiguration {
         [string]$Scope
     )
 
-    $scopesToTry = @($Scope)
+    $targetScopes = @($Scope)
     if ($Scope -eq 'Auto') {
-        $scopesToTry = @('User', 'Machine')
+        $targetScopes = @('User', 'Machine')
     }
 
-    foreach ($scopeToTry in $scopesToTry) {
+    foreach ($targetScope in $targetScopes) {
         $configuration = @(
-            $Setting.Configurations | Where-Object { $_.Scope -ceq $scopeToTry }
+            $Setting.Configurations | Where-Object { $_.Scope -ceq $targetScope }
         )[0]
         if ($null -ne $configuration) {
             return $configuration
