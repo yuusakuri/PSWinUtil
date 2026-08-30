@@ -60,17 +60,17 @@ function Set-WURegistrySetting {
     if (-not $settingData.ContainsKey($Name)) {
         throw "The registry setting was not found: $Name"
     }
+    $setting = $settingData[$Name]
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     foreach ($targetScope in $scopes) {
-        $selection = Get-WURegistrySettingCandidate `
-            -Setting $settingData[$Name] `
-            -Scope $targetScope
-        $firstCandidate = $selection.Properties[0].Candidate
-        if (-not $firstCandidate.Options.ContainsKey($Option)) {
+        $selectionParameters = @{
+            Setting = $setting
+            Scope = $targetScope
+        }
+        $selection = Get-WURegistrySettingCandidate @selectionParameters
+        if (-not $setting.Options.ContainsKey($Option)) {
             throw "The registry setting option was not found: $Name/$Option"
         }
 
@@ -79,17 +79,18 @@ function Set-WURegistrySetting {
             continue
         }
 
+        $changes = $setting.Options[$Option]
         foreach ($propertySelection in $selection.Properties) {
             $candidate = $propertySelection.Candidate
-            $optionDefinition = $candidate.Options[$Option]
+            $change = $changes[$propertySelection.Name]
             $propertyParameters = @{
                 Path = $candidate.Path
-                Name = $candidate.Name
+                Name = $propertySelection.Name
             }
-            if ($optionDefinition.Action -eq 'Remove') {
+            if ($change.Action -eq 'Remove') {
                 Remove-WURegistryProperty @propertyParameters @shouldProcessParameters
             } else {
-                $propertyParameters.Value = $optionDefinition.Value
+                $propertyParameters.Value = $change.Value
                 $propertyParameters.Type = $candidate.Type
                 Set-WURegistryProperty @propertyParameters @shouldProcessParameters
             }

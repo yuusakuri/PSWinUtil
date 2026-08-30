@@ -4,7 +4,7 @@ function Get-WURegistrySettingCandidate {
     Selects registry property candidates.
 
     .DESCRIPTION
-    Selects one registry property candidate for every property in a setting. Auto uses a complete User candidate set before a complete Machine candidate set.
+    Selects one registry property candidate for every named property definition in a setting. Auto uses a complete User candidate set before a complete Machine candidate set.
 
     .PARAMETER Setting
     Specifies one validated registry setting definition.
@@ -40,9 +40,9 @@ function Get-WURegistrySettingCandidate {
 
     foreach ($scopeToTry in $scopesToTry) {
         $propertySelections = @()
-        foreach ($propertyIdentifier in @($Setting.Keys | Sort-Object)) {
+        foreach ($propertyName in @($Setting.Properties.Keys | Sort-Object)) {
             $matchedCandidate = $null
-            foreach ($candidate in @($Setting[$propertyIdentifier])) {
+            foreach ($candidate in @($Setting.Properties[$propertyName])) {
                 $candidateScope = $null
                 if ($candidate.Path -match '^Registry::HKEY_CURRENT_USER\\') {
                     $candidateScope = 'User'
@@ -62,12 +62,12 @@ function Get-WURegistrySettingCandidate {
             }
 
             $propertySelections += [pscustomobject]@{
-                PropertyIdentifier = [string]$propertyIdentifier
+                Name = [string]$propertyName
                 Candidate = $matchedCandidate
             }
         }
 
-        if ($propertySelections.Count -eq $Setting.Count) {
+        if ($propertySelections.Count -eq $Setting.Properties.Count) {
             return [pscustomobject]@{
                 Scope = $scopeToTry
                 Properties = $propertySelections

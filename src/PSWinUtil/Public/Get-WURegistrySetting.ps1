@@ -57,10 +57,11 @@ function Get-WURegistrySetting {
             if (-not $settingData.ContainsKey($inputName)) {
                 throw "The registry setting was not found: $inputName"
             }
+            $setting = $settingData[$inputName]
 
             foreach ($targetScope in $scopes) {
                 $selectionParameters = @{
-                    Setting = $settingData[$inputName]
+                    Setting = $setting
                     Scope = $targetScope
                 }
                 $selection = Get-WURegistrySettingCandidate @selectionParameters
@@ -69,33 +70,43 @@ function Get-WURegistrySetting {
                     $candidate = $propertySelection.Candidate
                     $propertyParameters = @{
                         Path = $candidate.Path
-                        Name = $candidate.Name
+                        Name = $propertySelection.Name
                     }
                     $registryProperty = Get-WURegistryProperty @propertyParameters
                     $propertyStates += [pscustomobject]@{
+                        Name = $propertySelection.Name
                         Candidate = $candidate
                         RegistryProperty = $registryProperty
                     }
                 }
 
-                $firstCandidate = $selection.Properties[0].Candidate
                 $state = $null
-                foreach ($optionName in @($firstCandidate.Options.Keys | Sort-Object)) {
+                foreach ($optionName in @($setting.Options.Keys | Sort-Object)) {
+                    $changes = $setting.Options[$optionName]
                     $optionMatches = $true
                     foreach ($propertyState in $propertyStates) {
-                        $option = $propertyState.Candidate.Options[$optionName]
-                        if ($option.Action -eq 'Remove') {
+                        $change = $changes[$propertyState.Name]
+                        if ($change.Action -eq 'Remove') {
                             if ($null -ne $propertyState.RegistryProperty) {
                                 $optionMatches = $false
                                 break
                             }
-                        } elseif (
+                            continue
+                        }
+
+                        if (
                             $null -eq $propertyState.RegistryProperty -or
-                            $propertyState.RegistryProperty.Type -ine $propertyState.Candidate.Type -or
-                            -not (Compare-WURegistryValue `
-                                    -ReferenceValue $option.Value `
-                                    -DifferenceValue $propertyState.RegistryProperty.Value)
+                            $propertyState.RegistryProperty.Type -ine $propertyState.Candidate.Type
                         ) {
+                            $optionMatches = $false
+                            break
+                        }
+
+                        $comparisonParameters = @{
+                            ReferenceValue = $change.Value
+                            DifferenceValue = $propertyState.RegistryProperty.Value
+                        }
+                        if (-not (Compare-WURegistryValue @comparisonParameters)) {
                             $optionMatches = $false
                             break
                         }
