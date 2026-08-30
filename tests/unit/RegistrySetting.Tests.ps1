@@ -5,56 +5,78 @@ BeforeAll {
 
     InModuleScope -ModuleName PSWinUtil {
         $script:TestRegistrySettingData = @{
-            Sample = @{
-                Properties = @{
-                    First = @(
+            Settings = @(
+                @{
+                    Name = 'Sample'
+                    Configurations = @(
                         @{
-                            Path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
-                            Type = 'DWord'
+                            Scope = 'User'
+                            Properties = @(
+                                @{
+                                    Name = 'First'
+                                    Path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
+                                    Type = 'DWord'
+                                    Options = @(
+                                        @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        @{ Name = 'Disable'; Action = 'Set'; Value = 0 }
+                                    )
+                                }
+                                @{
+                                    Name = 'Second'
+                                    Path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
+                                    Type = 'DWord'
+                                    Options = @(
+                                        @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        @{ Name = 'Disable'; Action = 'Set'; Value = 0 }
+                                    )
+                                }
+                            )
                         }
                         @{
-                            Path = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
-                            Type = 'DWord'
+                            Scope = 'Machine'
+                            Properties = @(
+                                @{
+                                    Name = 'First'
+                                    Path = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
+                                    Type = 'DWord'
+                                    Options = @(
+                                        @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        @{ Name = 'Disable'; Action = 'Set'; Value = 0 }
+                                    )
+                                }
+                                @{
+                                    Name = 'Second'
+                                    Path = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
+                                    Type = 'DWord'
+                                    Options = @(
+                                        @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        @{ Name = 'Disable'; Action = 'Set'; Value = 0 }
+                                    )
+                                }
+                            )
                         }
                     )
-                    Second = @(
+                }
+                @{
+                    Name = 'Removable'
+                    Configurations = @(
                         @{
-                            Path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
-                            Type = 'DWord'
-                        }
-                        @{
-                            Path = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
-                            Type = 'DWord'
+                            Scope = 'User'
+                            Properties = @(
+                                @{
+                                    Name = 'RemovedValue'
+                                    Path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
+                                    Type = 'DWord'
+                                    Options = @(
+                                        @{ Name = 'Default'; Action = 'Remove' }
+                                        @{ Name = 'Disabled'; Action = 'Set'; Value = 1 }
+                                    )
+                                }
+                            )
                         }
                     )
                 }
-                Options = @{
-                    Enable = @{
-                        First = @{ Action = 'Set'; Value = 1 }
-                        Second = @{ Action = 'Set'; Value = 1 }
-                    }
-                    Disable = @{
-                        First = @{ Action = 'Set'; Value = 0 }
-                        Second = @{ Action = 'Set'; Value = 0 }
-                    }
-                }
-            }
-            Removable = @{
-                Properties = @{
-                    RemovedValue = @{
-                        Path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
-                        Type = 'DWord'
-                    }
-                }
-                Options = @{
-                    Default = @{
-                        RemovedValue = @{ Action = 'Remove' }
-                    }
-                    Disabled = @{
-                        RemovedValue = @{ Action = 'Set'; Value = 1 }
-                    }
-                }
-            }
+            )
         }
     }
     $script:TestRegistrySettingData = InModuleScope -ModuleName PSWinUtil {
@@ -72,67 +94,92 @@ Describe 'Registry setting schema' {
     It 'rejects an unsupported registry hive' {
         InModuleScope -ModuleName PSWinUtil {
             $invalidData = @{
-                Invalid = @{
-                    Properties = @{
-                        Value = @{
-                            Path = 'Registry::HKEY_CLASSES_ROOT\Invalid'
-                            Type = 'DWord'
-                        }
+                Settings = @(
+                    @{
+                        Name = 'Invalid'
+                        Configurations = @(
+                            @{
+                                Scope = 'User'
+                                Properties = @(
+                                    @{
+                                        Name = 'Value'
+                                        Path = 'Registry::HKEY_CLASSES_ROOT\Invalid'
+                                        Type = 'DWord'
+                                        Options = @(
+                                            @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        )
+                                    }
+                                )
+                            }
+                        )
                     }
-                    Options = @{
-                        Enable = @{
-                            Value = @{ Action = 'Set'; Value = 1 }
-                        }
-                    }
-                }
+                )
             }
 
             Test-WURegistrySetting -Setting $invalidData
         } | Should -BeFalse
     }
 
-    It 'rejects an option that references an undefined property' {
+    It 'rejects a property path outside its configuration scope' {
         InModuleScope -ModuleName PSWinUtil {
             $invalidData = @{
-                Invalid = @{
-                    Properties = @{
-                        First = @{
-                            Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
-                            Type = 'DWord'
-                        }
+                Settings = @(
+                    @{
+                        Name = 'Invalid'
+                        Configurations = @(
+                            @{
+                                Scope = 'Machine'
+                                Properties = @(
+                                    @{
+                                        Name = 'Value'
+                                        Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
+                                        Type = 'DWord'
+                                        Options = @(
+                                            @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        )
+                                    }
+                                )
+                            }
+                        )
                     }
-                    Options = @{
-                        Enable = @{
-                            Missing = @{ Action = 'Set'; Value = 1 }
-                        }
-                    }
-                }
+                )
             }
 
             Test-WURegistrySetting -Setting $invalidData
         } | Should -BeFalse
     }
 
-    It 'rejects an option that does not reference every property' {
+    It 'rejects properties with inconsistent option names' {
         InModuleScope -ModuleName PSWinUtil {
             $invalidData = @{
-                Invalid = @{
-                    Properties = @{
-                        First = @{
-                            Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
-                            Type = 'DWord'
-                        }
-                        Second = @{
-                            Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
-                            Type = 'DWord'
-                        }
+                Settings = @(
+                    @{
+                        Name = 'Invalid'
+                        Configurations = @(
+                            @{
+                                Scope = 'User'
+                                Properties = @(
+                                    @{
+                                        Name = 'First'
+                                        Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
+                                        Type = 'DWord'
+                                        Options = @(
+                                            @{ Name = 'Enable'; Action = 'Set'; Value = 1 }
+                                        )
+                                    }
+                                    @{
+                                        Name = 'Second'
+                                        Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
+                                        Type = 'DWord'
+                                        Options = @(
+                                            @{ Name = 'Disable'; Action = 'Set'; Value = 0 }
+                                        )
+                                    }
+                                )
+                            }
+                        )
                     }
-                    Options = @{
-                        Enable = @{
-                            First = @{ Action = 'Set'; Value = 1 }
-                        }
-                    }
-                }
+                )
             }
 
             Test-WURegistrySetting -Setting $invalidData
@@ -142,19 +189,26 @@ Describe 'Registry setting schema' {
     It 'rejects a Set action with a value that does not match its type' {
         InModuleScope -ModuleName PSWinUtil {
             $invalidData = @{
-                Invalid = @{
-                    Properties = @{
-                        Value = @{
-                            Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
-                            Type = 'DWord'
-                        }
+                Settings = @(
+                    @{
+                        Name = 'Invalid'
+                        Configurations = @(
+                            @{
+                                Scope = 'User'
+                                Properties = @(
+                                    @{
+                                        Name = 'Value'
+                                        Path = 'Registry::HKEY_CURRENT_USER\Software\Invalid'
+                                        Type = 'DWord'
+                                        Options = @(
+                                            @{ Name = 'Enable'; Action = 'Set'; Value = 'one' }
+                                        )
+                                    }
+                                )
+                            }
+                        )
                     }
-                    Options = @{
-                        Enable = @{
-                            Value = @{ Action = 'Set'; Value = 'one' }
-                        }
-                    }
-                }
+                )
             }
 
             Test-WURegistrySetting -Setting $invalidData
@@ -163,17 +217,21 @@ Describe 'Registry setting schema' {
 
     It 'imports and validates the distributed setting data' {
         InModuleScope -ModuleName PSWinUtil {
-            $settings = Import-WURegistrySetting
+            $settingData = Import-WURegistrySetting
+            $settingNames = @($settingData.Settings.Name)
 
-            $settings.ContainsKey('DarkMode') | Should -BeTrue
-            $settings.ContainsKey('WindowsUpdateNotificationLevel') | Should -BeTrue
-            $settings.ContainsKey('DeviceSetupSuggestions') | Should -BeTrue
-            $settings.ContainsKey('TaskbarAlignment') | Should -BeTrue
-            $settings.ContainsKey('TaskbarSearchMode') | Should -BeTrue
-            $settings.ContainsKey('JapaneseImeHalfWidthInput') | Should -BeTrue
-            $settings.DarkMode.Properties.ContainsKey('AppsUseLightTheme') | Should -BeTrue
-            $settings.DarkMode.Properties.AppsUseLightTheme.ContainsKey('Options') | Should -BeFalse
-            $settings.DarkMode.Options.Enable.AppsUseLightTheme.Value | Should -Be 0
+            $settingNames | Should -Contain 'DarkMode'
+            $settingNames | Should -Contain 'WindowsUpdateNotificationLevel'
+            $settingNames | Should -Contain 'DeviceSetupSuggestions'
+            $settingNames | Should -Contain 'TaskbarAlignment'
+            $settingNames | Should -Contain 'TaskbarSearchMode'
+            $settingNames | Should -Contain 'JapaneseImeHalfWidthInput'
+
+            $darkMode = @($settingData.Settings | Where-Object { $_.Name -eq 'DarkMode' })[0]
+            $properties = @($darkMode.Configurations[0].Properties)
+            @($properties | Where-Object { $_.Name -eq 'AppsUseLightTheme' }) | Should -HaveCount 1
+            $appsUseLightTheme = @($properties | Where-Object { $_.Name -eq 'AppsUseLightTheme' })[0]
+            @($appsUseLightTheme.Options | Where-Object { $_.Name -eq 'Enable' })[0].Value | Should -Be 0
         }
     }
 }
@@ -197,7 +255,7 @@ Describe 'Get-WURegistrySetting' {
         }
     }
 
-    It 'uses User candidates before Machine candidates with Auto' {
+    It 'uses the User configuration before the Machine configuration with Auto' {
         $path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
         $script:TestRegistryValues[$path + '|First'] = 1
         $script:TestRegistryValues[$path + '|Second'] = 1
@@ -209,7 +267,7 @@ Describe 'Get-WURegistrySetting' {
         $result.PSObject.TypeNames | Should -Contain 'PSWinUtil.RegistrySetting'
     }
 
-    It 'uses Machine candidates when Machine is selected' {
+    It 'uses the Machine configuration when Machine is selected' {
         $path = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
         $script:TestRegistryValues[$path + '|First'] = 0
         $script:TestRegistryValues[$path + '|Second'] = 0

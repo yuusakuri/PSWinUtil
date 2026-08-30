@@ -4,7 +4,7 @@ function Get-WURegistrySetting {
     Gets a Windows registry setting state.
 
     .DESCRIPTION
-    Gets the state of a named registry setting in one or more scopes. Auto selects a complete User candidate set before a complete Machine candidate set. The result is an option name, NotConfigured, or Mixed.
+    Gets the state of a named registry setting in one or more scopes. Auto selects the User configuration before the Machine configuration. The result is an option name, NotConfigured, or Mixed.
 
     .PARAMETER Name
     Specifies one or more registry setting names from the distributed setting data.
@@ -49,44 +49,44 @@ function Get-WURegistrySetting {
         if ($scopes.Count -gt 1 -and $scopes -contains 'Auto') {
             throw 'Auto cannot be combined with another scope.'
         }
-        $settingData = Import-WURegistrySetting
+        $settings = @((Import-WURegistrySetting).Settings)
     }
 
     process {
         foreach ($inputName in $Name) {
-            if (-not $settingData.ContainsKey($inputName)) {
+            $setting = @($settings | Where-Object { $_.Name -ieq $inputName })[0]
+            if ($null -eq $setting) {
                 throw "The registry setting was not found: $inputName"
             }
-            $setting = $settingData[$inputName]
 
             foreach ($targetScope in $scopes) {
-                $selectionParameters = @{
+                $configurationParameters = @{
                     Setting = $setting
                     Scope = $targetScope
                 }
-                $selection = Get-WURegistrySettingCandidate @selectionParameters
+                $configuration = Get-WURegistrySettingConfiguration @configurationParameters
                 $propertyStates = @()
-                foreach ($propertySelection in $selection.Properties) {
-                    $candidate = $propertySelection.Candidate
+                foreach ($property in $configuration.Properties) {
                     $propertyParameters = @{
-                        Path = $candidate.Path
-                        Name = $propertySelection.Name
+                        Path = $property.Path
+                        Name = $property.Name
                     }
                     $registryProperty = Get-WURegistryProperty @propertyParameters
                     $propertyStates += [pscustomobject]@{
-                        Name = $propertySelection.Name
-                        Candidate = $candidate
+                        Property = $property
                         RegistryProperty = $registryProperty
                     }
                 }
 
                 $state = $null
-                foreach ($optionName in @($setting.Options.Keys | Sort-Object)) {
-                    $changes = $setting.Options[$optionName]
+                $optionNames = @($configuration.Properties[0].Options.Name | Sort-Object)
+                foreach ($optionName in $optionNames) {
                     $optionMatches = $true
                     foreach ($propertyState in $propertyStates) {
-                        $change = $changes[$propertyState.Name]
-                        if ($change.Action -eq 'Remove') {
+                        $option = @(
+                            $propertyState.Property.Options | Where-Object { $_.Name -ieq $optionName }
+                        )[0]
+                        if ($option.Action -eq 'Remove') {
                             if ($null -ne $propertyState.RegistryProperty) {
                                 $optionMatches = $false
                                 break
@@ -96,14 +96,14 @@ function Get-WURegistrySetting {
 
                         if (
                             $null -eq $propertyState.RegistryProperty -or
-                            $propertyState.RegistryProperty.Type -ine $propertyState.Candidate.Type
+                            $propertyState.RegistryProperty.Type -ine $propertyState.Property.Type
                         ) {
                             $optionMatches = $false
                             break
                         }
 
                         $comparisonParameters = @{
-                            ReferenceValue = $change.Value
+                            ReferenceValue = $option.Value
                             DifferenceValue = $propertyState.RegistryProperty.Value
                         }
                         if (-not (Compare-WURegistryValue @comparisonParameters)) {
@@ -132,7 +132,7 @@ function Get-WURegistrySetting {
                 [pscustomobject]@{
                     PSTypeName = 'PSWinUtil.RegistrySetting'
                     Name = $inputName
-                    Scope = $selection.Scope
+                    Scope = $configuration.Scope
                     State = $state
                 }
             }
