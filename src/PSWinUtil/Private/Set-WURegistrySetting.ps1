@@ -83,15 +83,15 @@ function Set-WURegistrySetting {
         }
 
         foreach ($property in $configuration.Properties) {
-            $option = @($property.Options | Where-Object { $_.Name -ieq $Option })[0]
+            $propertyOption = @($property.Options | Where-Object { $_.Name -ieq $Option })[0]
             $propertyParameters = @{
                 Path = $property.Path
                 Name = $property.Name
             }
-            if ($option.Action -eq 'Remove') {
+            if ($propertyOption.Action -eq 'Remove') {
                 Remove-WURegistryProperty @propertyParameters @shouldProcessParameters
             } else {
-                $propertyParameters.Value = $option.Value
+                $propertyParameters.Value = $propertyOption.Value
                 $propertyParameters.Type = $property.Type
                 Set-WURegistryProperty @propertyParameters @shouldProcessParameters
             }
