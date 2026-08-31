@@ -105,7 +105,13 @@ Describe 'Built module manifest' {
         )
 
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
-            $expectedCommands += @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')
+            $expectedCommands += @(
+                'Get-Content'
+                'Set-Content'
+                'Add-Content'
+                'Out-File'
+                'Invoke-WebRequest'
+            )
         }
 
         foreach ($expectedCommand in $expectedCommands) {
@@ -119,7 +125,13 @@ Describe 'Built module manifest' {
             (Get-Module -Name 'PSWinUtil' -ErrorAction Stop).ExportedFunctions.Keys
         )
 
-        foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
+        foreach ($commandName in @(
+                'Get-Content'
+                'Set-Content'
+                'Add-Content'
+                'Out-File'
+                'Invoke-WebRequest'
+            )) {
             if ($PSVersionTable.PSEdition -eq 'Desktop') {
                 $exportedCommands | Should -Contain $commandName
             } else {

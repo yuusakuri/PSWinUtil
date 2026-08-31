@@ -80,6 +80,13 @@ Install a package by its exact winget ID and automatically accept the source and
 Install-WUWingetPackage -Id 'Microsoft.PowerShell'
 ```
 
+Send a web request without the Windows PowerShell 5.1 progress-rendering overhead:
+
+```powershell
+$response = Invoke-WebRequest -Uri 'https://example.com/' -UseBasicParsing
+$response.StatusCode
+```
+
 Use `Get-Help` to view the parameters and examples for any command:
 
 ```powershell
