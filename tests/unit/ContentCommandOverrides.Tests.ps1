@@ -21,7 +21,13 @@ $contentCommandOverridesAvailable = $PSVersionTable.PSEdition -eq 'Desktop'
 
 Describe 'Content command precedence' -Skip:(-not $contentCommandOverridesAvailable) {
     It 'uses the PSWinUtil functions before the built-in cmdlets' {
-        foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
+        foreach ($commandName in @(
+                'Get-Content'
+                'Set-Content'
+                'Add-Content'
+                'Out-File'
+                'Invoke-WebRequest'
+            )) {
             $command = Get-Command -Name $commandName
             $command.CommandType | Should -Be 'Function'
             $command.ModuleName | Should -Be 'PSWinUtil'
@@ -48,6 +54,110 @@ Describe 'Content command precedence' -Skip:(-not $contentCommandOverridesAvaila
         )
         Compare-Object -ReferenceObject $originalParameters -DifferenceObject $proxyParameters |
             Should -BeNullOrEmpty
+
+        $proxyParameters = @((Get-Command -Name Invoke-WebRequest -Module PSWinUtil).Parameters.Keys | Sort-Object)
+        $originalParameters = @(
+            (Get-Command -Name 'Microsoft.PowerShell.Utility\Invoke-WebRequest').Parameters.Keys |
+                Sort-Object
+        )
+        Compare-Object -ReferenceObject $originalParameters -DifferenceObject $proxyParameters |
+            Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Invoke-WebRequest progress suppression' -Skip:(-not $contentCommandOverridesAvailable) {
+    It 'gets an HTTP response and restores ProgressPreference' {
+        $portProbe = [System.Net.Sockets.TcpListener]::new(
+            [System.Net.IPAddress]::Loopback,
+            0
+        )
+        $portProbe.Start()
+        $availablePort = ([System.Net.IPEndPoint]$portProbe.LocalEndpoint).Port
+        $portProbe.Stop()
+
+        $serverJob = Start-Job -ArgumentList $availablePort -ScriptBlock {
+            $serverPort = [int]$args[0]
+
+            $listener = [System.Net.Sockets.TcpListener]::new(
+                [System.Net.IPAddress]::Loopback,
+                $serverPort
+            )
+            try {
+                $listener.Start()
+                Write-Output 'READY'
+                $client = $listener.AcceptTcpClient()
+                try {
+                    $stream = $client.GetStream()
+                    $reader = [System.IO.StreamReader]::new($stream)
+                    while ($reader.ReadLine() -ne '') {
+                    }
+
+                    [byte[]]$responseBytes = [System.Text.Encoding]::ASCII.GetBytes(
+                        "HTTP/1.1 200 OK`r`n" +
+                        "Content-Type: text/plain`r`n" +
+                        "Content-Length: 2`r`n" +
+                        "Connection: close`r`n`r`nOK"
+                    )
+                    $stream.Write($responseBytes, 0, $responseBytes.Length)
+                    $stream.Flush()
+                } finally {
+                    $client.Dispose()
+                }
+            } finally {
+                $listener.Stop()
+            }
+        }
+
+        try {
+            $readyDeadline = [datetime]::UtcNow.AddSeconds(10)
+            do {
+                $serverOutput = @(Receive-Job -Job $serverJob -Keep)
+                if ($serverOutput -contains 'READY') {
+                    break
+                }
+                Start-Sleep -Milliseconds 20
+            } while ([datetime]::UtcNow -lt $readyDeadline)
+            $serverOutput | Should -Contain 'READY'
+
+            $originalProgressPreference = $ProgressPreference
+            $ProgressPreference = 'Continue'
+            try {
+                $response = Invoke-WebRequest `
+                    -Uri "http://127.0.0.1:$availablePort/" `
+                    -UseBasicParsing `
+                    -ErrorAction Stop
+
+                $response.StatusCode | Should -Be 200
+                $response.Content | Should -Be 'OK'
+                $ProgressPreference | Should -Be 'Continue'
+            } finally {
+                $ProgressPreference = $originalProgressPreference
+            }
+
+            Wait-Job -Job $serverJob -Timeout 10 | Should -Not -BeNullOrEmpty
+            $serverJob.State | Should -Be 'Completed'
+        } finally {
+            Stop-Job -Job $serverJob -ErrorAction SilentlyContinue
+            Remove-Job -Job $serverJob -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'restores ProgressPreference when the delegated request fails' {
+        $originalProgressPreference = $ProgressPreference
+        $ProgressPreference = 'Continue'
+        try {
+            {
+                Invoke-WebRequest `
+                    -Uri 'http://127.0.0.1:1/' `
+                    -UseBasicParsing `
+                    -TimeoutSec 1 `
+                    -ErrorAction Stop
+            } | Should -Throw
+
+            $ProgressPreference | Should -Be 'Continue'
+        } finally {
+            $ProgressPreference = $originalProgressPreference
+        }
     }
 }
 
