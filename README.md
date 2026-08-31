@@ -6,7 +6,7 @@ It provides commands that:
 
 - Configure Windows interface, security, sign-in, and notification settings.
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
-- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, and Android command-line tools.
+- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
 
 ## Requirements
 
@@ -72,6 +72,12 @@ Preview enabling Win32 long path support:
 
 ```powershell
 Enable-WULongPaths -WhatIf
+```
+
+Install a package by its exact winget ID and automatically accept the source and package agreements:
+
+```powershell
+Install-WUWingetPackage -Id 'Microsoft.PowerShell'
 ```
 
 Use `Get-Help` to view the parameters and examples for any command:
