@@ -84,6 +84,8 @@ Describe 'Built module manifest' {
             'Set-WUKeyboardRemapping'
             'Remove-WUKeyboardRemapping'
             'Set-WUNativeCommandEncoding'
+            'Set-WUNodeExtraCaCertificate'
+            'Set-WUJavaWindowsRootTrustStore'
             'Start-WUAndroidEmulator'
             'Get-WUAndroidCommandLineToolsUrl'
             'Get-WUFlutterSdkUrl'
@@ -139,6 +141,8 @@ Describe 'Built module manifest' {
             'Get-WUStartupEntry'
             'Register-WUStartupEntry'
             'Unregister-WUStartupEntry'
+            'Set-WUNodeExtraCaCertificate'
+            'Set-WUJavaWindowsRootTrustStore'
         )
 
         foreach ($commandName in $scopedCommandNames) {
@@ -162,6 +166,7 @@ Describe 'Built module manifest' {
             'Resolve-WUPathFromParameterSet' = [string[]]
             'Set-Content' = [string[]]
             'Set-WUEnvironmentVariable' = [string[]]
+            'Set-WUNodeExtraCaCertificate' = [string]
             'Start-WUPSScriptAsAdmin' = [string]
             'Test-WUPathProperty' = [string[]]
             'Test-WUPSScript' = [string[]]
