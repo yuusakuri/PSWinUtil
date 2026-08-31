@@ -85,6 +85,7 @@ Describe 'Built module manifest' {
             'Get-WUAndroidCommandLineToolsUrl'
             'Invoke-WUDefaultBrowserDownload'
             'Install-WUAndroidCommandLineTools'
+            'Install-WUWingetPackage'
             'Set-WUJapaneseKeyboardLayout'
             'Enable-WUDeviceSetupSuggestions'
             'Disable-WUDeviceSetupSuggestions'
