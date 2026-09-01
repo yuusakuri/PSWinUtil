@@ -92,6 +92,7 @@ Describe 'Built module manifest' {
             'Invoke-WUDefaultBrowserDownload'
             'Install-WUAndroidCommandLineTools'
             'Install-WUFlutterSdk'
+            'Install-WUGitHubCli'
             'Install-WUWingetPackage'
             'Set-WUJapaneseKeyboardLayout'
             'Enable-WUDeviceSetupSuggestions'
