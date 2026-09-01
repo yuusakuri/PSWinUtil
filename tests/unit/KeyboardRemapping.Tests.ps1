@@ -1,8 +1,4 @@
 BeforeAll {
-    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
-
     $script:KeyboardLayoutPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout'
     $script:Mappings = @(
         [pscustomobject]@{ SourceScanCode = [uint16]0x003A; DestinationScanCode = [uint16]0x001D }

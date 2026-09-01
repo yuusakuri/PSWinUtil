@@ -1,8 +1,4 @@
 BeforeAll {
-    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
-
     $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $script:UnicodeText = [string][char]0x3042
     $script:AssertUtf8Lf = {

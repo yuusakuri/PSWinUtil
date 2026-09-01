@@ -1,8 +1,4 @@
 BeforeAll {
-    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
-
     $script:WinlogonPath = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
     $script:SecurePassword = [securestring]::new()
     foreach ($character in 'UnitTestPassword'.ToCharArray()) {

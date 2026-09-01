@@ -1,8 +1,4 @@
 BeforeAll {
-    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
-
     $script:EnvironmentTarget = [System.EnvironmentVariableTarget]::Process
     $script:UserEnvironmentTarget = [System.EnvironmentVariableTarget]::User
     $script:FileEnvironmentName = 'PSWINUTIL_FILE_TEST_NAME'

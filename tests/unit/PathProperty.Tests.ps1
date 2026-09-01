@@ -1,9 +1,3 @@
-BeforeAll {
-    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
-}
-
 Describe 'ConvertTo-WUFullPath' {
     It 'converts a relative path without requiring it to exist' {
         Push-Location -LiteralPath $TestDrive

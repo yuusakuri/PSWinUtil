@@ -1,8 +1,4 @@
 BeforeAll {
-    $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
-    Import-Module -Name $manifestPath -Force -ErrorAction Stop
-
     $script:RegistryPath = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest'
 }
 
