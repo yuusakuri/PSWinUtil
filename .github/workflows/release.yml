@@ -1,0 +1,209 @@
+name: Release
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    environment: powershell-gallery
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    env:
+      RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
+      RELEASE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
+
+    steps:
+      - name: Check out the merged release commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Set up the .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install development modules
+        run: .\install.ps1
+
+      - name: Validate release identity
+        id: release
+        run: |
+          if ($env:RELEASE_BRANCH -notmatch '^release/(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$') {
+              throw "Invalid release branch: $env:RELEASE_BRANCH"
+          }
+          $version = $Matches['Version']
+          $tagName = "v$version"
+
+          $manifest = Import-PowerShellDataFile -LiteralPath '.\src\PSWinUtil\PSWinUtil.psd1'
+          $manifestVersion = [string]$manifest.ModuleVersion
+          if ($manifestVersion -ne $version) {
+              throw "Release branch version $version does not match ModuleVersion $manifestVersion."
+          }
+
+          $headCommit = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $headCommit -ne $env:RELEASE_COMMIT) {
+              throw "Checked out commit $headCommit does not match merged release commit $env:RELEASE_COMMIT."
+          }
+
+          git fetch origin master --tags
+          if ($LASTEXITCODE -ne 0) {
+              throw 'Could not fetch master and release tags.'
+          }
+          git merge-base --is-ancestor $headCommit origin/master
+          if ($LASTEXITCODE -ne 0) {
+              throw "Release commit is not part of origin/master: $headCommit"
+          }
+
+          $releasedVersions = @(
+              git tag --list 'v*' |
+                  ForEach-Object {
+                      if ($_ -match '^v(?<Version>[0-9]+\.[0-9]+\.[0-9]+)$') {
+                          [version]$Matches['Version']
+                      }
+                  }
+          )
+          if ($LASTEXITCODE -ne 0) {
+              throw 'Could not inspect existing release tags.'
+          }
+          $latestReleasedVersion = $releasedVersions |
+              Sort-Object -Descending |
+              Select-Object -First 1
+          if ($null -ne $latestReleasedVersion -and [version]$version -lt $latestReleasedVersion) {
+              throw "Release version $version is older than existing tag v$latestReleasedVersion."
+          }
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "commit=$headCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Run final verification
+        run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
+
+      - name: Validate built module version
+        run: |
+          $manifest = Test-ModuleManifest -Path '.\output\PSWinUtil\PSWinUtil.psd1' -ErrorAction Stop
+          if ([string]$manifest.Version -ne '${{ steps.release.outputs.version }}') {
+              throw "Built ModuleVersion $($manifest.Version) does not match the release version."
+          }
+
+      - name: Inspect publication state
+        id: publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PSGALLERY_API_KEY)) {
+              throw 'The powershell-gallery environment does not define PSGALLERY_API_KEY.'
+          }
+
+          $tagName = '${{ steps.release.outputs.tag }}'
+          $releaseCommit = '${{ steps.release.outputs.commit }}'
+          $tagExists = $false
+          git show-ref --verify --quiet "refs/tags/$tagName"
+          if ($LASTEXITCODE -eq 0) {
+              $tagExists = $true
+              $tagCommit = (git rev-list -n 1 $tagName).Trim()
+              if ($LASTEXITCODE -ne 0 -or $tagCommit -ne $releaseCommit) {
+                  throw "Tag $tagName does not point to release commit $releaseCommit."
+              }
+          } elseif ($LASTEXITCODE -ne 1) {
+              throw "Could not inspect tag $tagName."
+          }
+
+          $version = '${{ steps.release.outputs.version }}'
+          $galleryUri = "https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PSWinUtil'&`$filter=Version%20eq%20'$version'"
+          $galleryResponse = Invoke-WebRequest -Uri $galleryUri -UseBasicParsing -ErrorAction Stop
+          $galleryExists = $galleryResponse.Content -match '<entry[ >]'
+          if ($galleryExists -and -not $tagExists) {
+              throw "PowerShell Gallery version $version exists without tag $tagName."
+          }
+
+          $null = gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>$null
+          $githubReleaseExists = $LASTEXITCODE -eq 0
+          if ($githubReleaseExists -and (-not $tagExists -or -not $galleryExists)) {
+              throw "GitHub Release $tagName exists before its tag and Gallery publication are complete."
+          }
+
+          "tag_exists=$($tagExists.ToString().ToLowerInvariant())" |
+              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "gallery_exists=$($galleryExists.ToString().ToLowerInvariant())" |
+              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "github_release_exists=$($githubReleaseExists.ToString().ToLowerInvariant())" |
+              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create and push tag
+        if: steps.publication.outputs.tag_exists != 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag --annotate '${{ steps.release.outputs.tag }}' `
+              --message 'PSWinUtil ${{ steps.release.outputs.version }}' `
+              '${{ steps.release.outputs.commit }}'
+          git push origin 'refs/tags/${{ steps.release.outputs.tag }}'
+
+      - name: Create release artifact
+        id: artifact
+        run: |
+          $artifactName = 'PSWinUtil-${{ steps.release.outputs.version }}.zip'
+          $artifactPath = Join-Path -Path $PWD -ChildPath $artifactName
+          Compress-Archive `
+              -LiteralPath '.\output\PSWinUtil' `
+              -DestinationPath $artifactPath `
+              -CompressionLevel Optimal
+          "path=$artifactPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Publish to PowerShell Gallery
+        if: steps.publication.outputs.gallery_exists != 'true'
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Publish-Module `
+              -Path '.\output\PSWinUtil' `
+              -Repository PSGallery `
+              -NuGetApiKey $env:PSGALLERY_API_KEY `
+              -ErrorAction Stop
+
+      - name: Confirm PowerShell Gallery publication
+        run: |
+          $version = '${{ steps.release.outputs.version }}'
+          $galleryUri = "https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PSWinUtil'&`$filter=Version%20eq%20'$version'"
+          for ($attempt = 1; $attempt -le 12; $attempt++) {
+              $galleryResponse = Invoke-WebRequest -Uri $galleryUri -UseBasicParsing -ErrorAction Stop
+              if ($galleryResponse.Content -match '<entry[ >]') {
+                  return
+              }
+              Start-Sleep -Seconds 10
+          }
+          throw "PowerShell Gallery did not expose PSWinUtil $version within the expected time."
+
+      - name: Publish GitHub Release
+        if: steps.publication.outputs.github_release_exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ steps.release.outputs.tag }}' `
+              '${{ steps.artifact.outputs.path }}' `
+              --repo $env:GITHUB_REPOSITORY `
+              --verify-tag `
+              --title '${{ steps.release.outputs.version }}' `
+              --generate-notes

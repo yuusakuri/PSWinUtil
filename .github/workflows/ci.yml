@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up the .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "8.0.x"
 
@@ -27,4 +27,4 @@ jobs:
         run: .\install.ps1
 
       - name: Run verification
-        run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 ci
+        run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
