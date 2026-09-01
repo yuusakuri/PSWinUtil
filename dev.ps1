@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('format', 'analyze', 'build', 'import', 'test', 'ci')]
+    [ValidateSet('format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci')]
     [string]$Command,
 
     [Parameter(Position = 1)]
@@ -28,6 +28,7 @@ $nativeProjectPath = Join-Path `
 $testSupportProjectPath = Join-Path `
     -Path $repositoryRoot `
     -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
+$scriptDirectory = Join-Path -Path $repositoryRoot -ChildPath 'scripts'
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
@@ -37,12 +38,14 @@ $writeUsage = {
 Usage:
   .\dev.ps1 format
   .\dev.ps1 analyze
+  .\dev.ps1 lint
   .\dev.ps1 build
   .\dev.ps1 import
   .\dev.ps1 test unit
   .\dev.ps1 test integration
   .\dev.ps1 test contract
   .\dev.ps1 test all
+  .\dev.ps1 verify
   .\dev.ps1 ci
 '@
 }
@@ -96,6 +99,7 @@ $getSourceFiles = {
     $sourceDirectories = @(
         $moduleSourceDirectory
         (Join-Path -Path $repositoryRoot -ChildPath 'tests')
+        $scriptDirectory
     )
     foreach ($sourceDirectory in $sourceDirectories) {
         if (-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {
@@ -516,6 +520,18 @@ $invokeTest = {
     }
 }
 
+$invokeVerify = {
+    & $importRequiredModule -Name 'PSScriptAnalyzer'
+    & $importRequiredModule -Name 'ModuleBuilder'
+    & $importRequiredModule -Name 'Pester'
+    & $assertSource
+    & $invokeFormat -Check
+    & $invokeAnalyze
+    & $invokeBuild
+    & $assertOutput
+    & $invokeTest -SelectedTestType 'all' -SkipBuild
+}
+
 switch ($Command) {
     'format' {
         & $assertSource
@@ -525,6 +541,12 @@ switch ($Command) {
     'analyze' {
         & $assertSource
         & $importRequiredModule -Name 'PSScriptAnalyzer'
+        & $invokeAnalyze
+    }
+    'lint' {
+        & $importRequiredModule -Name 'PSScriptAnalyzer'
+        & $assertSource
+        & $invokeFormat -Check
         & $invokeAnalyze
     }
     'build' {
@@ -541,15 +563,10 @@ switch ($Command) {
         & $importRequiredModule -Name 'Pester'
         & $invokeTest -SelectedTestType $TestType
     }
+    'verify' {
+        & $invokeVerify
+    }
     'ci' {
-        & $importRequiredModule -Name 'PSScriptAnalyzer'
-        & $importRequiredModule -Name 'ModuleBuilder'
-        & $importRequiredModule -Name 'Pester'
-        & $assertSource
-        & $invokeFormat -Check
-        & $invokeAnalyze
-        & $invokeBuild
-        & $assertOutput
-        & $invokeTest -SelectedTestType 'all' -SkipBuild
+        & $invokeVerify
     }
 }

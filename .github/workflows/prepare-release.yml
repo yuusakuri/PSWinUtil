@@ -1,0 +1,129 @@
+name: Prepare release
+
+run-name: Prepare release ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version in major.minor.patch format
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_BRANCH: release/${{ inputs.version }}
+
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v6
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Set up the .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install development modules
+        run: .\install.ps1
+
+      - name: Validate release version
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+              throw "Release version must use major.minor.patch format: $env:RELEASE_VERSION"
+          }
+
+          $manifest = Import-PowerShellDataFile -LiteralPath '.\src\PSWinUtil\PSWinUtil.psd1'
+          $currentVersion = [version][string]$manifest.ModuleVersion
+          $releaseVersion = [version]$env:RELEASE_VERSION
+          if ($releaseVersion -le $currentVersion) {
+              throw "Release version $releaseVersion must be greater than the current version $currentVersion."
+          }
+
+          $tagName = "v$env:RELEASE_VERSION"
+          $tagReference = git ls-remote --tags origin "refs/tags/$tagName"
+          if ($LASTEXITCODE -ne 0) {
+              throw "Could not inspect remote tags."
+          }
+          if (-not [string]::IsNullOrWhiteSpace(($tagReference -join ''))) {
+              throw "Tag already exists: $tagName"
+          }
+
+          $branchReference = git ls-remote --heads origin "refs/heads/$env:RELEASE_BRANCH"
+          if ($LASTEXITCODE -ne 0) {
+              throw "Could not inspect remote branches."
+          }
+          if (-not [string]::IsNullOrWhiteSpace(($branchReference -join ''))) {
+              throw "Release branch already exists: $env:RELEASE_BRANCH"
+          }
+
+      - name: Create release branch
+        run: git switch --create $env:RELEASE_BRANCH
+
+      - name: Update ModuleVersion
+        run: |
+          .\scripts\Set-ReleaseVersion.ps1 `
+              -Version $env:RELEASE_VERSION `
+              -ManifestPath '.\src\PSWinUtil\PSWinUtil.psd1'
+
+      - name: Verify release contents
+        run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
+
+      - name: Commit and push release branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'src/PSWinUtil/PSWinUtil.psd1'
+
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+              throw 'The release preparation did not change the module manifest.'
+          }
+          if ($LASTEXITCODE -ne 1) {
+              throw 'Could not inspect the staged release changes.'
+          }
+
+          git commit --message "chore(release): $env:RELEASE_VERSION"
+          git push --set-upstream origin $env:RELEASE_BRANCH
+
+      - name: Create release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $title = "chore(release): $env:RELEASE_VERSION"
+          $body = @(
+              '## Release'
+              ''
+              "- ModuleVersion: $env:RELEASE_VERSION"
+              "- Tag after merge: v$env:RELEASE_VERSION"
+              '- Verification: dev.ps1 verify passed during release preparation'
+          ) -join [Environment]::NewLine
+
+          $pullRequestUrl = gh pr create `
+              --repo $env:GITHUB_REPOSITORY `
+              --base master `
+              --head $env:RELEASE_BRANCH `
+              --title $title `
+              --body $body
+          if ($LASTEXITCODE -ne 0) {
+              throw 'Could not create the release pull request.'
+          }
+
+          "Release PR: $pullRequestUrl" |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
