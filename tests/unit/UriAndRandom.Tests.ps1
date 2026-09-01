@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Join-WUUri' {
     It 'uses System.Uri to resolve relative segments' {
         $result = Join-WUUri -BaseUri 'https://example.test/api/v1/' -RelativeUri '../status'

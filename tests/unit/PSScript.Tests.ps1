@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Test-WUPSScript' {
     It 'returns true for valid script text' {
         Test-WUPSScript -Script 'Get-Item -Path .' | Should -BeTrue

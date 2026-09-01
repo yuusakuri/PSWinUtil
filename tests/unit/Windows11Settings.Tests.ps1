@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Windows 11 registry setting commands' {
     BeforeEach {
         Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil

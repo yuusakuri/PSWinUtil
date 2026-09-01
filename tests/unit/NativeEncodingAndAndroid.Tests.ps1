@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Set-WUNativeCommandEncoding' {
     BeforeEach {
         $script:SavedInputEncoding = [Console]::InputEncoding

@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     $script:WinlogonPath = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
     $script:SecurePassword = [securestring]::new()
     foreach ($character in 'UnitTestPassword'.ToCharArray()) {

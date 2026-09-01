@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     InModuleScope -ModuleName PSWinUtil {
         $script:TestRegistrySettingData = @{
             Settings = @(

@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Remove-WUEnvironmentVariable' {
     BeforeEach {
         Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {}

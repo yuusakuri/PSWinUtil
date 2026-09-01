@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'ConvertTo-WUFullPath' {
     It 'converts a relative path without requiring it to exist' {
         Push-Location -LiteralPath $TestDrive

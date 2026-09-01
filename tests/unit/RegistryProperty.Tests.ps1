@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     $script:RegistryPath = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest'
 }
 

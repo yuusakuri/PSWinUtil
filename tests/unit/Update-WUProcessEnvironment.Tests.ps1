@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     $script:EnvironmentTarget = [System.EnvironmentVariableTarget]::Process
 }
 

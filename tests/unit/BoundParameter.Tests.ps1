@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Select-WUBoundParameter' {
     It 'returns only requested entries that exist' {
         $boundParameters = [ordered]@{

@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Test-WUEnvironmentVariableSetting' {
     It 'accepts a Hashtable with string keys and values' {
         InModuleScope -ModuleName PSWinUtil {

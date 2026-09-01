@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     Add-Type -AssemblyName 'System.IO.Compression.FileSystem' -ErrorAction Stop
 }
 

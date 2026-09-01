@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     $script:KeyboardLayoutPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout'
     $script:Mappings = @(
         [pscustomobject]@{ SourceScanCode = [uint16]0x003A; DestinationScanCode = [uint16]0x001D }

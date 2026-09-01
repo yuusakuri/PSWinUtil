@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Get-WUFileTreeWithContent' {
     BeforeEach {
         $script:RootPath = Join-Path -Path $TestDrive -ChildPath 'root'

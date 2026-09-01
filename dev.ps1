@@ -500,10 +500,6 @@ $invokeTest = {
         $testTypes = @('unit', 'integration', 'contract')
     }
 
-    if ('unit' -in $testTypes) {
-        Import-Module -Name $outputManifestPath -Force -ErrorAction Stop
-    }
-
     $testPaths = @(
         foreach ($targetTestType in $testTypes) {
             Join-Path -Path $repositoryRoot -ChildPath "tests/$targetTestType"

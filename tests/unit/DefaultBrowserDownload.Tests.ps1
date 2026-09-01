@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Invoke-WUDefaultBrowserDownload' {
     BeforeEach {
         Get-ChildItem -LiteralPath $TestDrive -File | Remove-Item -Force

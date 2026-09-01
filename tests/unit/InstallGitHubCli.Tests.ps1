@@ -1,3 +1,7 @@
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
 Describe 'Install-WUGitHubCli' {
     BeforeEach {
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -MockWith {

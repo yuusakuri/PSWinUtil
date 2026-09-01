@@ -1,4 +1,6 @@
 BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
     $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $script:UnicodeText = [string][char]0x3042
     $script:AssertUtf8Lf = {
