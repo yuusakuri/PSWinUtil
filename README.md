@@ -2,57 +2,64 @@
 
 PSWinUtil is a Windows PowerShell 5.1 module for repeatable Windows configuration and administration.
 
-It provides commands that:
+It provides commands to:
 
 - Configure Windows interface, security, sign-in, and notification settings.
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
-- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
+- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, winget packages, and Android and Flutter tools.
+
+The module can be imported without third-party runtime dependencies. Individual commands can require the Windows features or applications they operate, such as Windows Package Manager, OpenSSH, Java, Node.js, Flutter, or the Android SDK.
 
 ## Requirements
 
 - Windows.
 - Windows PowerShell 5.1 with the `Desktop` edition.
 
+Check the current shell before importing the module:
+
+```powershell
+$PSVersionTable.PSVersion
+$PSVersionTable.PSEdition
+```
+
 ## Installation
 
 ### PowerShell Gallery
 
-Install PSWinUtil from PowerShell Gallery for the current user:
+Install the latest published release for the current user with `Microsoft.PowerShell.PSResourceGet`:
+
+```powershell
+Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser -Repository PSGallery
+```
+
+Then install and import PSWinUtil:
 
 ```powershell
 Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
-```
-
-### Release ZIP
-
-To use PSWinUtil without installing it from PowerShell Gallery, download the ZIP file for the required version from [Releases](https://github.com/yuusakuri/PSWinUtil/releases). Extract the archive to any directory, find the included `PSWinUtil.psd1` module manifest, and import it by its full path.
-
-The following example uses a ZIP file saved as `Downloads\PSWinUtil.zip`:
-
-```powershell
-$archivePath = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads\PSWinUtil.zip'
-$destinationPath = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads\PSWinUtil-release'
-
-Expand-Archive -LiteralPath $archivePath -DestinationPath $destinationPath
-$manifestPath = Get-ChildItem -LiteralPath $destinationPath -Filter 'PSWinUtil.psd1' -File -Recurse |
-    Select-Object -First 1 -ExpandProperty FullName
-
-if ($null -eq $manifestPath) {
-    throw 'PSWinUtil.psd1 was not found in the extracted release.'
-}
-
-Import-Module -Name $manifestPath
-Get-Command -Module 'PSWinUtil'
-```
-
-The imported commands are available in the current Windows PowerShell session. In a new session, run `Import-Module` with the extracted manifest path again.
-
-## Usage
-
-Import the module and list its commands:
-
-```powershell
 Import-Module -Name 'PSWinUtil'
+```
+
+The source on `master` targets the version declared in [`src/PSWinUtil/PSWinUtil.psd1`](src/PSWinUtil/PSWinUtil.psd1). If the Gallery still provides an earlier major version, its commands can differ from this documentation. Use a source build when evaluating the current development version.
+
+### Source build
+
+Clone the repository, install the pinned development modules, and build the distribution:
+
+```powershell
+git clone https://github.com/yuusakuri/PSWinUtil.git
+Set-Location -Path '.\PSWinUtil'
+powershell.exe -ExecutionPolicy Bypass -File '.\install.ps1'
+powershell.exe -ExecutionPolicy Bypass -File '.\dev.ps1' build
+Import-Module -Name '.\output\PSWinUtil\PSWinUtil.psd1'
+```
+
+Development dependencies are required only to build and test the source. The generated module is under `output/PSWinUtil`.
+
+## Quick start
+
+List the installed commands:
+
+```powershell
 Get-Command -Module 'PSWinUtil'
 ```
 
@@ -68,31 +75,26 @@ Preview a persistent environment variable update without changing the system:
 Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
 ```
 
-Preview enabling Win32 long path support:
+Apply persistent environment changes to the current PowerShell process:
 
 ```powershell
-Enable-WULongPaths -WhatIf
+Update-WUProcessEnvironment
 ```
 
-Install a package by its exact winget ID and automatically accept the source and package agreements:
-
-```powershell
-Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-```
-
-Send a web request without the Windows PowerShell 5.1 progress-rendering overhead:
-
-```powershell
-$response = Invoke-WebRequest -Uri 'https://example.com/' -UseBasicParsing
-$response.StatusCode
-```
-
-Use `Get-Help` to view the parameters and examples for any command:
+Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
 ```powershell
 Get-Help -Name 'Set-WUEnvironmentVariable' -Full
 ```
 
-## Contributing
+## Documentation
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, verification commands, coding conventions, and pull request requirements.
+- [Getting started](docs/tutorials/getting-started.md) walks through a source build and a safe first configuration change.
+- [Command reference](docs/reference/commands.md) groups every exported command by purpose.
+- [Architecture](docs/explanation/architecture.md) explains the source, build, distribution, and test boundaries.
+- [Contributing](CONTRIBUTING.md) describes the development workflow and required verification.
+- [Changelog](CHANGELOG.md) records released and unreleased changes.
+
+## License
+
+PSWinUtil is licensed under the [Apache License 2.0](LICENSE).
