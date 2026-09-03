@@ -106,14 +106,7 @@ Run the complete repository verification before submitting a pull request:
 powershell.exe -ExecutionPolicy Bypass -File '.\dev.ps1' ci
 ```
 
-Check NuGet dependencies for known vulnerabilities:
-
-```powershell
-dotnet list '.\src\PSWinUtil.Native\PSWinUtil.Native.csproj' package --vulnerable --include-transitive
-dotnet list '.\tests\PSWinUtil.TestSupport\PSWinUtil.TestSupport.csproj' package --vulnerable --include-transitive
-```
-
-Warnings from formatting, analysis, tests, or vulnerability checks must be resolved before merge.
+Warnings from formatting, analysis, builds, or tests must be resolved before merge.
 
 ## Pull requests
 
