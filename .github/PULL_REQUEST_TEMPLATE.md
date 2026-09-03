@@ -21,13 +21,11 @@ repeat the diff.
 ## Verification
 
 <!--
-Check each command that passed and include relevant results. Leave a command
+Check the command when it passes and include relevant results. Leave it
 unchecked when it was not run, then explain why below.
 -->
 
 - [ ] `powershell.exe -ExecutionPolicy Bypass -File '.\dev.ps1' ci`
-- [ ] `dotnet list '.\src\PSWinUtil.Native\PSWinUtil.Native.csproj' package --vulnerable --include-transitive`
-- [ ] `dotnet list '.\tests\PSWinUtil.TestSupport\PSWinUtil.TestSupport.csproj' package --vulnerable --include-transitive`
 
 <!-- List additional automated or manual checks and their results when applicable. -->
 
