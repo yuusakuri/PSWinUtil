@@ -119,9 +119,12 @@ Warnings from formatting, analysis, tests, or vulnerability checks must be resol
 
 Push the branch and open a pull request into `master`. The description must include:
 
-- The problem and resulting behavior.
+- The problem or need, the resulting behavior, and why the change is necessary.
 - Related issues, or `None` when there is no issue.
-- The verification commands that passed.
+- The approach, concrete changes, and important technical decisions.
+- The verification commands and manual checks that passed, including relevant results.
 - Any verification that could not be run and why.
+- The affected commands, components, users, compatibility, and operational concerns, or `None` when there is no impact to report.
+- The decisions, risks, files, or behavior that need particular review attention, or `None` when no special focus is needed.
 
 At least one approval is required. Merge with squash after all required checks pass.
