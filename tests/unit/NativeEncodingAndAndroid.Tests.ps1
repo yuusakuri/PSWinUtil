@@ -130,7 +130,7 @@ Describe 'Android virtual devices' {
     }
 
     It 'lists every local Android virtual device without starting a process' {
-        $names = @(Get-WUAndroidVirtualDevice)
+        $names = @(Get-WUAndroidEmulator)
 
         $names | Should -HaveCount 2
         $names[0] | Should -BeExactly 'Pixel_API_35'
@@ -147,7 +147,7 @@ Describe 'Android virtual devices' {
             $script:TestAndroidAvds = @()
         }
 
-        @(Get-WUAndroidVirtualDevice) | Should -HaveCount 0
+        @(Get-WUAndroidEmulator) | Should -HaveCount 0
     }
 
     It 'trims names and ignores blank lines' {
@@ -155,7 +155,7 @@ Describe 'Android virtual devices' {
             $script:TestAndroidAvds = @('', '  Pixel_API_35  ', ' ', 'Tablet_API_35', '')
         }
 
-        $names = @(Get-WUAndroidVirtualDevice)
+        $names = @(Get-WUAndroidEmulator)
 
         $names | Should -HaveCount 2
         $names[0] | Should -BeExactly 'Pixel_API_35'
@@ -165,7 +165,7 @@ Describe 'Android virtual devices' {
     It 'requires emulator.exe on PATH when listing devices' {
         Mock -CommandName Get-Command -ModuleName PSWinUtil
 
-        { Get-WUAndroidVirtualDevice } | Should -Throw '*not found on PATH*'
+        { Get-WUAndroidEmulator } | Should -Throw '*not found on PATH*'
     }
 
     It 'reports a list command failure without returning device names' {
@@ -175,7 +175,7 @@ Describe 'Android virtual devices' {
         }
         $names = @()
 
-        { $names += Get-WUAndroidVirtualDevice } | Should -Throw '*exit code 1*list error*'
+        { $names += Get-WUAndroidEmulator } | Should -Throw '*exit code 1*list error*'
         $names | Should -HaveCount 0
     }
 

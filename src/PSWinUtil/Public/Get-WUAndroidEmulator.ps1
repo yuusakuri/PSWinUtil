@@ -1,4 +1,4 @@
-function Get-WUAndroidVirtualDevice {
+function Get-WUAndroidEmulator {
     <#
     .SYNOPSIS
     Gets the names of local Android virtual devices.
@@ -7,7 +7,7 @@ function Get-WUAndroidVirtualDevice {
     Finds emulator.exe on PATH and returns every Android virtual device name registered with the local Android SDK, including devices that are not running. Returns no output when no virtual devices are registered.
 
     .EXAMPLE
-    Get-WUAndroidVirtualDevice
+    Get-WUAndroidEmulator
 
     Lists all local Android virtual device names without starting them.
 

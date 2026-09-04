@@ -7,7 +7,7 @@ function Start-WUAndroidEmulator {
     Finds emulator.exe on PATH and starts each selected Android virtual device in a background process. When Name is omitted, all local virtual devices are started. Returns a process for each device started.
 
     .PARAMETER Name
-    Specifies an Android virtual device name returned by Get-WUAndroidVirtualDevice. When omitted, all local virtual devices are started.
+    Specifies an Android virtual device name returned by Get-WUAndroidEmulator. When omitted, all local virtual devices are started.
 
     .EXAMPLE
     Start-WUAndroidEmulator -Name 'Pixel_API_35'
@@ -39,7 +39,7 @@ function Start-WUAndroidEmulator {
         throw 'Android emulator.exe was not found on PATH.'
     }
 
-    $avdNames = @(Get-WUAndroidVirtualDevice -ErrorAction Stop)
+    $avdNames = @(Get-WUAndroidEmulator -ErrorAction Stop)
     if ($avdNames.Count -eq 0) {
         throw 'No Android virtual device is available.'
     }
