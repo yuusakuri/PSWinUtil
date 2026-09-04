@@ -1,6 +1,6 @@
 # Contributing to PSWinUtil
 
-Thank you for contributing to PSWinUtil. This guide explains how to prepare the development environment, make a focused change, verify it, and submit a pull request.
+Build and test PSWinUtil from source before submitting a pull request. Run the commands below from the repository root in Windows PowerShell 5.1.
 
 ## Development environment
 
@@ -43,20 +43,9 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) with 
 
 Add or update tests whenever observable behavior changes. Keep the pull request limited to one related change.
 
-## Source layout
+## Source files
 
-| Path | Purpose |
-| --- | --- |
-| `src/PSWinUtil/Public/` | Exported functions, one function per file. |
-| `src/PSWinUtil/Private/` | Internal functions, one function per file. |
-| `src/PSWinUtil/data/` | Runtime data copied into the distribution. |
-| `src/PSWinUtil.Native/` | C# native interoperability assembly. |
-| `tests/unit/` | Isolated behavior tests. |
-| `tests/integration/` | Windows and external-component integration tests. |
-| `tests/contract/` | Distribution, manifest, import, and help contracts. |
-| `output/PSWinUtil/` | Generated distribution; do not edit it manually. |
-
-For a fuller description, see [Architecture](docs/explanation/architecture.md).
+Implement exported commands in `src/PSWinUtil/Public/` and internal functions in `src/PSWinUtil/Private/`, with one function per file. Put tests in `tests/unit/`, `tests/integration/`, or `tests/contract/` according to the behavior they verify. The [architecture explanation](docs/explanation/architecture.md) describes the build output and each test suite.
 
 ## Development commands
 
@@ -66,7 +55,7 @@ For a fuller description, see [Architecture](docs/explanation/architecture.md).
 | --- | --- |
 | `.\dev.ps1 format` | Formats PowerShell source files with the repository settings. |
 | `.\dev.ps1 analyze` | Runs PSScriptAnalyzer with the repository settings. |
-| `.\dev.ps1 build` | Builds the PowerShell module and its C# assembly into `output/`. |
+| `.\dev.ps1 build` | Builds the PowerShell module, native assembly, and test-support assemblies into `output/`. |
 | `.\dev.ps1 import` | Imports the previously built module into the current Windows PowerShell session. |
 | `.\dev.ps1 test unit` | Builds the module and runs unit tests. |
 | `.\dev.ps1 test integration` | Builds the module and runs Windows integration tests. |
@@ -85,6 +74,8 @@ Get-Command -Module 'PSWinUtil'
 ## Code and documentation conventions
 
 Follow the [Windows PowerShell module development guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/implementation/windows-powershell-module-guidelines.md).
+
+PowerShell source files use ASCII characters, UTF-8 without a byte-order mark (BOM), and LF line endings. `dev.ps1` validates the source files before building or testing.
 
 Public functions require comment-based help with `.SYNOPSIS`, `.DESCRIPTION`, documentation for every public parameter, and at least one `.EXAMPLE`. Add `.INPUTS` and `.OUTPUTS` when applicable. Contract tests verify these requirements against the built module.
 
@@ -110,7 +101,7 @@ Warnings from formatting, analysis, builds, or tests must be resolved before mer
 
 ## Pull requests
 
-Push the branch and open a pull request into `master`. Use the pull request template:
+Push the branch and open a pull request into `master`. Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md):
 
 - `Description`: Explain why the change is needed and what it changes.
 - `Related issue`: Reference an issue with `Closes #123`, or write `None`.

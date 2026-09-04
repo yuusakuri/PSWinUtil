@@ -1,6 +1,6 @@
 # Getting started from source
 
-This tutorial builds the current PSWinUtil source, imports the generated module, and previews a safe configuration change. It does not require changing machine-level state.
+Build PSWinUtil from source, import it, and preview setting a user environment variable. At the end, the module is available in the current PowerShell session and the environment variable retains its original value.
 
 ## 1. Check the environment
 
@@ -11,14 +11,16 @@ $PSVersionTable.PSVersion
 $PSVersionTable.PSEdition
 ```
 
-The edition must be `Desktop`. PowerShell 7 uses the `Core` edition and is not a supported runtime for this module.
+The version output must show major version `5` and minor version `1`; the edition must be `Desktop`. PowerShell 7 uses the `Core` edition and is not a supported runtime for this module.
 
-The source build also requires Git and the .NET SDK 8.0 or later:
+The source build requires Git and the .NET SDK 8.0 or later. Confirm that both commands are available:
 
 ```powershell
 git --version
 dotnet --version
 ```
+
+Both commands must print a version, and the .NET SDK major version must be at least `8`.
 
 ## 2. Clone the repository
 
@@ -26,6 +28,8 @@ dotnet --version
 git clone https://github.com/yuusakuri/PSWinUtil.git
 Set-Location -Path '.\PSWinUtil'
 ```
+
+Run the remaining commands from the cloned `PSWinUtil` directory.
 
 ## 3. Install development modules
 
@@ -35,7 +39,7 @@ Install the pinned versions of ModuleBuilder, Pester, PSScriptAnalyzer, and `Mic
 powershell.exe -ExecutionPolicy Bypass -File '.\install.ps1'
 ```
 
-These modules are development dependencies. They are not required to import the generated PSWinUtil distribution.
+The script installs the versions in `build.requirements.psd1` for the current user. These modules are used to build and test PSWinUtil; the built module can be imported without them.
 
 ## 4. Build and import PSWinUtil
 
@@ -51,7 +55,7 @@ Get-Module -Name 'PSWinUtil' |
     Select-Object -Property Name, Version, Path
 ```
 
-The path must point into this repository's `output\PSWinUtil` directory.
+The output must show `PSWinUtil`, the version declared in `src/PSWinUtil/PSWinUtil.psd1`, and a path inside this repository's `output\PSWinUtil` directory.
 
 ## 5. Inspect commands and help
 
@@ -64,7 +68,15 @@ The [command reference](../reference/commands.md) provides a grouped index. Comm
 
 ## 6. Preview a change
 
-State-changing PSWinUtil commands support PowerShell's `-WhatIf` parameter. Preview adding a user environment variable:
+First, read the current value of the user environment variable:
+
+```powershell
+Get-WUEnvironmentVariable -Name 'PSWINUTIL_TUTORIAL' -Scope User
+```
+
+A missing variable produces no output. If a value appears, note it for the comparison after the preview.
+
+`Set-WUEnvironmentVariable` supports PowerShell's `-WhatIf` parameter. Preview setting the variable:
 
 ```powershell
 Set-WUEnvironmentVariable `
@@ -74,15 +86,15 @@ Set-WUEnvironmentVariable `
     -WhatIf
 ```
 
-PowerShell describes the proposed operation, but the variable is not created. Verify that there is no user-level value:
+PowerShell displays the target variable and operation without writing the value. Read the variable again:
 
 ```powershell
 Get-WUEnvironmentVariable -Name 'PSWINUTIL_TUTORIAL' -Scope User
 ```
 
-A missing environment variable produces no output.
+The result must match the first read. If the variable was absent, there is still no output; if it existed, its value is unchanged.
 
-## 7. Continue safely
+## 7. Choose the next command
 
 Before running a command without `-WhatIf`, read its complete help and note whether it requires elevation, restarts, sign-out, or an external application:
 
@@ -90,4 +102,4 @@ Before running a command without `-WhatIf`, read its complete help and note whet
 Get-Help -Name 'Enable-WULongPaths' -Full
 ```
 
-Return to the [README](../../README.md) for installation options or read the [Architecture](../explanation/architecture.md) before contributing.
+Use the [command reference](../reference/commands.md) to find another command, or follow [Contributing](../../CONTRIBUTING.md) to develop and test the module.

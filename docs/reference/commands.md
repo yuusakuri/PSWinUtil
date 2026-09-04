@@ -1,6 +1,6 @@
 # Command reference
 
-This page groups the commands exported by the current source build. Use PowerShell's comment-based help for the authoritative parameter sets, input and output types, side effects, and examples:
+Find a command by the task it performs, then read its included help for parameter sets, input and output types, side effects, and examples. Replace `<CommandName>` with a name from the tables:
 
 ```powershell
 Get-Help -Name '<CommandName>' -Full
@@ -14,10 +14,18 @@ Run `Get-Command -Module 'PSWinUtil'` against the built module to inspect the ex
 | --- | --- |
 | `Add-WUPathEnvironmentVariable` | Add paths to a `PATH` environment variable. |
 | `Get-WUEnvironmentVariable` | Get environment variable values from Process, User, or Machine scope. |
-| `Remove-WUEnvironmentVariable` | Remove an environment variable. |
+| `Remove-WUEnvironmentVariable` | Remove named environment variables from the selected scopes. |
 | `Remove-WUPathEnvironmentVariable` | Remove paths from a `PATH` environment variable. |
-| `Set-WUEnvironmentVariable` | Set one or more environment variables. |
+| `Set-WUEnvironmentVariable` | Set a named environment variable or load variables from a PowerShell data file. |
 | `Update-WUProcessEnvironment` | Refresh the current process environment from persistent scopes. |
+
+`Process` affects the current PowerShell process. `User` and `Machine` store persistent values. After storing values in the persistent scopes, use `Update-WUProcessEnvironment` to apply them to the current process:
+
+```powershell
+Update-WUProcessEnvironment
+```
+
+User values take precedence over Machine values with the same name. `PATH` combines the Machine and User values in that order. Variables that exist only in the current process are preserved.
 
 ## Registry and Windows settings
 
@@ -103,7 +111,7 @@ Enabling automatic logon stores a protected credential through Windows Local Sec
 | `Test-WUPathProperty` | Test PowerShell path properties. |
 | `Test-WUPSScript` | Test PowerShell script syntax. |
 
-`Add-Content`, `Get-Content`, `Set-Content`, and `Out-File` are Desktop-only proxies for built-in commands. Module-qualify a built-in command when its original behavior is required explicitly.
+`Add-Content`, `Get-Content`, `Set-Content`, and `Out-File` wrap the built-in commands in Windows PowerShell Desktop. `Get-Content` reads file text as UTF-8 by default. When writing file text, the other three commands produce UTF-8 without a byte-order mark (BOM) and use LF line endings when `-Encoding` is omitted or set to `UTF8`. Explicitly selecting another encoding preserves the built-in behavior. Use a qualified name such as `Microsoft.PowerShell.Management\Get-Content` or `Microsoft.PowerShell.Utility\Out-File` to call the built-in command.
 
 ## Web, URI, packages, and SDKs
 
