@@ -87,6 +87,7 @@ Describe 'Built module manifest' {
             'Set-WUNodeExtraCaCertificate'
             'Set-WUJavaWindowsRootTrustStore'
             'Start-WUAndroidEmulator'
+            'Get-WUAndroidEmulator'
             'Get-WUAndroidCommandLineToolsUrl'
             'Get-WUFlutterSdkUrl'
             'Invoke-WUDefaultBrowserDownload'

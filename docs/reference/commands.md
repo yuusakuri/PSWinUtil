@@ -121,6 +121,7 @@ Use a qualified name such as `Microsoft.PowerShell.Management\Get-Content` or `M
 | --- | --- |
 | `Convert-WUUri` | Remove selected components from a URI. |
 | `Get-WUAndroidCommandLineToolsUrl` | Get the current Android command-line tools URL for Windows. |
+| `Get-WUAndroidEmulator` | List all local Android virtual device names, including stopped devices. |
 | `Get-WUFlutterSdkUrl` | Get a Flutter SDK download URL for Windows. |
 | `Install-WUAndroidCommandLineTools` | Install the current Android command-line tools package. |
 | `Install-WUFlutterSdk` | Install the Flutter SDK on Windows. |
@@ -129,9 +130,31 @@ Use a qualified name such as `Microsoft.PowerShell.Management\Get-Content` or `M
 | `Invoke-WebRequest` | Send an HTTP or HTTPS request without rendering progress. |
 | `Invoke-WUDefaultBrowserDownload` | Download a file with the default browser. |
 | `Join-WUUri` | Resolve a relative URI against a base URI. |
-| `Start-WUAndroidEmulator` | Start an Android virtual device. |
+| `Start-WUAndroidEmulator` | Start all local Android virtual devices, or one device selected with `-Name`. |
 
 `Invoke-WebRequest` is a Desktop-only proxy for the built-in command. Use `Microsoft.PowerShell.Utility\Invoke-WebRequest` to request the original command explicitly.
+
+### Android emulators
+
+`Get-WUAndroidEmulator` lists the virtual devices registered with the local Android SDK. It returns their names without starting them, and returns no output when none are registered. Both Android emulator commands require `emulator.exe` on `PATH`.
+
+```powershell
+Get-WUAndroidEmulator
+```
+
+`Start-WUAndroidEmulator` starts every registered virtual device when `-Name` is omitted. To start one device, pass its name with `-Name`. The command returns a process for each device started and reports an error if no devices are registered or the selected name does not exist.
+
+Preview starting all registered devices:
+
+```powershell
+Start-WUAndroidEmulator -WhatIf
+```
+
+Preview starting a device named `Pixel_API_35` when that name appears in the list:
+
+```powershell
+Start-WUAndroidEmulator -Name 'Pixel_API_35' -WhatIf
+```
 
 ## General utilities
 

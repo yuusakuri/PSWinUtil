@@ -8,12 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Get-WUAndroidEmulator` lists all local Android virtual device names, including stopped devices.
 - A ModuleBuilder-based build, PSScriptAnalyzer checks, and unit, integration, and contract test suites for Windows PowerShell 5.1.
 - Commands for environment variables, registry settings, startup entries, automatic logon, keyboard remapping, Windows 11 settings, certificate trust, downloads, package installation, and Android and Flutter tooling.
 - A compiled `PSWinUtil.Native` assembly for Windows native interoperability.
 
 ### Changed
 
+- `Start-WUAndroidEmulator` starts all local Android virtual devices by default; `-Name` selects one device.
 - Rebuilt the module around one public or private function per source file and a generated distribution under `output/PSWinUtil`.
 - Limited the supported runtime to Windows PowerShell 5.1 Desktop.
 - Removed third-party module and executable installation from module import.
