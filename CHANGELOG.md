@@ -56,11 +56,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - NuGet assemblies load when needed instead of during module import.
+- Dependency installation uses `-Unsafe` to skip Scoop and Chocolatey checksum verification.
 
 ### Fixed
 
 - Version checks handle invalid version strings, different component counts, and empty allowed-version ranges.
-- Dependency resolution handles missing assembly paths and package checksum failures.
+- Dependency resolution handles missing assembly paths.
 
 ## [1.5.8] - 2021-06-21
 
@@ -141,10 +142,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Windows Update notification settings cover additional notification registry values.
-
-### Fixed
-
-- Download output uses consistent line endings without extra trailing blank lines.
 
 ## [1.4.6] - 2021-01-20
 
@@ -228,7 +225,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- `Find-WUPath` matches names without distinguishing uppercase and lowercase letters and checks the search module before use.
+- `Find-WUPath` matches names without distinguishing uppercase and lowercase letters.
 
 ## [1.2.18] - 2020-11-14
 
