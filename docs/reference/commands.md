@@ -111,7 +111,9 @@ Enabling automatic logon stores a protected credential through Windows Local Sec
 | `Test-WUPathProperty` | Test PowerShell path properties. |
 | `Test-WUPSScript` | Test PowerShell script syntax. |
 
-`Add-Content`, `Get-Content`, `Set-Content`, and `Out-File` wrap the built-in commands in Windows PowerShell Desktop. `Get-Content` reads file text as UTF-8 by default. When writing file text, the other three commands produce UTF-8 without a byte-order mark (BOM) and use LF line endings when `-Encoding` is omitted or set to `UTF8`. Explicitly selecting another encoding preserves the built-in behavior. Use a qualified name such as `Microsoft.PowerShell.Management\Get-Content` or `Microsoft.PowerShell.Utility\Out-File` to call the built-in command.
+`Add-Content`, `Get-Content`, `Set-Content`, and `Out-File` wrap the built-in commands in Windows PowerShell Desktop. `Get-Content` reads file text as UTF-8 by default. When writing file text, the other three commands produce UTF-8 without a byte-order mark (BOM) and use LF line endings when `-Encoding` is omitted or set to `UTF8`. Explicitly selecting another encoding preserves the built-in behavior.
+
+Use a qualified name such as `Microsoft.PowerShell.Management\Get-Content` or `Microsoft.PowerShell.Utility\Out-File` to call the built-in command.
 
 ## Web, URI, packages, and SDKs
 

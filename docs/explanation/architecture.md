@@ -13,7 +13,9 @@ The source directory contains the functions, runtime data, and module initializa
 - `src/PSWinUtil/data/` contains registry-setting data used at runtime.
 - `src/PSWinUtil/ModuleSuffix.ps1` runs after the function definitions and removes the built-in command proxies when the PowerShell edition is not Desktop.
 
-Each function is defined in one file whose name matches the function name. `src/PSWinUtil/build.psd1` specifies how ModuleBuilder combines these files and copies runtime data. Public commands include comment-based help, and state-changing commands use PowerShell's `ShouldProcess` contract.
+Each function is defined in one file whose name matches the function name. `src/PSWinUtil/build.psd1` specifies how ModuleBuilder combines these files and copies runtime data.
+
+Public commands include comment-based help, and state-changing commands use PowerShell's `ShouldProcess` contract.
 
 ## Native interoperability
 

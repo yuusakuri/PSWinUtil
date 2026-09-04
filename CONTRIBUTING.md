@@ -1,6 +1,6 @@
 # Contributing to PSWinUtil
 
-Build and test PSWinUtil from source before submitting a pull request. Run the commands below from the repository root in Windows PowerShell 5.1.
+Build and test PSWinUtil from source before submitting a pull request. After cloning the repository, run development commands from its root in Windows PowerShell 5.1.
 
 ## Development environment
 
