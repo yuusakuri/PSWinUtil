@@ -108,7 +108,7 @@ Describe 'ConvertTo-WUPSStringLiteral' {
     }
 }
 
-Describe 'Start-WUAndroidEmulator' {
+Describe 'Android virtual devices' {
     BeforeEach {
         InModuleScope -ModuleName PSWinUtil {
             $script:TestAndroidAvds = @('Pixel_API_35', 'Tablet_API_35')
@@ -127,6 +127,56 @@ Describe 'Start-WUAndroidEmulator' {
         Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
             Get-Process -Id $PID
         }
+    }
+
+    It 'lists every local Android virtual device without starting a process' {
+        $names = @(Get-WUAndroidVirtualDevice)
+
+        $names | Should -HaveCount 2
+        $names[0] | Should -BeExactly 'Pixel_API_35'
+        $names[1] | Should -BeExactly 'Tablet_API_35'
+        InModuleScope -ModuleName PSWinUtil {
+            $script:CapturedAndroidArguments | Should -HaveCount 1
+            $script:CapturedAndroidArguments[0] | Should -BeExactly '-list-avds'
+        }
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'returns no names when no virtual devices are registered' {
+        InModuleScope -ModuleName PSWinUtil {
+            $script:TestAndroidAvds = @()
+        }
+
+        @(Get-WUAndroidVirtualDevice) | Should -HaveCount 0
+    }
+
+    It 'trims names and ignores blank lines' {
+        InModuleScope -ModuleName PSWinUtil {
+            $script:TestAndroidAvds = @('', '  Pixel_API_35  ', ' ', 'Tablet_API_35', '')
+        }
+
+        $names = @(Get-WUAndroidVirtualDevice)
+
+        $names | Should -HaveCount 2
+        $names[0] | Should -BeExactly 'Pixel_API_35'
+        $names[1] | Should -BeExactly 'Tablet_API_35'
+    }
+
+    It 'requires emulator.exe on PATH when listing devices' {
+        Mock -CommandName Get-Command -ModuleName PSWinUtil
+
+        { Get-WUAndroidVirtualDevice } | Should -Throw '*not found on PATH*'
+    }
+
+    It 'reports a list command failure without returning device names' {
+        InModuleScope -ModuleName PSWinUtil {
+            $script:TestAndroidExitCode = 1
+            $script:TestAndroidAvds = @('Pixel_API_35', 'list error')
+        }
+        $names = @()
+
+        { $names += Get-WUAndroidVirtualDevice } | Should -Throw '*exit code 1*list error*'
+        $names | Should -HaveCount 0
     }
 
     It 'requires emulator.exe on PATH' {
@@ -153,13 +203,22 @@ Describe 'Start-WUAndroidEmulator' {
         { Start-WUAndroidEmulator } | Should -Throw '*No Android virtual device*'
     }
 
-    It 'starts the first Android virtual device by default' {
-        $process = Start-WUAndroidEmulator
+    It 'starts every Android virtual device by default' {
+        $processes = @(Start-WUAndroidEmulator)
 
-        $process | Should -BeOfType ([System.Diagnostics.Process])
+        $processes | Should -HaveCount 2
+        foreach ($process in $processes) {
+            $process | Should -BeOfType ([System.Diagnostics.Process])
+        }
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 2 -Exactly
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $FilePath -eq 'Invoke-WUTestAndroidEmulator' -and
             $ArgumentList -eq '@Pixel_API_35' -and
+            $PassThru
+        }
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $FilePath -eq 'Invoke-WUTestAndroidEmulator' -and
+            $ArgumentList -eq '@Tablet_API_35' -and
             $PassThru
         }
     }
@@ -167,6 +226,7 @@ Describe 'Start-WUAndroidEmulator' {
     It 'starts the selected Android virtual device' {
         Start-WUAndroidEmulator -Name 'Tablet_API_35'
 
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $ArgumentList -eq '@Tablet_API_35'
         }

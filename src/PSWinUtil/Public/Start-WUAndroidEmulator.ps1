@@ -1,13 +1,13 @@
 function Start-WUAndroidEmulator {
     <#
     .SYNOPSIS
-    Starts an Android virtual device.
+    Starts local Android virtual devices.
 
     .DESCRIPTION
-    Finds emulator.exe on PATH, gets the available Android virtual device names, and starts the selected device in a background process. When Name is omitted, the first available device is selected.
+    Finds emulator.exe on PATH and starts each selected Android virtual device in a background process. When Name is omitted, all local virtual devices are started. Returns a process for each device started.
 
     .PARAMETER Name
-    Specifies an Android virtual device name returned by emulator.exe. When omitted, the first available name is used.
+    Specifies an Android virtual device name returned by Get-WUAndroidVirtualDevice. When omitted, all local virtual devices are started.
 
     .EXAMPLE
     Start-WUAndroidEmulator -Name 'Pixel_API_35'
@@ -17,7 +17,7 @@ function Start-WUAndroidEmulator {
     .EXAMPLE
     Start-WUAndroidEmulator
 
-    Starts the first available Android virtual device.
+    Starts all local Android virtual devices.
 
     .INPUTS
     None
@@ -39,35 +39,24 @@ function Start-WUAndroidEmulator {
         throw 'Android emulator.exe was not found on PATH.'
     }
 
-    $commandOutput = @(& $emulator.Source '-list-avds' 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-        throw "emulator.exe -list-avds failed with exit code $exitCode.$([Environment]::NewLine)$message"
-    }
-
-    $avdNames = @(
-        $commandOutput |
-            ForEach-Object { $_.ToString().Trim() } |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-    )
+    $avdNames = @(Get-WUAndroidVirtualDevice -ErrorAction Stop)
     if ($avdNames.Count -eq 0) {
         throw 'No Android virtual device is available.'
     }
 
-    $selectedName = $avdNames[0]
+    $selectedNames = $avdNames
     if ($PSBoundParameters.ContainsKey('Name')) {
         $matchingNames = @($avdNames | Where-Object { $_ -eq $Name })
         if ($matchingNames.Count -eq 0) {
             throw "The Android virtual device was not found: $Name"
         }
-        $selectedName = $matchingNames[0]
+        $selectedNames = $matchingNames
     }
 
-    $target = "Android virtual device '$selectedName'"
-    if (-not $PSCmdlet.ShouldProcess($target, 'Start Android emulator')) {
-        return
+    foreach ($selectedName in $selectedNames) {
+        $target = "Android virtual device '$selectedName'"
+        if ($PSCmdlet.ShouldProcess($target, 'Start Android emulator')) {
+            Start-Process -FilePath $emulator.Source -ArgumentList "@$selectedName" -PassThru -ErrorAction Stop
+        }
     }
-
-    Start-Process -FilePath $emulator.Source -ArgumentList "@$selectedName" -PassThru -ErrorAction Stop
 }
