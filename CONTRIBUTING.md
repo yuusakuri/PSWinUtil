@@ -1,6 +1,6 @@
 # Contributing to PSWinUtil
 
-Thank you for contributing to PSWinUtil. This guide explains how to prepare the development environment, verify a change, and submit a pull request.
+Build and test PSWinUtil from source before submitting a pull request. After cloning the repository, run development commands from its root in Windows PowerShell 5.1.
 
 ## Development environment
 
@@ -31,7 +31,7 @@ The script installs the versions declared in `build.requirements.psd1` from Powe
 
 ## Development workflow
 
-Follow the [Git guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/core/git-guidelines.md) for branch names, commit messages, verification, review, and merging. This repository uses `master` as its default branch, so create a focused branch from the latest `master` branch.
+Follow the project [Git guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/core/git-guidelines.md). This repository uses `master` as its default branch, so create one focused [Conventional Branch](https://conventional-branch.github.io/) from the latest `master` branch:
 
 ```powershell
 git switch master
@@ -39,9 +39,13 @@ git pull --ff-only
 git switch -c 'fix/describe-the-change'
 ```
 
-Keep each pull request limited to one related change. Add or update tests whenever observable behavior changes.
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) with a title of at most 50 characters. Do not add an AI-agent prefix to the branch name.
 
-A pull request description must explain the problem and the resulting behavior, identify related issues, and list the verification commands that passed.
+Add or update tests whenever observable behavior changes. Keep the pull request limited to one related change.
+
+## Source files
+
+Implement exported commands in `src/PSWinUtil/Public/` and internal functions in `src/PSWinUtil/Private/`, with one function per file. Put tests in `tests/unit/`, `tests/integration/`, or `tests/contract/` according to the behavior they verify. The [architecture explanation](docs/explanation/architecture.md) describes the build output and each test suite.
 
 ## Development commands
 
@@ -51,15 +55,15 @@ A pull request description must explain the problem and the resulting behavior, 
 | --- | --- |
 | `.\dev.ps1 format` | Formats PowerShell source files with the repository settings. |
 | `.\dev.ps1 analyze` | Runs PSScriptAnalyzer with the repository settings. |
-| `.\dev.ps1 build` | Builds the PowerShell module and its C# assemblies into `output/`. |
+| `.\dev.ps1 build` | Builds the PowerShell module, native assembly, and test-support assemblies into `output/`. |
 | `.\dev.ps1 import` | Imports the previously built module into the current Windows PowerShell session. |
 | `.\dev.ps1 test unit` | Builds the module and runs unit tests. |
 | `.\dev.ps1 test integration` | Builds the module and runs Windows integration tests. |
 | `.\dev.ps1 test contract` | Builds the module and runs distribution and manifest contract tests. |
-| `.\dev.ps1 test all` | Builds the module and runs unit, integration, and contract tests. |
-| `.\dev.ps1 ci` | Checks formatting, performs static analysis, builds the distribution, validates it, and runs every test suite. |
+| `.\dev.ps1 test all` | Builds the module and runs all test suites. |
+| `.\dev.ps1 ci` | Checks source, formatting, analysis, build output, import, and all test suites. |
 
-Build the current source and import the generated module into the current session:
+Build the current source and import the generated module:
 
 ```powershell
 .\dev.ps1 build
@@ -67,12 +71,40 @@ Build the current source and import the generated module into the current sessio
 Get-Command -Module 'PSWinUtil'
 ```
 
-Run the complete verification before submitting a pull request:
+## Code and documentation conventions
+
+Follow the [Windows PowerShell module development guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/implementation/windows-powershell-module-guidelines.md).
+
+PowerShell source files use ASCII characters, UTF-8 without a byte-order mark (BOM), and LF line endings. `dev.ps1` validates the source files before building or testing.
+
+Public functions require comment-based help with `.SYNOPSIS`, `.DESCRIPTION`, documentation for every public parameter, and at least one `.EXAMPLE`. Add `.INPUTS` and `.OUTPUTS` when applicable. Contract tests verify these requirements against the built module.
+
+Documentation has distinct roles:
+
+- Keep `README.md` focused on the project purpose, requirements, installation, and a minimal example.
+- Put guided learning in `docs/tutorials/`.
+- Put task-oriented instructions in `docs/how-to/` when needed.
+- Put factual command or configuration material in `docs/reference/`.
+- Put design background in `docs/explanation/`.
+
+Write examples against the built module and prefer `-WhatIf` when demonstrating state-changing commands.
+
+## Verification
+
+Run the complete repository verification before submitting a pull request:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File '.\dev.ps1' ci
 ```
 
-## Code conventions
+Warnings from formatting, analysis, builds, or tests must be resolved before merge.
 
-Follow the [Windows PowerShell module development guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/implementation/windows-powershell-module-guidelines.md).
+## Pull requests
+
+Push the branch and open a pull request into `master`. Use the [pull request template](.github/PULL_REQUEST_TEMPLATE.md):
+
+- `Description`: Explain why the change is needed and what it changes.
+- `Related issue`: Reference an issue with `Closes #123`, or write `None`.
+- `Verification`: Record verification commands and results, including any checks that could not be run and why.
+
+At least one approval is required. Merge with squash after all required checks pass.
