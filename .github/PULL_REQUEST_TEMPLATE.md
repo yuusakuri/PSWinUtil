@@ -4,8 +4,8 @@
 
 ## Related issue
 
-- Closes #
-
-- None
+<!-- Closes #123, or None. -->
 
 ## Verification
+
+<!-- Commands and results. Include checks that could not be run and why. -->

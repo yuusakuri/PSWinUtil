@@ -8,7 +8,7 @@ It provides commands to:
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
 - Work with UTF-8 text files, paths, URIs, SSH keys, downloads, winget packages, and Android and Flutter tools.
 
-Importing the built module requires no third-party PowerShell modules. Commands that work with Windows Package Manager, OpenSSH, Java, Node.js, Flutter, or the Android SDK require the corresponding application, as described in their help.
+Importing the built module requires no third-party PowerShell modules. Some commands use Windows features or external applications; others download or install tools. Each command's help lists its prerequisites.
 
 ## Requirements
 
@@ -44,17 +44,32 @@ The generated module is under `output/PSWinUtil`. For a guided walkthrough with 
 
 ### PowerShell Gallery
 
-Install the latest published release for the current user with `Microsoft.PowerShell.PSResourceGet`:
+Prepare the package manager in Windows PowerShell 5.1. The following commands allow scripts for the current session, enable TLS 1.2, and install the NuGet provider and PowerShellGet for the current user. Installing PowerShellGet also installs its PackageManagement dependency.
 
 ```powershell
-Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser -Repository PSGallery
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+[Net.ServicePointManager]::SecurityProtocol =
+    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+Install-PackageProvider -Name 'NuGet' -MinimumVersion '2.8.5.201' -Scope CurrentUser -Force
+Install-Module -Name 'PowerShellGet' -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
 ```
 
-Then install and import PSWinUtil:
+Close that PowerShell window and open a new Windows PowerShell 5.1 window so that it can load the installed package-management modules. Set the session options again and install PSResourceGet:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+[Net.ServicePointManager]::SecurityProtocol =
+    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
+Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
+```
+
+Install the latest published PSWinUtil release and check the imported version:
 
 ```powershell
 Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
 Import-Module -Name 'PSWinUtil'
+Get-Module -Name 'PSWinUtil' | Select-Object -Property Name, Version, Path
 ```
 
 ## Quick start
