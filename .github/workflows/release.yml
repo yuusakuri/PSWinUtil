@@ -82,13 +82,6 @@ jobs:
       - name: Run final verification
         run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
 
-      - name: Validate built module version
-        run: |
-          $manifest = Test-ModuleManifest -Path '.\output\PSWinUtil\PSWinUtil.psd1' -ErrorAction Stop
-          if ([string]$manifest.Version -ne '${{ steps.release.outputs.version }}') {
-              throw "Built ModuleVersion $($manifest.Version) does not match the release version."
-          }
-
       - name: Inspect publication state
         id: publication
         env:
@@ -103,27 +96,17 @@ jobs:
           "github_release_exists=$($state.GitHubReleaseExists.ToString().ToLowerInvariant())" |
               Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - name: Create and push tag
-        if: steps.publication.outputs.tag_exists != 'true'
+      - name: Configure the release identity
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git tag --annotate '${{ steps.release.outputs.tag }}' `
-              --message 'PSWinUtil ${{ steps.release.outputs.version }}' `
-              $env:RELEASE_COMMIT
-          git push origin 'refs/tags/${{ steps.release.outputs.tag }}'
 
       - name: Create release artifact
         id: artifact
         if: steps.publication.outputs.github_release_exists != 'true'
         run: |
-          $artifactName = 'PSWinUtil-${{ steps.release.outputs.version }}.zip'
-          $artifactPath = Join-Path -Path $PWD -ChildPath $artifactName
-          Compress-Archive `
-              -LiteralPath '.\output\PSWinUtil' `
-              -DestinationPath $artifactPath `
-              -CompressionLevel Optimal
-          "path=$artifactPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $artifact = .\dev.ps1 release-pack
+          "path=$($artifact.Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Attest the release artifact
         if: steps.publication.outputs.github_release_exists != 'true'
@@ -131,43 +114,10 @@ jobs:
         with:
           subject-path: ${{ steps.artifact.outputs.path }}
 
-      - name: Publish to PowerShell Gallery
-        if: steps.publication.outputs.gallery_exists != 'true'
-        env:
-          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
-        run: |
-          Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
-          Publish-PSResource `
-              -Path '.\output\PSWinUtil' `
-              -Repository 'PSGallery' `
-              -ApiKey $env:PSGALLERY_API_KEY `
-              -ErrorAction Stop
-
-      - name: Confirm PowerShell Gallery publication
-        run: |
-          Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
-          $version = '${{ steps.release.outputs.version }}'
-          for ($attempt = 1; $attempt -le 12; $attempt++) {
-              $galleryResource = Find-PSResource `
-                  -Name 'PSWinUtil' `
-                  -Version "[$version]" `
-                  -Repository 'PSGallery' `
-                  -ErrorAction SilentlyContinue
-              if ($null -ne $galleryResource) {
-                  return
-              }
-              Start-Sleep -Seconds 10
-          }
-          throw "PowerShell Gallery did not expose PSWinUtil $version within the expected time."
-
-      - name: Publish GitHub Release
-        if: steps.publication.outputs.github_release_exists != 'true'
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create '${{ steps.release.outputs.tag }}' `
-              '${{ steps.artifact.outputs.path }}' `
-              --repo $env:GITHUB_REPOSITORY `
-              --verify-tag `
-              --title '${{ steps.release.outputs.version }}' `
-              --generate-notes
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: >
+          .\dev.ps1 release-publish $env:RELEASE_COMMIT
+          -ArtifactPath '${{ steps.artifact.outputs.path }}'

@@ -3,12 +3,16 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release', 'release-identity', 'release-state'
+        'bump', 'release', 'release-identity', 'release-state',
+        'release-pack', 'release-publish'
     )]
     [string]$Command,
 
     [Parameter(Position = 1)]
-    [string]$Argument
+    [string]$Argument,
+
+    [Parameter()]
+    [string]$ArtifactPath
 )
 
 Set-StrictMode -Version 2.0
@@ -52,6 +56,8 @@ Usage:
   .\dev.ps1 release
   .\dev.ps1 release-identity release/1.2.3
   .\dev.ps1 release-state <merge-commit>
+  .\dev.ps1 release-pack
+  .\dev.ps1 release-publish <merge-commit>
 '@
 }
 
@@ -892,6 +898,151 @@ $invokeReleaseState = {
         -GitHubReleaseExists:($releaseExitCode -eq 0)
 }
 
+$invokeReleasePack = {
+    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+    $version = [string]$sourceManifest.ModuleVersion
+
+    if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
+        throw "Build the module before packing a release: $outputModuleDirectory"
+    }
+
+    $builtManifest = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
+    if ([string]$builtManifest.Version -ne $version) {
+        throw "Built ModuleVersion $($builtManifest.Version) does not match the source version $version."
+    }
+
+    $artifactPath = Join-Path -Path $repositoryRoot -ChildPath "PSWinUtil-$version.zip"
+    if (Test-Path -LiteralPath $artifactPath) {
+        Remove-Item -LiteralPath $artifactPath -Force
+    }
+
+    Compress-Archive `
+        -LiteralPath $outputModuleDirectory `
+        -DestinationPath $artifactPath `
+        -CompressionLevel Optimal
+
+    [pscustomobject]@{
+        Version = $version
+        Path = $artifactPath
+    }
+}
+
+$invokeReleasePublish = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseCommit,
+
+        [Parameter()]
+        [string]$ArtifactPath
+    )
+
+    $state = & $invokeReleaseState -ReleaseCommit $ReleaseCommit
+    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+    $version = [string]$sourceManifest.ModuleVersion
+    $tagName = "v$version"
+
+    if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
+        throw "Build the module before publishing a release: $outputModuleDirectory"
+    }
+
+    $builtManifest = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
+    if ([string]$builtManifest.Version -ne $version) {
+        throw "Built ModuleVersion $($builtManifest.Version) does not match the source version $version."
+    }
+
+    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release tag.'
+    $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI publishes the GitHub Release.'
+
+    if (-not $state.TagExists) {
+        if ($PSCmdlet.ShouldProcess("origin $tagName", 'Create and push the release tag')) {
+            $null = & $invokeExternalCommand -FilePath $git -ArgumentList @(
+                'tag'
+                '--annotate'
+                $tagName
+                '--message'
+                "PSWinUtil $version"
+                $ReleaseCommit
+            )
+            $null = & $invokeExternalCommand -FilePath $git -ArgumentList @(
+                'push'
+                'origin'
+                "refs/tags/$tagName"
+            )
+        }
+    }
+
+    if (-not $state.GalleryExists) {
+        $apiKey = $env:PSGALLERY_API_KEY
+        if ([string]::IsNullOrWhiteSpace($apiKey)) {
+            throw 'Set the PSGALLERY_API_KEY environment variable before publishing to PowerShell Gallery.'
+        }
+
+        if ($PSCmdlet.ShouldProcess("PowerShell Gallery PSWinUtil $version", 'Publish the module')) {
+            & $importRequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
+            Publish-PSResource `
+                -Path $outputModuleDirectory `
+                -Repository 'PSGallery' `
+                -ApiKey $apiKey `
+                -ErrorAction Stop
+
+            & $waitForGalleryPublication -Version $version
+        }
+    }
+
+    if (-not $state.GitHubReleaseExists) {
+        if ([string]::IsNullOrWhiteSpace($ArtifactPath)) {
+            $ArtifactPath = (& $invokeReleasePack).Path
+        }
+        if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
+            throw "The release artifact was not found: $ArtifactPath"
+        }
+
+        if ($PSCmdlet.ShouldProcess("GitHub Release $tagName", 'Publish the release')) {
+            $null = & $invokeExternalCommand -FilePath $gh -ArgumentList @(
+                'release'
+                'create'
+                $tagName
+                $ArtifactPath
+                '--verify-tag'
+                '--title'
+                $version
+                '--generate-notes'
+            )
+        }
+    }
+
+    Write-Output -InputObject "PSWinUtil $version is released as $tagName."
+}
+
+$waitForGalleryPublication = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Version,
+
+        [Parameter()]
+        [int]$MaximumAttempt = 12,
+
+        [Parameter()]
+        [int]$RetryDelaySecond = 10
+    )
+
+    & $importRequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
+    for ($attempt = 1; $attempt -le $MaximumAttempt; $attempt++) {
+        $galleryResource = Find-PSResource `
+            -Name 'PSWinUtil' `
+            -Version "[$Version]" `
+            -Repository 'PSGallery' `
+            -ErrorAction SilentlyContinue
+        if ($null -ne $galleryResource) {
+            return
+        }
+
+        Start-Sleep -Seconds $RetryDelaySecond
+    }
+
+    throw "PowerShell Gallery did not expose PSWinUtil $Version within the expected time."
+}
+
 $invokeVerify = {
     & $importRequiredModule -Name 'PSScriptAnalyzer'
     & $importRequiredModule -Name 'ModuleBuilder'
@@ -972,5 +1123,15 @@ switch ($Command) {
         }
 
         & $invokeReleaseState -ReleaseCommit $Argument
+    }
+    'release-pack' {
+        & $invokeReleasePack
+    }
+    'release-publish' {
+        if ([string]::IsNullOrWhiteSpace($Argument)) {
+            throw 'The release-publish command requires the release commit.'
+        }
+
+        & $invokeReleasePublish -ReleaseCommit $Argument -ArtifactPath $ArtifactPath
     }
 }

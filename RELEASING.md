@@ -33,14 +33,27 @@ git diff
 Merging the release pull request starts the `Release` workflow. The workflow:
 
 1. Checks the release branch, merged commit, source `ModuleVersion`, and `v<version>` tag identity.
-2. Runs `dev.ps1 verify` and checks the built manifest version.
-3. Creates the tag on the merged commit.
-4. Builds `PSWinUtil-<version>.zip` and records its build provenance attestation.
-5. Publishes `output/PSWinUtil` to PowerShell Gallery with `Publish-PSResource`.
-6. Waits until the Gallery exposes the new version.
-7. Publishes the GitHub Release with generated notes and the ZIP artifact.
+2. Runs `dev.ps1 verify`.
+3. Builds `PSWinUtil-<version>.zip` and records its build provenance attestation.
+4. Creates the tag on the merged commit, publishes `output/PSWinUtil` to PowerShell Gallery, waits until the Gallery exposes the version, and publishes the GitHub Release.
 
-Release runs are serialized with the `release` concurrency group. A rerun accepts an existing tag, Gallery version, or GitHub Release only when the completed publication state is consistent with the same release commit.
+Release runs are serialized with the `release` concurrency group. Steps 3 and 4 skip whatever is already published for the same release commit, so a rerun completes an interrupted release instead of repeating it.
+
+## Running the release steps locally
+
+The workflow runs `dev.ps1` commands that also work on a developer machine, so a release can be rehearsed before it is trusted, or completed by hand when GitHub Actions is unavailable:
+
+```powershell
+.\dev.ps1 release-identity 'release/1.2.3'
+.\dev.ps1 release-state <merge-commit>
+.\dev.ps1 build
+.\dev.ps1 release-pack
+.\dev.ps1 release-publish <merge-commit> -WhatIf
+```
+
+`release-identity` and `release-state` only read, so they are safe to run at any time. `release-publish` reports every tag, Gallery, and GitHub Release action under `-WhatIf` without performing it, and reads the Gallery key from the `PSGALLERY_API_KEY` environment variable rather than a parameter.
+
+Prefer the workflow for real releases. A local `release-publish` produces no build provenance attestation, because provenance is only meaningful when a trusted builder records it, and it bypasses the `powershell-gallery` Environment and any reviewers configured on it.
 
 ## Supply chain
 
