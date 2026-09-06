@@ -3,8 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release', 'release-identity', 'release-state',
-        'release-pack', 'release-publish'
+        'bump', 'release'
     )]
     [string]$Command,
 
@@ -12,7 +11,7 @@ param(
     [string]$Argument,
 
     [Parameter()]
-    [string]$ArtifactPath
+    [string]$Branch
 )
 
 Set-StrictMode -Version 2.0
@@ -53,11 +52,7 @@ Usage:
   .\dev.ps1 verify
   .\dev.ps1 ci
   .\dev.ps1 bump 1.2.3
-  .\dev.ps1 release
-  .\dev.ps1 release-identity release/1.2.3
-  .\dev.ps1 release-state <merge-commit>
-  .\dev.ps1 release-pack
-  .\dev.ps1 release-publish <merge-commit>
+  .\dev.ps1 release <merge-commit> -Branch release/1.2.3
 '@
 }
 
@@ -732,37 +727,18 @@ $invokeBump = {
         [string]$Version
     )
 
-    $result = Set-ReleaseVersion -Version $Version
-    Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
-    Write-Output -InputObject "Review the change, then run '.\dev.ps1 release'."
-}
-
-$invokeRelease = {
-    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
-    $version = [string]$sourceManifest.ModuleVersion
-    if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
-        throw "The manifest must declare a major.minor.patch version before a release: $version"
-    }
+    $tagName = "v$Version"
+    $branchName = "release/$Version"
+    $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
 
     $git = & $getRequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release branch.'
     $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI opens the release pull request.'
 
-    $tagName = "v$version"
-    $branchName = "release/$version"
-
     $statusLines = @(
         & $invokeExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
     )
-    if ($statusLines.Count -eq 0) {
-        throw "There is nothing to release. Run '.\dev.ps1 bump $version' first."
-    }
-
-    $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
-    foreach ($statusLine in $statusLines) {
-        $changedPath = $statusLine.Substring(3).Trim()
-        if ($changedPath -ne $manifestStatusPath) {
-            throw "A release changes only $manifestStatusPath. Commit or revert: $changedPath"
-        }
+    if ($statusLines.Count -gt 0) {
+        throw "Commit or revert the working tree before preparing a release: $($statusLines -join ', ')"
     }
 
     $remoteTags = @(
@@ -780,44 +756,92 @@ $invokeRelease = {
     }
 
     $shouldProcessTarget = "$branchName and its pull request into master"
-    $shouldProcessAction = 'Commit the version, push the branch, and open the release pull request'
+    $shouldProcessAction = "Set ModuleVersion to $Version, push the branch, and open the pull request"
     if (-not $PSCmdlet.ShouldProcess($shouldProcessTarget, $shouldProcessAction)) {
         return
     }
 
+    $result = Set-ReleaseVersion -Version $Version
+    Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
+
     $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
     $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
-    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $version")
+    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version")
     $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName)
 
     $pullRequestBody = @(
         '## Release'
         ''
-        "- ModuleVersion: $version"
+        "- ModuleVersion: $Version"
         "- Tag after merge: $tagName"
         '- Merging this pull request tags the merge commit, publishes to PowerShell Gallery, and publishes the GitHub Release.'
     ) -join [Environment]::NewLine
 
-    $pullRequestArguments = @(
-        'pr'
-        'create'
-        '--base'
-        'master'
-        '--head'
-        $branchName
-        '--title'
-        "chore(release): $version"
-        '--body'
-        $pullRequestBody
-    )
     $pullRequestOutput = @(
-        & $invokeExternalCommand -FilePath $gh -ArgumentList $pullRequestArguments
+        & $invokeExternalCommand -FilePath $gh -ArgumentList @(
+            'pr'
+            'create'
+            '--base'
+            'master'
+            '--head'
+            $branchName
+            '--title'
+            "chore(release): $Version"
+            '--body'
+            $pullRequestBody
+        )
     )
     foreach ($pullRequestLine in $pullRequestOutput) {
         Write-Output -InputObject $pullRequestLine
     }
 
-    Write-Output -InputObject 'Approve and merge the pull request. The Release workflow does the rest.'
+    Write-Output -InputObject 'Approve and merge the pull request to publish the release.'
+}
+
+$invokeRelease = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseCommit,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Branch
+    )
+
+    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git inspects the release commit and tags.'
+
+    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('fetch', 'origin', 'master', '--tags')
+
+    $headOutput = @(& $invokeExternalCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
+    $headCommit = ($headOutput -join '').Trim()
+    if ($headCommit -ne $ReleaseCommit) {
+        throw "Checked out commit $headCommit does not match release commit $ReleaseCommit."
+    }
+
+    $ancestorExitCode = & $testExternalCommand `
+        -FilePath $git `
+        -ArgumentList @('merge-base', '--is-ancestor', $headCommit, 'origin/master')
+    if ($ancestorExitCode -ne 0) {
+        throw "Release commit is not part of origin/master: $headCommit"
+    }
+
+    $identity = & $invokeReleaseIdentity -Branch $Branch
+    $state = & $invokeReleaseState -ReleaseCommit $ReleaseCommit
+
+    $artifactPath = ''
+    if (-not $state.GitHubReleaseExists) {
+        $artifactPath = (& $invokeReleasePack).Path
+    }
+
+    & $invokeReleasePublish `
+        -ReleaseCommit $ReleaseCommit `
+        -State $state `
+        -ArtifactPath $artifactPath
+
+    [pscustomobject]@{
+        Version = $identity.Version
+        TagName = $identity.TagName
+        ArtifactPath = $artifactPath
+    }
 }
 
 $testExternalCommand = {
@@ -932,11 +956,13 @@ $invokeReleasePublish = {
         [Parameter(Mandatory = $true)]
         [string]$ReleaseCommit,
 
+        [Parameter(Mandatory = $true)]
+        [psobject]$State,
+
         [Parameter()]
         [string]$ArtifactPath
     )
 
-    $state = & $invokeReleaseState -ReleaseCommit $ReleaseCommit
     $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
     $version = [string]$sourceManifest.ModuleVersion
     $tagName = "v$version"
@@ -953,7 +979,7 @@ $invokeReleasePublish = {
     $git = & $getRequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release tag.'
     $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI publishes the GitHub Release.'
 
-    if (-not $state.TagExists) {
+    if (-not $State.TagExists) {
         if ($PSCmdlet.ShouldProcess("origin $tagName", 'Create and push the release tag')) {
             $null = & $invokeExternalCommand -FilePath $git -ArgumentList @(
                 'tag'
@@ -971,7 +997,7 @@ $invokeReleasePublish = {
         }
     }
 
-    if (-not $state.GalleryExists) {
+    if (-not $State.GalleryExists) {
         $apiKey = $env:PSGALLERY_API_KEY
         if ([string]::IsNullOrWhiteSpace($apiKey)) {
             throw 'Set the PSGALLERY_API_KEY environment variable before publishing to PowerShell Gallery.'
@@ -989,10 +1015,7 @@ $invokeReleasePublish = {
         }
     }
 
-    if (-not $state.GitHubReleaseExists) {
-        if ([string]::IsNullOrWhiteSpace($ArtifactPath)) {
-            $ArtifactPath = (& $invokeReleasePack).Path
-        }
+    if (-not $State.GitHubReleaseExists) {
         if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
             throw "The release artifact was not found: $ArtifactPath"
         }
@@ -1108,30 +1131,13 @@ switch ($Command) {
         & $invokeBump -Version $Argument
     }
     'release' {
-        & $invokeRelease
-    }
-    'release-identity' {
         if ([string]::IsNullOrWhiteSpace($Argument)) {
-            throw 'The release-identity command requires a release branch name.'
+            throw 'The release command requires the merged release commit.'
+        }
+        if ([string]::IsNullOrWhiteSpace($Branch)) {
+            throw 'The release command requires the release branch with -Branch.'
         }
 
-        & $invokeReleaseIdentity -Branch $Argument
-    }
-    'release-state' {
-        if ([string]::IsNullOrWhiteSpace($Argument)) {
-            throw 'The release-state command requires the release commit.'
-        }
-
-        & $invokeReleaseState -ReleaseCommit $Argument
-    }
-    'release-pack' {
-        & $invokeReleasePack
-    }
-    'release-publish' {
-        if ([string]::IsNullOrWhiteSpace($Argument)) {
-            throw 'The release-publish command requires the release commit.'
-        }
-
-        & $invokeReleasePublish -ReleaseCommit $Argument -ArtifactPath $ArtifactPath
+        & $invokeRelease -ReleaseCommit $Argument -Branch $Branch
     }
 }

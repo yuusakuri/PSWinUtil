@@ -14,46 +14,39 @@ Install the GitHub CLI and sign in with `gh auth login` before preparing a relea
 
 ## Prepare a release
 
-Run these commands on an up-to-date `master` with a clean working tree:
+Run this on an up-to-date `master` with a clean working tree:
 
 ```powershell
 git switch master
 git pull --ff-only
 .\dev.ps1 bump 1.2.3
-git diff
-.\dev.ps1 release
 ```
 
-`bump` writes the version to `src/PSWinUtil/PSWinUtil.psd1` and changes nothing else. It rejects a version that is not a greater `major.minor.patch` version than the current one.
-
-`release` reads the version from the manifest. It refuses to continue when another tracked file changed, when the remote already has the `v1.2.3` tag, or when the remote already has the `release/1.2.3` branch. It then commits the manifest, pushes `release/1.2.3`, and opens the release pull request. `-WhatIf` reports those steps without performing them.
+`bump` rejects a version that is not a greater `major.minor.patch` version than the current one, a version whose tag or release branch already exists on the remote, and a working tree with uncommitted tracked changes. It then writes the version to `src/PSWinUtil/PSWinUtil.psd1`, commits it on `release/1.2.3`, pushes the branch, and opens the release pull request. `-WhatIf` reports those steps without performing them.
 
 ## Publication
 
-Merging the release pull request starts the `Release` workflow. The workflow:
+Merging the release pull request starts the `Release` workflow, which runs `dev.ps1 verify` and then `dev.ps1 release <merge-commit> -Branch <release-branch>`. That command:
 
-1. Checks the release branch, merged commit, source `ModuleVersion`, and `v<version>` tag identity.
-2. Runs `dev.ps1 verify`.
-3. Builds `PSWinUtil-<version>.zip` and records its build provenance attestation.
-4. Creates the tag on the merged commit, publishes `output/PSWinUtil` to PowerShell Gallery, waits until the Gallery exposes the version, and publishes the GitHub Release.
+1. Checks that the checkout is the merged release commit and that it belongs to `origin/master`.
+2. Resolves the version and tag from the release branch and the manifest, and rejects a version that does not match or that is older than an existing tag.
+3. Reads which of the tag, the Gallery version, and the GitHub Release already exist, and rejects inconsistent combinations.
+4. Packs `PSWinUtil-<version>.zip`, creates the tag on the merged commit, publishes to PowerShell Gallery, waits until the Gallery exposes the version, and publishes the GitHub Release.
 
-Release runs are serialized with the `release` concurrency group. Steps 3 and 4 skip whatever is already published for the same release commit, so a rerun completes an interrupted release instead of repeating it.
+The workflow then records a build provenance attestation for the archive it published. Release runs are serialized with the `release` concurrency group, and every publication step skips what is already present for the same release commit, so a rerun completes an interrupted release instead of repeating it.
 
-## Running the release steps locally
+## Running the release locally
 
-The workflow runs `dev.ps1` commands that also work on a developer machine, so a release can be rehearsed before it is trusted, or completed by hand when GitHub Actions is unavailable:
+Both commands run on a developer machine, so a release can be rehearsed before it is trusted, or completed by hand when GitHub Actions is unavailable:
 
 ```powershell
-.\dev.ps1 release-identity 'release/1.2.3'
-.\dev.ps1 release-state <merge-commit>
-.\dev.ps1 build
-.\dev.ps1 release-pack
-.\dev.ps1 release-publish <merge-commit> -WhatIf
+.\dev.ps1 bump 1.2.3 -WhatIf
+.\dev.ps1 release <merge-commit> -Branch 'release/1.2.3' -WhatIf
 ```
 
-`release-identity` and `release-state` only read, so they are safe to run at any time. `release-publish` reports every tag, Gallery, and GitHub Release action under `-WhatIf` without performing it, and reads the Gallery key from the `PSGALLERY_API_KEY` environment variable rather than a parameter.
+`release` reads the Gallery key from the `PSGALLERY_API_KEY` environment variable rather than a parameter. Its checks run before `-WhatIf` decides anything, so a rehearsal still reports a version mismatch or an inconsistent publication state.
 
-Prefer the workflow for real releases. A local `release-publish` produces no build provenance attestation, because provenance is only meaningful when a trusted builder records it, and it bypasses the `powershell-gallery` Environment and any reviewers configured on it.
+Prefer the workflow for real releases. A local `release` produces no build provenance attestation, because provenance is only meaningful when a trusted builder records it, and it bypasses the `powershell-gallery` Environment and any reviewers configured on it.
 
 ## Supply chain
 

@@ -56,68 +56,27 @@ jobs:
       - name: Install development modules
         run: .\install.ps1
 
-      - name: Validate release identity
-        id: release
-        run: |
-          git fetch origin master --tags
-          if ($LASTEXITCODE -ne 0) {
-              throw 'Could not fetch master and release tags.'
-          }
-
-          $headCommit = (git rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $headCommit -ne $env:RELEASE_COMMIT) {
-              throw "Checked out commit $headCommit does not match merged release commit $env:RELEASE_COMMIT."
-          }
-
-          git merge-base --is-ancestor $headCommit origin/master
-          if ($LASTEXITCODE -ne 0) {
-              throw "Release commit is not part of origin/master: $headCommit"
-          }
-
-          $identity = .\dev.ps1 release-identity $env:RELEASE_BRANCH
-
-          "version=$($identity.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tag=$($identity.TagName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
       - name: Run final verification
         run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
-
-      - name: Inspect publication state
-        id: publication
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $state = .\dev.ps1 release-state $env:RELEASE_COMMIT
-
-          "tag_exists=$($state.TagExists.ToString().ToLowerInvariant())" |
-              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "gallery_exists=$($state.GalleryExists.ToString().ToLowerInvariant())" |
-              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "github_release_exists=$($state.GitHubReleaseExists.ToString().ToLowerInvariant())" |
-              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Configure the release identity
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - name: Create release artifact
-        id: artifact
-        if: steps.publication.outputs.github_release_exists != 'true'
-        run: |
-          $artifact = .\dev.ps1 release-pack
-          "path=$($artifact.Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-      - name: Attest the release artifact
-        if: steps.publication.outputs.github_release_exists != 'true'
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-path: ${{ steps.artifact.outputs.path }}
-
       - name: Publish the release
+        id: release
         env:
           GH_TOKEN: ${{ github.token }}
           PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
-        run: >
-          .\dev.ps1 release-publish $env:RELEASE_COMMIT
-          -ArtifactPath '${{ steps.artifact.outputs.path }}'
+        run: |
+          $release = .\dev.ps1 release $env:RELEASE_COMMIT -Branch $env:RELEASE_BRANCH
+
+          "artifact_path=$($release.ArtifactPath)" |
+              Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Attest the release artifact
+        if: steps.release.outputs.artifact_path != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.release.outputs.artifact_path }}
