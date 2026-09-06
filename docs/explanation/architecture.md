@@ -1,6 +1,6 @@
 # Architecture
 
-PSWinUtil is built into a self-contained module under `output/PSWinUtil`. Tests import that distribution, so they verify the files users receive. ModuleBuilder and the .NET SDK run during the build; importing the distribution requires neither tool.
+PSWinUtil is built into a module under `output/PSWinUtil`. Tests import that distribution to verify the files users receive. ModuleBuilder and the .NET SDK produce the distribution.
 
 ## Source module
 
@@ -11,7 +11,7 @@ The source directory contains the functions, runtime data, and module initializa
 - `src/PSWinUtil/Public/` contains exported commands.
 - `src/PSWinUtil/Private/` contains implementation helpers.
 - `src/PSWinUtil/data/` contains registry-setting data used at runtime.
-- `src/PSWinUtil/ModuleSuffix.ps1` runs after the function definitions and removes the built-in command proxies when the PowerShell edition is not Desktop.
+- `src/PSWinUtil/ModuleSuffix.ps1` initializes command overrides for Windows PowerShell Desktop after the function definitions.
 
 Each function is defined in one file whose name matches the function name. `src/PSWinUtil/build.psd1` specifies how ModuleBuilder combines these files and copies runtime data.
 
@@ -19,7 +19,7 @@ Public commands include comment-based help, and state-changing commands use Powe
 
 ## Native interoperability
 
-`src/PSWinUtil.Native/` is a .NET project that contains the Windows Local Security Authority interoperability used by automatic logon commands. The build produces `PSWinUtil.Native.dll`; users do not compile C# when importing PSWinUtil.
+`src/PSWinUtil.Native/` is a .NET project that contains the Windows Local Security Authority interoperability used by automatic logon commands. The build produces `PSWinUtil.Native.dll`.
 
 The source manifest lists the DLL in `RequiredAssemblies`, so PowerShell loads it before the generated script module.
 
@@ -31,9 +31,9 @@ The source manifest lists the DLL in `RequiredAssemblies`, so PowerShell loads i
 2. The .NET SDK builds `PSWinUtil.Native.dll`, which is copied to `output/PSWinUtil/lib/`.
 3. The .NET SDK builds `PSWinUtil.TestSupport.dll` for `net472` and `netstandard2.0`, placing each assembly under `output/TestSupport/<framework>/` for use by tests.
 
-Runtime data is copied beside the generated module. Source files, test projects, development settings, and intermediate build output are excluded from the distribution.
+Runtime data is copied beside the generated module.
 
-Edit module code in `src/` and test code in `tests/`. Running `dev.ps1 build` regenerates `output/PSWinUtil` and `output/TestSupport`, so edits to those output directories do not survive the next build.
+Edit module code in `src/` and test code in `tests/`. Running `dev.ps1 build` regenerates `output/PSWinUtil` and `output/TestSupport`.
 
 ## Windows and external applications
 
@@ -44,9 +44,7 @@ Public commands delegate operations to Windows APIs or external applications:
 - File and path APIs for UTF-8 text, path resolution, and PowerShell syntax inspection.
 - HTTP and process boundaries for downloads, package managers, SDKs, OpenSSH, Java, and Node.js.
 
-The module has no third-party PowerShell module dependency at import time. Commands that integrate with an external executable validate or install that dependency as described by their help; importing unrelated commands does not trigger installation.
-
-The module also exports Desktop-only proxies for `Add-Content`, `Get-Content`, `Set-Content`, `Out-File`, and `Invoke-WebRequest`. These preserve the built-in command parameters while changing the documented encoding or progress behavior. Use a module-qualified command such as `Microsoft.PowerShell.Management\Get-Content` when the built-in behavior is required explicitly.
+On Windows PowerShell Desktop, module initialization places proxies for `Add-Content`, `Get-Content`, `Set-Content`, and `Out-File` in the session. `Enable-WUCommandOverride` and `Disable-WUCommandOverride` control their presence. The proxies use UTF-8 defaults and LF text output. `Set-WUProgressPreference` controls progress display for the session.
 
 ## Tests against the built module
 
@@ -54,6 +52,10 @@ All test suites import the generated manifest from `output/PSWinUtil`:
 
 - Unit tests isolate command behavior and internal logic with mocks or test doubles.
 - Integration tests exercise Windows APIs, the registry, files, processes, and external components.
-- Contract tests validate the manifest, distribution contents, native assembly, clean-process import, exported commands, and comment-based help.
+- Contract tests validate the manifest, distribution contents, native assembly, clean-process import, public parameter conventions, and public command help.
 
-`dev.ps1 ci` checks source layout and encoding, formatting, static analysis, the build, distribution contracts, and all test suites in the same order used by GitHub Actions.
+`dev.ps1 verify` checks source layout and encoding, formatting, static analysis, the build, distribution contracts, and all test suites in the same order used by GitHub Actions.
+
+## Release publication
+
+`dev.ps1 bump` prepares a release branch and pull request. Merging that pull request runs verification and publishes the module, version tag, and release archive. [Releasing](../../RELEASING.md) describes the commands and workflow.

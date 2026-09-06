@@ -8,4 +8,4 @@
 
 ## Verification
 
-<!-- Commands and results. Include checks that could not be run and why. -->
+<!-- Commands and results. -->
