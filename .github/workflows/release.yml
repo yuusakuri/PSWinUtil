@@ -34,6 +34,14 @@ jobs:
       RELEASE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
 
     steps:
+      - name: Check the publishing credential
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PSGALLERY_API_KEY)) {
+              throw 'The powershell-gallery environment does not define PSGALLERY_API_KEY.'
+          }
+
       - name: Check out the merged release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -97,7 +105,6 @@ jobs:
 
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "commit=$headCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Run final verification
         run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
@@ -113,14 +120,9 @@ jobs:
         id: publication
         env:
           GH_TOKEN: ${{ github.token }}
-          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:PSGALLERY_API_KEY)) {
-              throw 'The powershell-gallery environment does not define PSGALLERY_API_KEY.'
-          }
-
           $tagName = '${{ steps.release.outputs.tag }}'
-          $releaseCommit = '${{ steps.release.outputs.commit }}'
+          $releaseCommit = $env:RELEASE_COMMIT
           $tagExists = $false
           git show-ref --verify --quiet "refs/tags/$tagName"
           if ($LASTEXITCODE -eq 0) {
@@ -145,7 +147,13 @@ jobs:
               throw "PowerShell Gallery version $version exists without tag $tagName."
           }
 
-          $null = gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>$null
+          $previousErrorActionPreference = $ErrorActionPreference
+          $ErrorActionPreference = 'Continue'
+          try {
+              $null = gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>&1
+          } finally {
+              $ErrorActionPreference = $previousErrorActionPreference
+          }
           $githubReleaseExists = $LASTEXITCODE -eq 0
           if ($githubReleaseExists -and (-not $tagExists -or -not $galleryExists)) {
               throw "GitHub Release $tagName exists before its tag and Gallery publication are complete."
@@ -165,11 +173,12 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git tag --annotate '${{ steps.release.outputs.tag }}' `
               --message 'PSWinUtil ${{ steps.release.outputs.version }}' `
-              '${{ steps.release.outputs.commit }}'
+              $env:RELEASE_COMMIT
           git push origin 'refs/tags/${{ steps.release.outputs.tag }}'
 
       - name: Create release artifact
         id: artifact
+        if: steps.publication.outputs.github_release_exists != 'true'
         run: |
           $artifactName = 'PSWinUtil-${{ steps.release.outputs.version }}.zip'
           $artifactPath = Join-Path -Path $PWD -ChildPath $artifactName
@@ -180,6 +189,7 @@ jobs:
           "path=$artifactPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Attest the release artifact
+        if: steps.publication.outputs.github_release_exists != 'true'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: ${{ steps.artifact.outputs.path }}
