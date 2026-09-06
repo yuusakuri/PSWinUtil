@@ -1,12 +1,11 @@
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci')]
+    [ValidateSet('format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci', 'bump', 'release')]
     [string]$Command,
 
     [Parameter(Position = 1)]
-    [ValidateSet('unit', 'integration', 'contract', 'all')]
-    [string]$TestType = 'all'
+    [string]$Argument
 )
 
 Set-StrictMode -Version 2.0
@@ -29,6 +28,7 @@ $testSupportProjectPath = Join-Path `
     -Path $repositoryRoot `
     -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
 $scriptDirectory = Join-Path -Path $repositoryRoot -ChildPath 'scripts'
+$setReleaseVersionPath = Join-Path -Path $scriptDirectory -ChildPath 'Set-ReleaseVersion.ps1'
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
@@ -47,6 +47,8 @@ Usage:
   .\dev.ps1 test all
   .\dev.ps1 verify
   .\dev.ps1 ci
+  .\dev.ps1 bump 1.2.3
+  .\dev.ps1 release
 '@
 }
 
@@ -520,6 +522,144 @@ $invokeTest = {
     }
 }
 
+$invokeExternalCommand = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$ArgumentList
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $commandOutput = & $FilePath @ArgumentList 2>&1
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        $commandLine = "$FilePath $($ArgumentList -join ' ')"
+        $commandMessage = @($commandOutput) -join [Environment]::NewLine
+        throw "The command failed: $commandLine$([Environment]::NewLine)$commandMessage"
+    }
+
+    @($commandOutput | ForEach-Object { $_.ToString() })
+}
+
+$getRequiredApplication = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Purpose
+    )
+
+    $application = Get-Command -Name $Name -CommandType Application -ErrorAction Ignore |
+        Select-Object -First 1
+    if ($null -eq $application) {
+        throw "$Name was not found on PATH. $Purpose"
+    }
+
+    $application.Source
+}
+
+$invokeBump = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Version
+    )
+
+    $result = & $setReleaseVersionPath -Version $Version -ManifestPath $sourceManifestPath
+    Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
+    Write-Output -InputObject "Review the change, then run '.\dev.ps1 release'."
+}
+
+$invokeRelease = {
+    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+    $version = [string]$sourceManifest.ModuleVersion
+    if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+        throw "The manifest must declare a major.minor.patch version before a release: $version"
+    }
+
+    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release branch.'
+    $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI opens the release pull request.'
+
+    $tagName = "v$version"
+    $branchName = "release/$version"
+
+    $statusLines = @(
+        & $invokeExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
+    )
+    if ($statusLines.Count -eq 0) {
+        throw "There is nothing to release. Run '.\dev.ps1 bump $version' first."
+    }
+
+    $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
+    foreach ($statusLine in $statusLines) {
+        $changedPath = $statusLine.Substring(3).Trim()
+        if ($changedPath -ne $manifestStatusPath) {
+            throw "A release changes only $manifestStatusPath. Commit or revert: $changedPath"
+        }
+    }
+
+    $remoteTags = @(
+        & $invokeExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--tags', 'origin', "refs/tags/$tagName")
+    )
+    if ($remoteTags.Count -gt 0) {
+        throw "The version was already released: $tagName"
+    }
+
+    $remoteBranches = @(
+        & $invokeExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--heads', 'origin', "refs/heads/$branchName")
+    )
+    if ($remoteBranches.Count -gt 0) {
+        throw "The release branch already exists: $branchName"
+    }
+
+    $shouldProcessTarget = "$branchName and its pull request into master"
+    $shouldProcessAction = 'Commit the version, push the branch, and open the release pull request'
+    if (-not $PSCmdlet.ShouldProcess($shouldProcessTarget, $shouldProcessAction)) {
+        return
+    }
+
+    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
+    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
+    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $version")
+    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName)
+
+    $pullRequestBody = @(
+        '## Release'
+        ''
+        "- ModuleVersion: $version"
+        "- Tag after merge: $tagName"
+        '- Merging this pull request tags the merge commit, publishes to PowerShell Gallery, and publishes the GitHub Release.'
+    ) -join [Environment]::NewLine
+
+    $pullRequestArguments = @(
+        'pr'
+        'create'
+        '--base'
+        'master'
+        '--head'
+        $branchName
+        '--title'
+        "chore(release): $version"
+        '--body'
+        $pullRequestBody
+    )
+    $pullRequestOutput = @(
+        & $invokeExternalCommand -FilePath $gh -ArgumentList $pullRequestArguments
+    )
+    foreach ($pullRequestLine in $pullRequestOutput) {
+        Write-Output -InputObject $pullRequestLine
+    }
+
+    Write-Output -InputObject 'Approve and merge the pull request. The Release workflow does the rest.'
+}
+
 $invokeVerify = {
     & $importRequiredModule -Name 'PSScriptAnalyzer'
     & $importRequiredModule -Name 'ModuleBuilder'
@@ -558,15 +698,33 @@ switch ($Command) {
         & $invokeImport
     }
     'test' {
+        $selectedTestType = 'all'
+        if (-not [string]::IsNullOrWhiteSpace($Argument)) {
+            $selectedTestType = $Argument
+        }
+        if ($selectedTestType -notin @('unit', 'integration', 'contract', 'all')) {
+            throw "The test command accepts unit, integration, contract, or all: $selectedTestType"
+        }
+
         & $assertSource
         & $importRequiredModule -Name 'ModuleBuilder'
         & $importRequiredModule -Name 'Pester'
-        & $invokeTest -SelectedTestType $TestType
+        & $invokeTest -SelectedTestType $selectedTestType
     }
     'verify' {
         & $invokeVerify
     }
     'ci' {
         & $invokeVerify
+    }
+    'bump' {
+        if ([string]::IsNullOrWhiteSpace($Argument)) {
+            throw 'The bump command requires a version. Example: .\dev.ps1 bump 1.2.3'
+        }
+
+        & $invokeBump -Version $Argument
+    }
+    'release' {
+        & $invokeRelease
     }
 }
