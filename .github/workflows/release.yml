@@ -8,7 +8,7 @@ on:
       - closed
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release
@@ -22,6 +22,10 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'release/')
     environment: powershell-gallery
     runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     defaults:
       run:
         shell: powershell
@@ -31,13 +35,13 @@ jobs:
 
     steps:
       - name: Check out the merged release commit
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       - name: Set up the .NET SDK
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: "8.0.x"
 
@@ -129,10 +133,14 @@ jobs:
               throw "Could not inspect tag $tagName."
           }
 
+          Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
           $version = '${{ steps.release.outputs.version }}'
-          $galleryUri = "https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PSWinUtil'&`$filter=Version%20eq%20'$version'"
-          $galleryResponse = Invoke-WebRequest -Uri $galleryUri -UseBasicParsing -ErrorAction Stop
-          $galleryExists = $galleryResponse.Content -match '<entry[ >]'
+          $galleryResource = Find-PSResource `
+              -Name 'PSWinUtil' `
+              -Version "[$version]" `
+              -Repository 'PSGallery' `
+              -ErrorAction SilentlyContinue
+          $galleryExists = $null -ne $galleryResource
           if ($galleryExists -and -not $tagExists) {
               throw "PowerShell Gallery version $version exists without tag $tagName."
           }
@@ -171,25 +179,34 @@ jobs:
               -CompressionLevel Optimal
           "path=$artifactPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
+      - name: Attest the release artifact
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.artifact.outputs.path }}
+
       - name: Publish to PowerShell Gallery
         if: steps.publication.outputs.gallery_exists != 'true'
         env:
           PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
         run: |
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Publish-Module `
+          Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
+          Publish-PSResource `
               -Path '.\output\PSWinUtil' `
-              -Repository PSGallery `
-              -NuGetApiKey $env:PSGALLERY_API_KEY `
+              -Repository 'PSGallery' `
+              -ApiKey $env:PSGALLERY_API_KEY `
               -ErrorAction Stop
 
       - name: Confirm PowerShell Gallery publication
         run: |
+          Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
           $version = '${{ steps.release.outputs.version }}'
-          $galleryUri = "https://www.powershellgallery.com/api/v2/FindPackagesById()?id='PSWinUtil'&`$filter=Version%20eq%20'$version'"
           for ($attempt = 1; $attempt -le 12; $attempt++) {
-              $galleryResponse = Invoke-WebRequest -Uri $galleryUri -UseBasicParsing -ErrorAction Stop
-              if ($galleryResponse.Content -match '<entry[ >]') {
+              $galleryResource = Find-PSResource `
+                  -Name 'PSWinUtil' `
+                  -Version "[$version]" `
+                  -Repository 'PSGallery' `
+                  -ErrorAction SilentlyContinue
+              if ($null -ne $galleryResource) {
                   return
               }
               Start-Sleep -Seconds 10
