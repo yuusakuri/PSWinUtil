@@ -1,7 +1,10 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci', 'bump', 'release')]
+    [ValidateSet(
+        'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
+        'bump', 'release', 'release-identity', 'release-state'
+    )]
     [string]$Command,
 
     [Parameter(Position = 1)]
@@ -47,6 +50,8 @@ Usage:
   .\dev.ps1 ci
   .\dev.ps1 bump 1.2.3
   .\dev.ps1 release
+  .\dev.ps1 release-identity release/1.2.3
+  .\dev.ps1 release-state <merge-commit>
 '@
 }
 
@@ -809,6 +814,84 @@ $invokeRelease = {
     Write-Output -InputObject 'Approve and merge the pull request. The Release workflow does the rest.'
 }
 
+$testExternalCommand = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$ArgumentList
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $null = & $FilePath @ArgumentList 2>&1
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $LASTEXITCODE
+}
+
+$invokeReleaseIdentity = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Branch
+    )
+
+    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git lists the existing release tags.'
+    $existingTagName = @(
+        & $invokeExternalCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*')
+    )
+
+    Get-ReleaseIdentity -Branch $Branch -ExistingTagName $existingTagName
+}
+
+$invokeReleaseState = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseCommit
+    )
+
+    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+    $version = [string]$sourceManifest.ModuleVersion
+    $tagName = "v$version"
+
+    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git reports whether the release tag exists.'
+    $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI reports whether the release exists.'
+
+    $tagCommit = ''
+    $tagExitCode = & $testExternalCommand `
+        -FilePath $git `
+        -ArgumentList @('show-ref', '--verify', '--quiet', "refs/tags/$tagName")
+    if ($tagExitCode -eq 0) {
+        $tagCommitOutput = @(
+            & $invokeExternalCommand -FilePath $git -ArgumentList @('rev-list', '-n', '1', $tagName)
+        )
+        $tagCommit = ($tagCommitOutput -join '').Trim()
+    } elseif ($tagExitCode -ne 1) {
+        throw "Could not inspect tag $tagName."
+    }
+
+    & $importRequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
+    $galleryResource = Find-PSResource `
+        -Name 'PSWinUtil' `
+        -Version "[$version]" `
+        -Repository 'PSGallery' `
+        -ErrorAction SilentlyContinue
+
+    $releaseExitCode = & $testExternalCommand -FilePath $gh -ArgumentList @('release', 'view', $tagName)
+
+    Get-ReleasePublicationState `
+        -TagName $tagName `
+        -Version $version `
+        -ReleaseCommit $ReleaseCommit `
+        -TagCommit $tagCommit `
+        -GalleryExists:($null -ne $galleryResource) `
+        -GitHubReleaseExists:($releaseExitCode -eq 0)
+}
+
 $invokeVerify = {
     & $importRequiredModule -Name 'PSScriptAnalyzer'
     & $importRequiredModule -Name 'ModuleBuilder'
@@ -875,5 +958,19 @@ switch ($Command) {
     }
     'release' {
         & $invokeRelease
+    }
+    'release-identity' {
+        if ([string]::IsNullOrWhiteSpace($Argument)) {
+            throw 'The release-identity command requires a release branch name.'
+        }
+
+        & $invokeReleaseIdentity -Branch $Argument
+    }
+    'release-state' {
+        if ([string]::IsNullOrWhiteSpace($Argument)) {
+            throw 'The release-state command requires the release commit.'
+        }
+
+        & $invokeReleaseState -ReleaseCommit $Argument
     }
 }

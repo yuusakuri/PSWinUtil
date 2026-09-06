@@ -74,15 +74,7 @@ jobs:
               throw "Release commit is not part of origin/master: $headCommit"
           }
 
-          $existingTagName = @(git tag --list 'v*')
-          if ($LASTEXITCODE -ne 0) {
-              throw 'Could not inspect existing release tags.'
-          }
-
-          . .\dev.ps1
-          $identity = Get-ReleaseIdentity `
-              -Branch $env:RELEASE_BRANCH `
-              -ExistingTagName $existingTagName
+          $identity = .\dev.ps1 release-identity $env:RELEASE_BRANCH
 
           "version=$($identity.Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=$($identity.TagName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -102,44 +94,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tagName = '${{ steps.release.outputs.tag }}'
-          $version = '${{ steps.release.outputs.version }}'
-
-          $tagCommit = ''
-          git show-ref --verify --quiet "refs/tags/$tagName"
-          if ($LASTEXITCODE -eq 0) {
-              $tagCommit = (git rev-list -n 1 $tagName).Trim()
-              if ($LASTEXITCODE -ne 0) {
-                  throw "Could not resolve tag $tagName."
-              }
-          } elseif ($LASTEXITCODE -ne 1) {
-              throw "Could not inspect tag $tagName."
-          }
-
-          Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
-          $galleryResource = Find-PSResource `
-              -Name 'PSWinUtil' `
-              -Version "[$version]" `
-              -Repository 'PSGallery' `
-              -ErrorAction SilentlyContinue
-
-          $previousErrorActionPreference = $ErrorActionPreference
-          $ErrorActionPreference = 'Continue'
-          try {
-              $null = gh release view $tagName --repo $env:GITHUB_REPOSITORY 2>&1
-          } finally {
-              $ErrorActionPreference = $previousErrorActionPreference
-          }
-          $githubReleaseExists = $LASTEXITCODE -eq 0
-
-          . .\dev.ps1
-          $state = Get-ReleasePublicationState `
-              -TagName $tagName `
-              -Version $version `
-              -ReleaseCommit $env:RELEASE_COMMIT `
-              -TagCommit $tagCommit `
-              -GalleryExists:($null -ne $galleryResource) `
-              -GitHubReleaseExists:$githubReleaseExists
+          $state = .\dev.ps1 release-state $env:RELEASE_COMMIT
 
           "tag_exists=$($state.TagExists.ToString().ToLowerInvariant())" |
               Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
