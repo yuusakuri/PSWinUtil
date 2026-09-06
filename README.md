@@ -15,18 +15,7 @@ Importing the built module requires no third-party PowerShell modules. Some comm
 - Windows.
 - Windows PowerShell 5.1 with the `Desktop` edition.
 
-Check the current shell before importing the module:
-
-```powershell
-$PSVersionTable.PSVersion
-$PSVersionTable.PSEdition
-```
-
-The version output must show major version `5` and minor version `1`; the edition must be `Desktop`.
-
 ## Installation
-
-The examples on this page describe the current source build. Build from source to use these commands, or install a published release and use its included `Get-Help` documentation.
 
 ### Source build
 
@@ -40,36 +29,22 @@ powershell.exe -ExecutionPolicy Bypass -File '.\dev.ps1' build
 Import-Module -Name '.\output\PSWinUtil\PSWinUtil.psd1'
 ```
 
-The generated module is under `output/PSWinUtil`. For a guided walkthrough with checks after each step, follow [Getting started from source](docs/tutorials/getting-started.md).
+The generated module is under `output/PSWinUtil`. For a guided walkthrough that checks the environment and the result of each step, follow [Getting started from source](docs/tutorials/getting-started.md).
 
 ### PowerShell Gallery
 
-Prepare the package manager in Windows PowerShell 5.1. The following commands allow scripts for the current session, enable TLS 1.2, and install the NuGet provider and PowerShellGet for the current user. Installing PowerShellGet also installs its PackageManagement dependency.
+The newest published release is from the 1.x series and predates this rewrite, so its commands differ from the ones documented here. Install it only when that version is what you need, and use its own `Get-Help` output:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+Install-Module -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
+```
+
+On a Windows PowerShell 5.1 installation that has never used PowerShell Gallery, enable TLS 1.2 and install the NuGet provider for the current user first:
+
+```powershell
 [Net.ServicePointManager]::SecurityProtocol =
     [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 Install-PackageProvider -Name 'NuGet' -MinimumVersion '2.8.5.201' -Scope CurrentUser -Force
-Install-Module -Name 'PowerShellGet' -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
-```
-
-Close that PowerShell window and open a new Windows PowerShell 5.1 window so that it can load the installed package-management modules. Set the session options again and install PSResourceGet:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-[Net.ServicePointManager]::SecurityProtocol =
-    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
-Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
-```
-
-Install the latest published PSWinUtil release and check the imported version:
-
-```powershell
-Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
-Import-Module -Name 'PSWinUtil'
-Get-Module -Name 'PSWinUtil' | Select-Object -Property Name, Version, Path
 ```
 
 ## Quick start
@@ -91,8 +66,6 @@ Preview a persistent environment variable update without changing the system:
 ```powershell
 Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
 ```
-
-`-WhatIf` describes the operation without storing the variable.
 
 Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
