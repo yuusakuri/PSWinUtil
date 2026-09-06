@@ -1,10 +1,11 @@
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $script:ReleaseVersionScriptPath = Join-Path -Path $repositoryRoot -ChildPath 'scripts/Set-ReleaseVersion.ps1'
+    . (Join-Path -Path $repositoryRoot -ChildPath 'dev.ps1')
+    $script:SetReleaseVersion = $setReleaseVersion
     $script:SourceManifestPath = Join-Path -Path $repositoryRoot -ChildPath 'src/PSWinUtil/PSWinUtil.psd1'
 }
 
-Describe 'Set-ReleaseVersion.ps1' {
+Describe 'dev.ps1 setReleaseVersion' {
     BeforeEach {
         $script:ManifestPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil.psd1'
         Copy-Item -LiteralPath $script:SourceManifestPath -Destination $script:ManifestPath
@@ -20,7 +21,7 @@ Describe 'Set-ReleaseVersion.ps1' {
     }
 
     It 'updates only ModuleVersion to a greater stable version' {
-        $result = & $script:ReleaseVersionScriptPath `
+        $result = & $script:SetReleaseVersion `
             -Version $script:NextVersion `
             -ManifestPath $script:ManifestPath
 
@@ -38,7 +39,7 @@ Describe 'Set-ReleaseVersion.ps1' {
 
     It 'rejects a version that is not greater than the current version' {
         {
-            & $script:ReleaseVersionScriptPath `
+            & $script:SetReleaseVersion `
                 -Version $script:CurrentVersion.ToString() `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
@@ -49,7 +50,7 @@ Describe 'Set-ReleaseVersion.ps1' {
 
     It 'rejects a version lower than the current version' {
         {
-            & $script:ReleaseVersionScriptPath `
+            & $script:SetReleaseVersion `
                 -Version '1.0.0' `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
@@ -60,7 +61,7 @@ Describe 'Set-ReleaseVersion.ps1' {
 
     It 'rejects a version outside the major.minor.patch format' {
         {
-            & $script:ReleaseVersionScriptPath `
+            & $script:SetReleaseVersion `
                 -Version '2.1' `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw
@@ -70,7 +71,7 @@ Describe 'Set-ReleaseVersion.ps1' {
     }
 
     It 'does not update the manifest with WhatIf' {
-        $null = & $script:ReleaseVersionScriptPath `
+        $null = & $script:SetReleaseVersion `
             -Version $script:NextVersion `
             -ManifestPath $script:ManifestPath `
             -WhatIf

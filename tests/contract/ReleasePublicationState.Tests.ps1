@@ -1,14 +1,13 @@
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-    $script:PublicationStateScriptPath = Join-Path `
-        -Path $repositoryRoot `
-        -ChildPath 'scripts/Get-ReleasePublicationState.ps1'
+    . (Join-Path -Path $repositoryRoot -ChildPath 'dev.ps1')
+    $script:GetReleasePublicationState = $getReleasePublicationState
     $script:ReleaseCommit = '1111111111111111111111111111111111111111'
 }
 
-Describe 'Get-ReleasePublicationState.ps1' {
+Describe 'dev.ps1 getReleasePublicationState' {
     It 'reports an unpublished release when nothing exists yet' {
-        $state = & $script:PublicationStateScriptPath `
+        $state = & $script:GetReleasePublicationState `
             -TagName 'v1.2.3' `
             -Version '1.2.3' `
             -ReleaseCommit $script:ReleaseCommit
@@ -19,7 +18,7 @@ Describe 'Get-ReleasePublicationState.ps1' {
     }
 
     It 'reports a tag that already points at the release commit' {
-        $state = & $script:PublicationStateScriptPath `
+        $state = & $script:GetReleasePublicationState `
             -TagName 'v1.2.3' `
             -Version '1.2.3' `
             -ReleaseCommit $script:ReleaseCommit `
@@ -30,7 +29,7 @@ Describe 'Get-ReleasePublicationState.ps1' {
     }
 
     It 'reports a completed release so a rerun skips every publication' {
-        $state = & $script:PublicationStateScriptPath `
+        $state = & $script:GetReleasePublicationState `
             -TagName 'v1.2.3' `
             -Version '1.2.3' `
             -ReleaseCommit $script:ReleaseCommit `
@@ -45,7 +44,7 @@ Describe 'Get-ReleasePublicationState.ps1' {
 
     It 'rejects a tag that points at another commit' {
         {
-            & $script:PublicationStateScriptPath `
+            & $script:GetReleasePublicationState `
                 -TagName 'v1.2.3' `
                 -Version '1.2.3' `
                 -ReleaseCommit $script:ReleaseCommit `
@@ -55,7 +54,7 @@ Describe 'Get-ReleasePublicationState.ps1' {
 
     It 'rejects a published Gallery version without its tag' {
         {
-            & $script:PublicationStateScriptPath `
+            & $script:GetReleasePublicationState `
                 -TagName 'v1.2.3' `
                 -Version '1.2.3' `
                 -ReleaseCommit $script:ReleaseCommit `
@@ -65,7 +64,7 @@ Describe 'Get-ReleasePublicationState.ps1' {
 
     It 'rejects a GitHub Release published before its tag' {
         {
-            & $script:PublicationStateScriptPath `
+            & $script:GetReleasePublicationState `
                 -TagName 'v1.2.3' `
                 -Version '1.2.3' `
                 -ReleaseCommit $script:ReleaseCommit `
@@ -75,7 +74,7 @@ Describe 'Get-ReleasePublicationState.ps1' {
 
     It 'rejects a GitHub Release published before the Gallery version' {
         {
-            & $script:PublicationStateScriptPath `
+            & $script:GetReleasePublicationState `
                 -TagName 'v1.2.3' `
                 -Version '1.2.3' `
                 -ReleaseCommit $script:ReleaseCommit `

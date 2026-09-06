@@ -27,8 +27,6 @@ $nativeProjectPath = Join-Path `
 $testSupportProjectPath = Join-Path `
     -Path $repositoryRoot `
     -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
-$scriptDirectory = Join-Path -Path $repositoryRoot -ChildPath 'scripts'
-$setReleaseVersionPath = Join-Path -Path $scriptDirectory -ChildPath 'Set-ReleaseVersion.ps1'
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
@@ -52,7 +50,9 @@ Usage:
 '@
 }
 
-if ([string]::IsNullOrWhiteSpace($Command)) {
+$isDotSourced = $MyInvocation.InvocationName -eq '.'
+
+if ([string]::IsNullOrWhiteSpace($Command) -and -not $isDotSourced) {
     & $writeUsage
     exit 0
 }
@@ -101,7 +101,6 @@ $getSourceFiles = {
     $sourceDirectories = @(
         $moduleSourceDirectory
         (Join-Path -Path $repositoryRoot -ChildPath 'tests')
-        $scriptDirectory
     )
     foreach ($sourceDirectory in $sourceDirectories) {
         if (-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {
@@ -566,13 +565,160 @@ $getRequiredApplication = {
     $application.Source
 }
 
+$setReleaseVersion = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
+        [string]$Version,
+
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string]$ManifestPath = $sourceManifestPath
+    )
+
+    $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath -ErrorAction Stop).Path
+    $manifest = Import-PowerShellDataFile -LiteralPath $resolvedManifestPath
+    if (-not $manifest.ContainsKey('ModuleVersion')) {
+        throw "The module manifest does not define ModuleVersion: $resolvedManifestPath"
+    }
+
+    $currentVersion = [version][string]$manifest.ModuleVersion
+    $releaseVersion = [version]$Version
+    if ($releaseVersion -le $currentVersion) {
+        throw "Release version $Version must be greater than the current version $currentVersion."
+    }
+
+    $manifestText = [System.IO.File]::ReadAllText($resolvedManifestPath)
+    $versionPattern = [regex]::new(
+        "(?m)^(?<Prefix>[ `t]*ModuleVersion[ `t]*=[ `t]*)'(?<Version>[^']+)'(?<Suffix>[ `t]*)$"
+    )
+    $versionMatches = $versionPattern.Matches($manifestText)
+    if ($versionMatches.Count -ne 1) {
+        throw "Expected exactly one single-quoted ModuleVersion entry: $resolvedManifestPath"
+    }
+
+    $updatedManifestText = $versionPattern.Replace(
+        $manifestText,
+        {
+            param([System.Text.RegularExpressions.Match]$Match)
+
+            $Match.Groups['Prefix'].Value + "'$Version'" + $Match.Groups['Suffix'].Value
+        }
+    )
+
+    if ($PSCmdlet.ShouldProcess($resolvedManifestPath, "Set ModuleVersion to $Version")) {
+        $manifestEncoding = [System.Text.UTF8Encoding]::new($false)
+        [System.IO.File]::WriteAllText($resolvedManifestPath, $updatedManifestText, $manifestEncoding)
+    }
+
+    [pscustomobject]@{
+        ManifestPath = $resolvedManifestPath
+        PreviousVersion = $currentVersion.ToString()
+        Version = $Version
+    }
+}
+
+$getReleaseIdentity = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Branch,
+
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string]$ManifestPath = $sourceManifestPath,
+
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]$ExistingTagName = @()
+    )
+
+    $branchPattern = '^release/(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$'
+    if ($Branch -notmatch $branchPattern) {
+        throw "Invalid release branch: $Branch"
+    }
+
+    $version = $Matches['Version']
+    $tagName = "v$version"
+
+    $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath -ErrorAction Stop).Path
+    $manifest = Import-PowerShellDataFile -LiteralPath $resolvedManifestPath
+    if (-not $manifest.ContainsKey('ModuleVersion')) {
+        throw "The module manifest does not define ModuleVersion: $resolvedManifestPath"
+    }
+
+    $manifestVersion = [string]$manifest.ModuleVersion
+    if ($manifestVersion -ne $version) {
+        throw "Release branch version $version does not match ModuleVersion $manifestVersion."
+    }
+
+    $releasedVersions = @(
+        foreach ($existingTag in $ExistingTagName) {
+            if ($existingTag -match '^v(?<Version>[0-9]+\.[0-9]+\.[0-9]+)$') {
+                [version]$Matches['Version']
+            }
+        }
+    )
+    $latestReleasedVersion = $releasedVersions |
+        Sort-Object -Descending |
+        Select-Object -First 1
+    if ($null -ne $latestReleasedVersion -and [version]$version -lt $latestReleasedVersion) {
+        throw "Release version $version is older than existing tag v$latestReleasedVersion."
+    }
+
+    [pscustomobject]@{
+        Version = $version
+        TagName = $tagName
+        ManifestPath = $resolvedManifestPath
+    }
+}
+
+$getReleasePublicationState = {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TagName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Version,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseCommit,
+
+        [Parameter()]
+        [AllowEmptyString()]
+        [string]$TagCommit = '',
+
+        [switch]$GalleryExists,
+
+        [switch]$GitHubReleaseExists
+    )
+
+    $tagExists = -not [string]::IsNullOrWhiteSpace($TagCommit)
+    if ($tagExists -and $TagCommit -ne $ReleaseCommit) {
+        throw "Tag $TagName does not point to release commit $ReleaseCommit."
+    }
+
+    if ($GalleryExists -and -not $tagExists) {
+        throw "PowerShell Gallery version $Version exists without tag $TagName."
+    }
+
+    if ($GitHubReleaseExists -and (-not $tagExists -or -not $GalleryExists)) {
+        throw "GitHub Release $TagName exists before its tag and Gallery publication are complete."
+    }
+
+    [pscustomobject]@{
+        TagExists = $tagExists
+        GalleryExists = [bool]$GalleryExists
+        GitHubReleaseExists = [bool]$GitHubReleaseExists
+    }
+}
+
 $invokeBump = {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Version
     )
 
-    $result = & $setReleaseVersionPath -Version $Version -ManifestPath $sourceManifestPath
+    $result = & $setReleaseVersion -Version $Version
     Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
     Write-Output -InputObject "Review the change, then run '.\dev.ps1 release'."
 }

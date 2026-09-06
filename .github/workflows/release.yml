@@ -79,7 +79,8 @@ jobs:
               throw 'Could not inspect existing release tags.'
           }
 
-          $identity = .\scripts\Get-ReleaseIdentity.ps1 `
+          . .\dev.ps1
+          $identity = & $getReleaseIdentity `
               -Branch $env:RELEASE_BRANCH `
               -ExistingTagName $existingTagName
 
@@ -131,7 +132,8 @@ jobs:
           }
           $githubReleaseExists = $LASTEXITCODE -eq 0
 
-          $state = .\scripts\Get-ReleasePublicationState.ps1 `
+          . .\dev.ps1
+          $state = & $getReleasePublicationState `
               -TagName $tagName `
               -Version $version `
               -ReleaseCommit $env:RELEASE_COMMIT `
