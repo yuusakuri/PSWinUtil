@@ -80,7 +80,7 @@ jobs:
           }
 
           . .\dev.ps1
-          $identity = & $getReleaseIdentity `
+          $identity = Get-ReleaseIdentity `
               -Branch $env:RELEASE_BRANCH `
               -ExistingTagName $existingTagName
 
@@ -133,7 +133,7 @@ jobs:
           $githubReleaseExists = $LASTEXITCODE -eq 0
 
           . .\dev.ps1
-          $state = & $getReleasePublicationState `
+          $state = Get-ReleasePublicationState `
               -TagName $tagName `
               -Version $version `
               -ReleaseCommit $env:RELEASE_COMMIT `

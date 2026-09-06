@@ -1,11 +1,10 @@
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     . (Join-Path -Path $repositoryRoot -ChildPath 'dev.ps1')
-    $script:GetReleaseIdentity = $getReleaseIdentity
     $script:SourceManifestPath = Join-Path -Path $repositoryRoot -ChildPath 'src/PSWinUtil/PSWinUtil.psd1'
 }
 
-Describe 'dev.ps1 getReleaseIdentity' {
+Describe 'Get-ReleaseIdentity' {
     BeforeEach {
         $script:ManifestPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil.psd1'
         Copy-Item -LiteralPath $script:SourceManifestPath -Destination $script:ManifestPath
@@ -15,7 +14,7 @@ Describe 'dev.ps1 getReleaseIdentity' {
     }
 
     It 'resolves the version and tag from the release branch' {
-        $identity = & $script:GetReleaseIdentity `
+        $identity = Get-ReleaseIdentity `
             -Branch "release/$($script:ManifestVersion)" `
             -ManifestPath $script:ManifestPath
 
@@ -24,7 +23,7 @@ Describe 'dev.ps1 getReleaseIdentity' {
     }
 
     It 'accepts a tag that already exists for the same release' {
-        $identity = & $script:GetReleaseIdentity `
+        $identity = Get-ReleaseIdentity `
             -Branch "release/$($script:ManifestVersion)" `
             -ManifestPath $script:ManifestPath `
             -ExistingTagName @("v$($script:ManifestVersion)", 'v1.0.0')
@@ -33,7 +32,7 @@ Describe 'dev.ps1 getReleaseIdentity' {
     }
 
     It 'accepts an empty tag list' {
-        $identity = & $script:GetReleaseIdentity `
+        $identity = Get-ReleaseIdentity `
             -Branch "release/$($script:ManifestVersion)" `
             -ManifestPath $script:ManifestPath `
             -ExistingTagName @()
@@ -42,7 +41,7 @@ Describe 'dev.ps1 getReleaseIdentity' {
     }
 
     It 'ignores tags that are not stable release tags' {
-        $identity = & $script:GetReleaseIdentity `
+        $identity = Get-ReleaseIdentity `
             -Branch "release/$($script:ManifestVersion)" `
             -ManifestPath $script:ManifestPath `
             -ExistingTagName @('v9.9.9-preview', 'nightly', 'v1.0.0')
@@ -59,13 +58,13 @@ Describe 'dev.ps1 getReleaseIdentity' {
         @{ Branch = 'feature/release/1.2.3' }
     ) {
         {
-            & $script:GetReleaseIdentity -Branch $Branch -ManifestPath $script:ManifestPath
+            Get-ReleaseIdentity -Branch $Branch -ManifestPath $script:ManifestPath
         } | Should -Throw "Invalid release branch: $Branch"
     }
 
     It 'rejects a branch version that does not match ModuleVersion' {
         {
-            & $script:GetReleaseIdentity `
+            Get-ReleaseIdentity `
                 -Branch 'release/99.98.97' `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw "*does not match ModuleVersion $($script:ManifestVersion)*"
@@ -73,7 +72,7 @@ Describe 'dev.ps1 getReleaseIdentity' {
 
     It 'rejects a version older than an existing release tag' {
         {
-            & $script:GetReleaseIdentity `
+            Get-ReleaseIdentity `
                 -Branch "release/$($script:ManifestVersion)" `
                 -ManifestPath $script:ManifestPath `
                 -ExistingTagName @('v99.0.0')

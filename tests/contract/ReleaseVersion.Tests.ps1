@@ -1,11 +1,10 @@
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     . (Join-Path -Path $repositoryRoot -ChildPath 'dev.ps1')
-    $script:SetReleaseVersion = $setReleaseVersion
     $script:SourceManifestPath = Join-Path -Path $repositoryRoot -ChildPath 'src/PSWinUtil/PSWinUtil.psd1'
 }
 
-Describe 'dev.ps1 setReleaseVersion' {
+Describe 'Set-ReleaseVersion' {
     BeforeEach {
         $script:ManifestPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil.psd1'
         Copy-Item -LiteralPath $script:SourceManifestPath -Destination $script:ManifestPath
@@ -21,7 +20,7 @@ Describe 'dev.ps1 setReleaseVersion' {
     }
 
     It 'updates only ModuleVersion to a greater stable version' {
-        $result = & $script:SetReleaseVersion `
+        $result = Set-ReleaseVersion `
             -Version $script:NextVersion `
             -ManifestPath $script:ManifestPath
 
@@ -39,7 +38,7 @@ Describe 'dev.ps1 setReleaseVersion' {
 
     It 'rejects a version that is not greater than the current version' {
         {
-            & $script:SetReleaseVersion `
+            Set-ReleaseVersion `
                 -Version $script:CurrentVersion.ToString() `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
@@ -50,7 +49,7 @@ Describe 'dev.ps1 setReleaseVersion' {
 
     It 'rejects a version lower than the current version' {
         {
-            & $script:SetReleaseVersion `
+            Set-ReleaseVersion `
                 -Version '1.0.0' `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
@@ -61,7 +60,7 @@ Describe 'dev.ps1 setReleaseVersion' {
 
     It 'rejects a version outside the major.minor.patch format' {
         {
-            & $script:SetReleaseVersion `
+            Set-ReleaseVersion `
                 -Version '2.1' `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw
@@ -71,7 +70,7 @@ Describe 'dev.ps1 setReleaseVersion' {
     }
 
     It 'does not update the manifest with WhatIf' {
-        $null = & $script:SetReleaseVersion `
+        $null = Set-ReleaseVersion `
             -Version $script:NextVersion `
             -ManifestPath $script:ManifestPath `
             -WhatIf

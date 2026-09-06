@@ -565,7 +565,8 @@ $getRequiredApplication = {
     $application.Source
 }
 
-$setReleaseVersion = {
+function Set-ReleaseVersion {
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
         [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
@@ -618,7 +619,8 @@ $setReleaseVersion = {
     }
 }
 
-$getReleaseIdentity = {
+function Get-ReleaseIdentity {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Branch,
@@ -672,7 +674,8 @@ $getReleaseIdentity = {
     }
 }
 
-$getReleasePublicationState = {
+function Get-ReleasePublicationState {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$TagName,
@@ -718,7 +721,7 @@ $invokeBump = {
         [string]$Version
     )
 
-    $result = & $setReleaseVersion -Version $Version
+    $result = Set-ReleaseVersion -Version $Version
     Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
     Write-Output -InputObject "Review the change, then run '.\dev.ps1 release'."
 }
