@@ -28,12 +28,12 @@ git pull --ff-only
 
 Merging the release pull request starts the `Release` workflow, which runs `dev.ps1 verify` and then `dev.ps1 release <merge-commit> -Branch <release-branch>`. That command:
 
-1. Checks that the checkout is the merged release commit and that it belongs to `origin/master`.
-2. Resolves the version and tag from the release branch and the manifest, and rejects a version that does not match or that is older than an existing tag.
-3. Reads which of the tag, the Gallery version, and the GitHub Release already exist, and rejects inconsistent combinations.
+1. Checks that the checkout is the merged release commit, has no tracked changes or untracked source files, and belongs to the freshly fetched `origin/master`.
+2. Reads the manifest from that commit, resolves the version and tag from the release branch, and rejects a version that does not match or that is older than an existing tag.
+3. Reads which of the remote tag, the Gallery version, and the GitHub Release already exist. It stops if a service cannot be queried, a publication is inconsistent, or the GitHub Release is still a draft.
 4. Packs `PSWinUtil-<version>.zip`, creates the tag on the merged commit, publishes to PowerShell Gallery, waits until the Gallery exposes the version, and publishes the GitHub Release.
 
-The workflow then records a build provenance attestation for the archive it published. Release runs are serialized with the `release` concurrency group, and every publication step skips what is already present for the same release commit, so a rerun completes an interrupted release instead of repeating it.
+The workflow then records a build provenance attestation for the archive it published. Release runs are serialized with the `release` concurrency group, and every publication step skips what is already present for the same release commit, so a rerun completes an interrupted release instead of repeating it. If pushing the tag fails, a rerun pushes the matching local tag before continuing to Gallery publication.
 
 ## Running the release locally
 
@@ -44,7 +44,7 @@ Both commands run on a developer machine, so a release can be rehearsed before i
 .\dev.ps1 release <merge-commit> -Branch 'release/1.2.3' -WhatIf
 ```
 
-`release` reads the Gallery key from the `PSGALLERY_API_KEY` environment variable rather than a parameter. Its checks run before `-WhatIf` decides anything, so a rehearsal still reports a version mismatch or an inconsistent publication state.
+Run `.\dev.ps1 verify` on the release commit before publishing locally. `release` reads the Gallery key from the `PSGALLERY_API_KEY` environment variable rather than a parameter. Its checks run before `-WhatIf` decides anything, so a rehearsal still reports a version mismatch or an inconsistent publication state. A rehearsal requires no Gallery key and creates no archive, tag, or publication. A real publication checks the key before creating its archive or tag.
 
 Prefer the workflow for real releases. A local `release` produces no build provenance attestation, because provenance is only meaningful when a trusted builder records it, and it bypasses the `powershell-gallery` Environment and any reviewers configured on it.
 

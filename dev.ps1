@@ -69,7 +69,8 @@ if (-not (Test-Path -LiteralPath $requirementsPath -PathType Leaf)) {
 
 $requirements = Import-PowerShellDataFile -Path $requirementsPath
 
-$importRequiredModule = {
+function Import-RequiredModule {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Name
@@ -330,10 +331,12 @@ $invokeAnalyze = {
     }
 
     if ($analysisResults.Count -gt 0) {
-        $formattedResults = $analysisResults |
-            Select-Object -Property ScriptName, Line, Column, Severity, RuleName, Message |
-            Format-Table -AutoSize |
-            Out-String
+        $formattedResults = @(
+            $analysisResults | ForEach-Object {
+                '{0}:{1}:{2}: {3} {4}: {5}' -f
+                $_.ScriptPath, $_.Line, $_.Column, $_.Severity, $_.RuleName, $_.Message
+            }
+        ) -join [Environment]::NewLine
         throw "PSScriptAnalyzer reported findings:$([Environment]::NewLine)$formattedResults"
     }
 }
@@ -527,24 +530,31 @@ $invokeTest = {
     }
 }
 
-$invokeExternalCommand = {
+function Invoke-ExternalCommand {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$FilePath,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$ArgumentList
+        [string[]]$ArgumentList,
+
+        [Parameter()]
+        [string]$WorkingDirectory = $repositoryRoot
     )
 
     $previousErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
+    Push-Location -LiteralPath $WorkingDirectory
     try {
+        $ErrorActionPreference = 'Continue'
         $commandOutput = & $FilePath @ArgumentList 2>&1
+        $exitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
+        Pop-Location
     }
 
-    if ($LASTEXITCODE -ne 0) {
+    if ($exitCode -ne 0) {
         $commandLine = "$FilePath $($ArgumentList -join ' ')"
         $commandMessage = @($commandOutput) -join [Environment]::NewLine
         throw "The command failed: $commandLine$([Environment]::NewLine)$commandMessage"
@@ -553,7 +563,8 @@ $invokeExternalCommand = {
     @($commandOutput | ForEach-Object { $_.ToString() })
 }
 
-$getRequiredApplication = {
+function Get-RequiredApplication {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Name,
@@ -626,14 +637,18 @@ function Set-ReleaseVersion {
 }
 
 function Get-ReleaseIdentity {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'ManifestPath')]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Branch,
 
-        [Parameter()]
+        [Parameter(ParameterSetName = 'ManifestPath')]
         [ValidateNotNullOrEmpty()]
         [string]$ManifestPath = $sourceManifestPath,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManifestVersion')]
+        [ValidateNotNullOrEmpty()]
+        [string]$ManifestVersion,
 
         [Parameter()]
         [AllowEmptyCollection()]
@@ -648,13 +663,17 @@ function Get-ReleaseIdentity {
     $version = $Matches['Version']
     $tagName = "v$version"
 
-    $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath -ErrorAction Stop).Path
-    $manifest = Import-PowerShellDataFile -LiteralPath $resolvedManifestPath
-    if (-not $manifest.ContainsKey('ModuleVersion')) {
-        throw "The module manifest does not define ModuleVersion: $resolvedManifestPath"
+    $resolvedManifestPath = ''
+    if ($PSCmdlet.ParameterSetName -eq 'ManifestPath') {
+        $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath -ErrorAction Stop).Path
+        $manifest = Import-PowerShellDataFile -LiteralPath $resolvedManifestPath
+        if (-not $manifest.ContainsKey('ModuleVersion')) {
+            throw "The module manifest does not define ModuleVersion: $resolvedManifestPath"
+        }
+
+        $ManifestVersion = [string]$manifest.ModuleVersion
     }
 
-    $manifestVersion = [string]$manifest.ModuleVersion
     if ($manifestVersion -ne $version) {
         throw "Release branch version $version does not match ModuleVersion $manifestVersion."
     }
@@ -721,35 +740,41 @@ function Get-ReleasePublicationState {
     }
 }
 
-$invokeBump = {
+function Invoke-Bump {
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
+        [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
         [string]$Version
     )
 
     $tagName = "v$Version"
     $branchName = "release/$Version"
     $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
+    $manifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+    if ([version]$Version -le [version][string]$manifest.ModuleVersion) {
+        throw "Release version $Version must be greater than the current version $($manifest.ModuleVersion)."
+    }
 
-    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release branch.'
-    $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI opens the release pull request.'
+    $git = Get-RequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release branch.'
+    $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI opens the release pull request.'
 
     $statusLines = @(
-        & $invokeExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
     )
     if ($statusLines.Count -gt 0) {
         throw "Commit or revert the working tree before preparing a release: $($statusLines -join ', ')"
     }
 
     $remoteTags = @(
-        & $invokeExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--tags', 'origin', "refs/tags/$tagName")
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--tags', 'origin', "refs/tags/$tagName")
     )
     if ($remoteTags.Count -gt 0) {
         throw "The version was already released: $tagName"
     }
 
     $remoteBranches = @(
-        & $invokeExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--heads', 'origin', "refs/heads/$branchName")
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--heads', 'origin', "refs/heads/$branchName")
     )
     if ($remoteBranches.Count -gt 0) {
         throw "The release branch already exists: $branchName"
@@ -761,13 +786,13 @@ $invokeBump = {
         return
     }
 
-    $result = Set-ReleaseVersion -Version $Version
+    $result = Set-ReleaseVersion -Version $Version -Confirm:$false
     Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
 
-    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
-    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
-    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version")
-    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName)
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version")
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName)
 
     $pullRequestBody = @(
         '## Release'
@@ -778,7 +803,7 @@ $invokeBump = {
     ) -join [Environment]::NewLine
 
     $pullRequestOutput = @(
-        & $invokeExternalCommand -FilePath $gh -ArgumentList @(
+        Invoke-ExternalCommand -FilePath $gh -ArgumentList @(
             'pr'
             'create'
             '--base'
@@ -798,278 +823,343 @@ $invokeBump = {
     Write-Output -InputObject 'Approve and merge the pull request to publish the release.'
 }
 
-$invokeRelease = {
+function Invoke-Release {
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[0-9a-fA-F]{40}$')]
         [string]$ReleaseCommit,
 
         [Parameter(Mandatory = $true)]
         [string]$Branch
     )
 
-    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git inspects the release commit and tags.'
+    $git = Get-RequiredApplication -Name 'git' -Purpose 'Git inspects the release commit and tags.'
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+        'fetch', 'origin', '+refs/heads/master:refs/remotes/origin/master', '--tags'
+    )
 
-    $null = & $invokeExternalCommand -FilePath $git -ArgumentList @('fetch', 'origin', 'master', '--tags')
-
-    $headOutput = @(& $invokeExternalCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}")
+    $headOutput = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
     $headCommit = ($headOutput -join '').Trim()
     if ($headCommit -ne $ReleaseCommit) {
         throw "Checked out commit $headCommit does not match release commit $ReleaseCommit."
     }
 
-    $ancestorExitCode = & $testExternalCommand `
-        -FilePath $git `
-        -ArgumentList @('merge-base', '--is-ancestor', $headCommit, 'origin/master')
-    if ($ancestorExitCode -ne 0) {
-        throw "Release commit is not part of origin/master: $headCommit"
+    $statusLines = @(
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('ls-files', '--others', '--exclude-standard', '--', 'src')
+    )
+    if ($statusLines.Count -gt 0) {
+        throw 'The release checkout contains uncommitted changes. Build and publish the committed source.'
     }
 
-    $identity = & $invokeReleaseIdentity -Branch $Branch
-    $state = & $invokeReleaseState -ReleaseCommit $ReleaseCommit
+    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+        'merge-base', '--is-ancestor', $ReleaseCommit, 'origin/master'
+    )
 
-    $artifactPath = ''
-    if (-not $state.GitHubReleaseExists) {
-        $artifactPath = (& $invokeReleasePack).Path
-    }
-
-    & $invokeReleasePublish `
+    $manifest = Get-ReleaseManifest -GitPath $git -ReleaseCommit $ReleaseCommit
+    $existingTagNames = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*'))
+    $identity = Get-ReleaseIdentity `
+        -Branch $Branch `
+        -ManifestVersion ([string]$manifest.ModuleVersion) `
+        -ExistingTagName $existingTagNames
+    $state = Get-RemoteReleaseState `
         -ReleaseCommit $ReleaseCommit `
+        -Version $identity.Version
+
+    Invoke-ReleasePublish `
+        -ReleaseCommit $ReleaseCommit `
+        -Version $identity.Version `
         -State $state `
-        -ArtifactPath $artifactPath
-
-    [pscustomobject]@{
-        Version = $identity.Version
-        TagName = $identity.TagName
-        ArtifactPath = $artifactPath
-    }
+        -ModuleDirectory $outputModuleDirectory `
+        -ArtifactPath (Join-Path -Path $repositoryRoot -ChildPath "PSWinUtil-$($identity.Version).zip")
 }
 
-$testExternalCommand = {
+function Get-ReleaseManifest {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$FilePath,
+        [string]$GitPath,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$ArgumentList
-    )
-
-    $previousErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $null = & $FilePath @ArgumentList 2>&1
-    } finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-
-    $LASTEXITCODE
-}
-
-$invokeReleaseIdentity = {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Branch
-    )
-
-    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git lists the existing release tags.'
-    $existingTagName = @(
-        & $invokeExternalCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*')
-    )
-
-    Get-ReleaseIdentity -Branch $Branch -ExistingTagName $existingTagName
-}
-
-$invokeReleaseState = {
-    param(
-        [Parameter(Mandatory = $true)]
+        [ValidatePattern('^[0-9a-fA-F]{40}$')]
         [string]$ReleaseCommit
     )
 
-    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
-    $version = [string]$sourceManifest.ModuleVersion
-    $tagName = "v$version"
-
-    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git reports whether the release tag exists.'
-    $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI reports whether the release exists.'
-
-    $tagCommit = ''
-    $tagExitCode = & $testExternalCommand `
-        -FilePath $git `
-        -ArgumentList @('show-ref', '--verify', '--quiet', "refs/tags/$tagName")
-    if ($tagExitCode -eq 0) {
-        $tagCommitOutput = @(
-            & $invokeExternalCommand -FilePath $git -ArgumentList @('rev-list', '-n', '1', $tagName)
-        )
-        $tagCommit = ($tagCommitOutput -join '').Trim()
-    } elseif ($tagExitCode -ne 1) {
-        throw "Could not inspect tag $tagName."
+    $manifestLines = @(Invoke-ExternalCommand -FilePath $GitPath -ArgumentList @(
+            'show', "${ReleaseCommit}:src/PSWinUtil/PSWinUtil.psd1"
+        ))
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput(
+        ($manifestLines -join "`n"), [ref]$tokens, [ref]$parseErrors
+    )
+    if (@($parseErrors).Count -gt 0) {
+        throw "The manifest at release commit $ReleaseCommit contains syntax errors."
     }
 
-    & $importRequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
-    $galleryResource = Find-PSResource `
-        -Name 'PSWinUtil' `
-        -Version "[$version]" `
-        -Repository 'PSGallery' `
-        -ErrorAction SilentlyContinue
+    $ast.GetScriptBlock().CheckRestrictedLanguage([string[]]@(), [string[]]@(), $false)
+    if (@($ast.EndBlock.Statements).Count -ne 1) {
+        throw "The manifest at release commit $ReleaseCommit must contain one data table."
+    }
+    $manifestStatement = $ast.EndBlock.Statements | Select-Object -First 1
+    if (
+        $manifestStatement -isnot [System.Management.Automation.Language.PipelineAst] -or
+        $manifestStatement.PipelineElements.Count -ne 1 -or
+        $manifestStatement.PipelineElements[0] -isnot [System.Management.Automation.Language.CommandExpressionAst] -or
+        $manifestStatement.PipelineElements[0].Expression -isnot [System.Management.Automation.Language.HashtableAst]
+    ) {
+        throw "The manifest at release commit $ReleaseCommit must contain one data table."
+    }
+    $manifest = $manifestStatement.PipelineElements[0].Expression.SafeGetValue()
+    if ($manifest -isnot [hashtable] -or -not $manifest.ContainsKey('ModuleVersion')) {
+        throw "The manifest at release commit $ReleaseCommit does not define ModuleVersion."
+    }
 
-    $releaseExitCode = & $testExternalCommand -FilePath $gh -ArgumentList @('release', 'view', $tagName)
-
-    Get-ReleasePublicationState `
-        -TagName $tagName `
-        -Version $version `
-        -ReleaseCommit $ReleaseCommit `
-        -TagCommit $tagCommit `
-        -GalleryExists:($null -ne $galleryResource) `
-        -GitHubReleaseExists:($releaseExitCode -eq 0)
+    $manifest
 }
 
-$invokeReleasePack = {
-    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
-    $version = [string]$sourceManifest.ModuleVersion
+function Test-GalleryPublication {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Version
+    )
 
-    if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
-        throw "Build the module before packing a release: $outputModuleDirectory"
+    try {
+        $resource = Find-PSResource `
+            -Name 'PSWinUtil' `
+            -Version "[$Version]" `
+            -Repository 'PSGallery' `
+            -ErrorAction Stop
+    } catch {
+        if ($_.FullyQualifiedErrorId -eq 'PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource') {
+            return $false
+        }
+
+        throw
     }
 
-    $builtManifest = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
-    if ([string]$builtManifest.Version -ne $version) {
-        throw "Built ModuleVersion $($builtManifest.Version) does not match the source version $version."
-    }
-
-    $artifactPath = Join-Path -Path $repositoryRoot -ChildPath "PSWinUtil-$version.zip"
-    if (Test-Path -LiteralPath $artifactPath) {
-        Remove-Item -LiteralPath $artifactPath -Force
-    }
-
-    Compress-Archive `
-        -LiteralPath $outputModuleDirectory `
-        -DestinationPath $artifactPath `
-        -CompressionLevel Optimal
-
-    [pscustomobject]@{
-        Version = $version
-        Path = $artifactPath
-    }
+    $null -ne $resource
 }
 
-$invokeReleasePublish = {
+function Test-GitHubRelease {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$GhPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TagName
+    )
+
+    $releaseJson = @(Invoke-ExternalCommand -FilePath $GhPath -ArgumentList @(
+            'api', '--paginate', '--slurp', 'repos/{owner}/{repo}/releases?per_page=100'
+        )) -join "`n"
+    $releasePages = ConvertFrom-Json -InputObject $releaseJson -ErrorAction Stop
+    foreach ($page in $releasePages) {
+        foreach ($release in $page) {
+            if ($release.tag_name -eq $TagName) {
+                if ($release.draft) {
+                    throw "GitHub Release $TagName is a draft. Publish or remove the draft before retrying."
+                }
+
+                return $true
+            }
+        }
+    }
+
+    $false
+}
+
+function Get-RemoteReleaseState {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$ReleaseCommit,
 
         [Parameter(Mandatory = $true)]
-        [psobject]$State,
+        [string]$Version
+    )
 
-        [Parameter()]
+    $tagName = "v$Version"
+    $git = Get-RequiredApplication -Name 'git' -Purpose 'Git reports whether the release tag exists.'
+    $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI reports whether the release exists.'
+
+    $remoteTagLines = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+            'ls-remote', '--tags', 'origin', "refs/tags/$tagName", "refs/tags/$tagName^{}"
+        ))
+    $tagCommit = ''
+    foreach ($line in $remoteTagLines) {
+        $parts = $line -split '\s+', 2
+        if ($parts[1] -eq "refs/tags/$tagName^{}") {
+            $tagCommit = $parts[0]
+            break
+        }
+        $tagCommit = $parts[0]
+    }
+
+    Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
+    $galleryExists = Test-GalleryPublication -Version $Version
+    $gitHubReleaseExists = Test-GitHubRelease -GhPath $gh -TagName $tagName
+
+    Get-ReleasePublicationState `
+        -TagName $tagName `
+        -Version $Version `
+        -ReleaseCommit $ReleaseCommit `
+        -TagCommit $tagCommit `
+        -GalleryExists:$galleryExists `
+        -GitHubReleaseExists:$gitHubReleaseExists
+}
+
+function Invoke-ReleasePack {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ModuleDirectory,
+
+        [Parameter(Mandatory = $true)]
         [string]$ArtifactPath
     )
 
-    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
-    $version = [string]$sourceManifest.ModuleVersion
-    $tagName = "v$version"
-
-    if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
-        throw "Build the module before publishing a release: $outputModuleDirectory"
+    if (Test-Path -LiteralPath $ArtifactPath) {
+        Remove-Item -LiteralPath $ArtifactPath -Force -Confirm:$false
     }
 
-    $builtManifest = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
-    if ([string]$builtManifest.Version -ne $version) {
-        throw "Built ModuleVersion $($builtManifest.Version) does not match the source version $version."
+    Compress-Archive `
+        -LiteralPath $ModuleDirectory `
+        -DestinationPath $ArtifactPath `
+        -CompressionLevel Optimal `
+        -Confirm:$false
+}
+
+function Invoke-ReleasePublish {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ReleaseCommit,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Version,
+
+        [Parameter(Mandatory = $true)]
+        [psobject]$State,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ModuleDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ArtifactPath
+    )
+
+    $tagName = "v$Version"
+    if ($State.GitHubReleaseExists) {
+        return [pscustomobject]@{
+            Version = $Version
+            TagName = $tagName
+            ArtifactPath = ''
+        }
     }
 
-    $git = & $getRequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release tag.'
-    $gh = & $getRequiredApplication -Name 'gh' -Purpose 'The GitHub CLI publishes the GitHub Release.'
+    $manifestPath = Join-Path -Path $ModuleDirectory -ChildPath 'PSWinUtil.psd1'
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "Build the module before publishing a release: $ModuleDirectory"
+    }
+
+    $builtManifest = Test-ModuleManifest -Path $manifestPath -ErrorAction Stop
+    if ([string]$builtManifest.Version -ne $Version) {
+        throw "Built ModuleVersion $($builtManifest.Version) does not match the release version $Version."
+    }
+
+    $git = Get-RequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release tag.'
+    $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI publishes the GitHub Release.'
+    $localTagNames = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('tag', '--list', $tagName))
+    if ($localTagNames.Count -gt 0) {
+        $localTagCommit = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+                'rev-parse', '--verify', "$tagName^{commit}"
+            )) -join ''
+        if ($localTagCommit.Trim() -ne $ReleaseCommit) {
+            throw "Local tag $tagName does not point to release commit $ReleaseCommit."
+        }
+    }
+
+    $action = 'Pack the module and complete its tag, PowerShell Gallery, and GitHub Release publication'
+    if (-not $PSCmdlet.ShouldProcess("PSWinUtil $Version at $ReleaseCommit", $action)) {
+        return
+    }
+
+    if (-not $State.GalleryExists -and [string]::IsNullOrWhiteSpace($env:PSGALLERY_API_KEY)) {
+        throw 'Set the PSGALLERY_API_KEY environment variable before publishing to PowerShell Gallery.'
+    }
+
+    Invoke-ReleasePack -ModuleDirectory $ModuleDirectory -ArtifactPath $ArtifactPath
 
     if (-not $State.TagExists) {
-        if ($PSCmdlet.ShouldProcess("origin $tagName", 'Create and push the release tag')) {
-            $null = & $invokeExternalCommand -FilePath $git -ArgumentList @(
-                'tag'
-                '--annotate'
-                $tagName
-                '--message'
-                "PSWinUtil $version"
-                $ReleaseCommit
-            )
-            $null = & $invokeExternalCommand -FilePath $git -ArgumentList @(
-                'push'
-                'origin'
-                "refs/tags/$tagName"
+        if ($localTagNames.Count -eq 0) {
+            $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+                'tag', '--annotate', $tagName, '--message', "PSWinUtil $Version", $ReleaseCommit
             )
         }
+        $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName")
     }
 
     if (-not $State.GalleryExists) {
-        $apiKey = $env:PSGALLERY_API_KEY
-        if ([string]::IsNullOrWhiteSpace($apiKey)) {
-            throw 'Set the PSGALLERY_API_KEY environment variable before publishing to PowerShell Gallery.'
-        }
+        Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
+        $null = Publish-PSResource `
+            -Path $ModuleDirectory `
+            -Repository 'PSGallery' `
+            -ApiKey $env:PSGALLERY_API_KEY `
+            -Confirm:$false `
+            -ErrorAction Stop
 
-        if ($PSCmdlet.ShouldProcess("PowerShell Gallery PSWinUtil $version", 'Publish the module')) {
-            & $importRequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
-            Publish-PSResource `
-                -Path $outputModuleDirectory `
-                -Repository 'PSGallery' `
-                -ApiKey $apiKey `
-                -ErrorAction Stop
-
-            & $waitForGalleryPublication -Version $version
-        }
+        Wait-GalleryPublication -Version $Version
     }
 
-    if (-not $State.GitHubReleaseExists) {
-        if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
-            throw "The release artifact was not found: $ArtifactPath"
-        }
+    $null = Invoke-ExternalCommand -FilePath $gh -ArgumentList @(
+        'release', 'create', $tagName, $ArtifactPath, '--verify-tag', '--title', $Version, '--generate-notes'
+    )
 
-        if ($PSCmdlet.ShouldProcess("GitHub Release $tagName", 'Publish the release')) {
-            $null = & $invokeExternalCommand -FilePath $gh -ArgumentList @(
-                'release'
-                'create'
-                $tagName
-                $ArtifactPath
-                '--verify-tag'
-                '--title'
-                $version
-                '--generate-notes'
-            )
-        }
+    [pscustomobject]@{
+        Version = $Version
+        TagName = $tagName
+        ArtifactPath = $ArtifactPath
     }
-
-    Write-Output -InputObject "PSWinUtil $version is released as $tagName."
 }
 
-$waitForGalleryPublication = {
+function Wait-GalleryPublication {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string]$Version,
 
         [Parameter()]
+        [ValidateRange(1, 120)]
         [int]$MaximumAttempt = 12,
 
         [Parameter()]
+        [ValidateRange(0, 300)]
         [int]$RetryDelaySecond = 10
     )
 
-    & $importRequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
+    Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
     for ($attempt = 1; $attempt -le $MaximumAttempt; $attempt++) {
-        $galleryResource = Find-PSResource `
-            -Name 'PSWinUtil' `
-            -Version "[$Version]" `
-            -Repository 'PSGallery' `
-            -ErrorAction SilentlyContinue
-        if ($null -ne $galleryResource) {
+        if (Test-GalleryPublication -Version $Version) {
             return
         }
 
-        Start-Sleep -Seconds $RetryDelaySecond
+        if ($attempt -lt $MaximumAttempt) {
+            Start-Sleep -Seconds $RetryDelaySecond
+        }
     }
 
     throw "PowerShell Gallery did not expose PSWinUtil $Version within the expected time."
 }
 
 $invokeVerify = {
-    & $importRequiredModule -Name 'PSScriptAnalyzer'
-    & $importRequiredModule -Name 'ModuleBuilder'
-    & $importRequiredModule -Name 'Pester'
+    Import-RequiredModule -Name 'PSScriptAnalyzer'
+    Import-RequiredModule -Name 'ModuleBuilder'
+    Import-RequiredModule -Name 'Pester'
     & $assertSource
     & $invokeFormat -Check
     & $invokeAnalyze
@@ -1081,23 +1171,23 @@ $invokeVerify = {
 switch ($Command) {
     'format' {
         & $assertSource
-        & $importRequiredModule -Name 'PSScriptAnalyzer'
+        Import-RequiredModule -Name 'PSScriptAnalyzer'
         & $invokeFormat
     }
     'analyze' {
         & $assertSource
-        & $importRequiredModule -Name 'PSScriptAnalyzer'
+        Import-RequiredModule -Name 'PSScriptAnalyzer'
         & $invokeAnalyze
     }
     'lint' {
-        & $importRequiredModule -Name 'PSScriptAnalyzer'
+        Import-RequiredModule -Name 'PSScriptAnalyzer'
         & $assertSource
         & $invokeFormat -Check
         & $invokeAnalyze
     }
     'build' {
         & $assertSource
-        & $importRequiredModule -Name 'ModuleBuilder'
+        Import-RequiredModule -Name 'ModuleBuilder'
         & $invokeBuild
     }
     'import' {
@@ -1113,8 +1203,8 @@ switch ($Command) {
         }
 
         & $assertSource
-        & $importRequiredModule -Name 'ModuleBuilder'
-        & $importRequiredModule -Name 'Pester'
+        Import-RequiredModule -Name 'ModuleBuilder'
+        Import-RequiredModule -Name 'Pester'
         & $invokeTest -SelectedTestType $selectedTestType
     }
     'verify' {
@@ -1128,7 +1218,7 @@ switch ($Command) {
             throw 'The bump command requires a version. Example: .\dev.ps1 bump 1.2.3'
         }
 
-        & $invokeBump -Version $Argument
+        Invoke-Bump -Version $Argument
     }
     'release' {
         if ([string]::IsNullOrWhiteSpace($Argument)) {
@@ -1138,6 +1228,6 @@ switch ($Command) {
             throw 'The release command requires the release branch with -Branch.'
         }
 
-        & $invokeRelease -ReleaseCommit $Argument -Branch $Branch
+        Invoke-Release -ReleaseCommit $Argument -Branch $Branch
     }
 }
