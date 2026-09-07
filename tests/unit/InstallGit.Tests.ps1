@@ -40,10 +40,8 @@ Describe 'Get-WUGitInstallPath' {
 
 Describe 'Install-WUGit' {
     BeforeEach {
-        InModuleScope -ModuleName PSWinUtil {
-            $script:GitInstallPaths = @('C:\Program Files\Git')
-            $script:GitInstallPathCallCount = 0
-        }
+        $script:GitInstallPaths = @('C:\Program Files\Git')
+        $script:GitInstallPathCallCount = 0
         Mock -CommandName Get-WUGitInstallPath -ModuleName PSWinUtil -MockWith {
             $script:GitInstallPathCallCount++
             $lastIndex = $script:GitInstallPaths.Count - 1
@@ -75,9 +73,7 @@ Describe 'Install-WUGit' {
     }
 
     It 'installs the exact package and uses the directory detected after the installation' {
-        InModuleScope -ModuleName PSWinUtil {
-            $script:GitInstallPaths = @($null, 'D:\Tools\Git')
-        }
+        $script:GitInstallPaths = @($null, 'D:\Tools\Git')
 
         Install-WUGit
 
@@ -99,9 +95,7 @@ Describe 'Install-WUGit' {
     }
 
     It 'does not change PATH with WhatIf while Git is missing' {
-        InModuleScope -ModuleName PSWinUtil {
-            $script:GitInstallPaths = @($null)
-        }
+        $script:GitInstallPaths = @($null)
 
         { Install-WUGit -WhatIf } | Should -Not -Throw
 
@@ -112,9 +106,7 @@ Describe 'Install-WUGit' {
     }
 
     It 'reports a missing installation directory after the installation' {
-        InModuleScope -ModuleName PSWinUtil {
-            $script:GitInstallPaths = @($null)
-        }
+        $script:GitInstallPaths = @($null)
 
         { Install-WUGit } | Should -Throw '*installation directory was not found*'
 

@@ -4,7 +4,7 @@ function Get-WUGitInstallPath {
     Gets the Git for Windows installation directory.
 
     .DESCRIPTION
-    Reads the installation directory from the machine and user registry keys written by the Git for Windows installer, and then from the default machine and user installation directories. Only a directory that contains cmd\git.exe is returned, so a leftover registry value does not produce a path. No output is produced when Git for Windows is not installed.
+    Reads the installation directory from the machine and user registry keys written by the Git for Windows installer, and then from the default machine and user installation directories. A machine installation is preferred over a user installation because Windows resolves the Machine PATH before the User PATH, and because a machine directory is valid for every PATH scope. Only a directory that contains cmd\git.exe is returned, so a leftover registry value does not produce a path. No output is produced when Git for Windows is not installed.
 
     .EXAMPLE
     Get-WUGitInstallPath
