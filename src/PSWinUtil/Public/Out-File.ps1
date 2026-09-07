@@ -4,11 +4,11 @@ function Out-File {
     Sends formatted output to UTF-8 without BOM and LF by default.
 
     .DESCRIPTION
-    Proxies Microsoft.PowerShell.Utility Out-File with the Windows PowerShell 5.1 parameters. Output uses UTF-8 without BOM and LF when Encoding is omitted or UTF8 is specified. Other explicit encodings keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Utility\Out-File. PSWinUtil exports this function only in Windows PowerShell Desktop.
+    Proxies Microsoft.PowerShell.Utility Out-File with the Windows PowerShell 5.1 parameters. Output uses UTF-8 without BOM and LF when Encoding is omitted or UTF8 is specified. Other explicit encodings keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Utility\Out-File. PSWinUtil places this function into the session only in Windows PowerShell Desktop.
 
     Windows PowerShell 5.1 language redirection resolves this function but keeps its own target file handle after the function finishes. Use an explicit pipeline to Out-File when the same script must access the file immediately. Redirection operators are not covered by this function guarantee.
 
-    Disable-WUOutFileOverride turns off the UTF-8 and LF default for the current PowerShell session, and Enable-WUOutFileOverride turns it on again.
+    Disable-WUCommandOverride removes this function from the session so the original cmdlet resolves instead, and Enable-WUCommandOverride puts it back.
 
     .PARAMETER FilePath
     Specifies the output file path.
@@ -130,11 +130,10 @@ function Out-File {
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer)) {
             $PSBoundParameters.OutBuffer = 1
         }
-        $overrideEnabled = Test-WUCommandOverrideEnabled -Name 'Out-File'
-        if ($overrideEnabled -and -not $PSBoundParameters.ContainsKey('Encoding')) {
+        if (-not $PSBoundParameters.ContainsKey('Encoding')) {
             $PSBoundParameters.Encoding = 'UTF8'
         }
-        $normalizeOutput = $overrideEnabled -and $PSBoundParameters.Encoding -ieq 'UTF8'
+        $normalizeOutput = $PSBoundParameters.Encoding -ieq 'UTF8'
 
         if ($normalizeOutput) {
             $fullPath = ConvertTo-WUFullPath -Path $targetPath

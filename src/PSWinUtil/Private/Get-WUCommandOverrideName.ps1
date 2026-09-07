@@ -4,12 +4,12 @@ function Get-WUCommandOverrideName {
     Gets the names of the commands overridden by PSWinUtil.
 
     .DESCRIPTION
-    Returns the Windows PowerShell command names that PSWinUtil replaces with a proxy function. The module import and the override state commands share this single list.
+    Returns the Windows PowerShell command names that PSWinUtil replaces with a proxy function. The module import, the override commands, and their name validation share this single list.
 
     .EXAMPLE
     Get-WUCommandOverrideName
 
-    Returns Get-Content, Set-Content, Add-Content, Out-File, and Invoke-WebRequest.
+    Returns Get-Content, Set-Content, Add-Content, and Out-File.
 
     .INPUTS
     None
@@ -25,5 +25,4 @@ function Get-WUCommandOverrideName {
     'Set-Content'
     'Add-Content'
     'Out-File'
-    'Invoke-WebRequest'
 }

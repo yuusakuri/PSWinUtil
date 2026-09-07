@@ -80,31 +80,28 @@ Install a package by its exact winget ID and automatically accept the source and
 Install-WUWingetPackage -Id 'Microsoft.PowerShell'
 ```
 
-Send a web request without the Windows PowerShell 5.1 progress-rendering overhead:
+Stop the progress bar for the whole session, which removes the rendering cost that Windows PowerShell 5.1 adds to commands such as `Invoke-WebRequest`:
 
 ```powershell
-$response = Invoke-WebRequest -Uri 'https://example.com/' -UseBasicParsing
-$response.StatusCode
+Set-WUProgressPreference -Value SilentlyContinue
 ```
 
 ### Command overrides
 
-PSWinUtil replaces `Get-Content`, `Set-Content`, `Add-Content`, `Out-File`, and `Invoke-WebRequest` with proxy functions that change their Windows PowerShell 5.1 defaults. Each override is enabled when the module is imported, and an `Enable-` and `Disable-` command pair switches it for the current PowerShell session on its own. A disabled proxy delegates to the original cmdlet without changing its defaults, so the other overrides and other PowerShell sessions keep their own state.
+PSWinUtil replaces `Get-Content`, `Set-Content`, `Add-Content`, and `Out-File` with proxy functions that change their Windows PowerShell 5.1 defaults to UTF-8 without a byte order mark and LF. Importing the module places all four proxy functions into the session.
 
-| Overridden command | Enable | Disable |
-| --- | --- | --- |
-| `Get-Content` | `Enable-WUGetContentOverride` | `Disable-WUGetContentOverride` |
-| `Set-Content` | `Enable-WUSetContentOverride` | `Disable-WUSetContentOverride` |
-| `Add-Content` | `Enable-WUAddContentOverride` | `Disable-WUAddContentOverride` |
-| `Out-File` | `Enable-WUOutFileOverride` | `Disable-WUOutFileOverride` |
-| `Invoke-WebRequest` | `Enable-WUInvokeWebRequestOverride` | `Disable-WUInvokeWebRequestOverride` |
-
-Read a file with the original Windows PowerShell encoding default, then restore the UTF-8 default:
+`Disable-WUCommandOverride` removes the proxy function of the commands you name, so PowerShell resolves them with their original cmdlets, and `Enable-WUCommandOverride` puts the proxy functions back. The proxy function is the override itself, so `Get-Command` always shows which one is in effect.
 
 ```powershell
-Disable-WUGetContentOverride
+Disable-WUCommandOverride -Name Get-Content
 Get-Content -LiteralPath 'C:\Data\legacy.txt' -Raw
-Enable-WUGetContentOverride
+Enable-WUCommandOverride -Name Get-Content
+```
+
+Name several commands at once to switch them together:
+
+```powershell
+Disable-WUCommandOverride -Name Get-Content, Set-Content, Add-Content, Out-File
 ```
 
 Use `Get-Help` to view the parameters and examples for any command:
