@@ -27,7 +27,8 @@ function Get-WUAndroidEmulator {
         throw 'Android emulator.exe was not found on PATH.'
     }
 
-    $commandOutput = @(& $emulator.Source '-list-avds' 2>&1)
+    $arguments = @('-list-avds')
+    $commandOutput = @(& 'emulator.exe' @arguments 2>&1)
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
         $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
