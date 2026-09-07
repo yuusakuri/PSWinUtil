@@ -6,6 +6,8 @@ function Invoke-WebRequest {
     .DESCRIPTION
     Proxies Microsoft.PowerShell.Utility Invoke-WebRequest with the Windows PowerShell 5.1 parameters. During the delegated request, progress rendering is suppressed to avoid its substantial Windows PowerShell performance cost. The caller's ProgressPreference value is restored after the request. The original cmdlet remains available as Microsoft.PowerShell.Utility\Invoke-WebRequest. PSWinUtil exports this function only in Windows PowerShell Desktop.
 
+    Disable-WUInvokeWebRequestOverride turns off the progress suppression for the current PowerShell session, and Enable-WUInvokeWebRequestOverride turns it on again.
+
     .PARAMETER UseBasicParsing
     Uses the response content without Internet Explorer DOM parsing.
 
@@ -174,7 +176,9 @@ function Invoke-WebRequest {
 
     begin {
         $originalProgressPreference = $ProgressPreference
-        $ProgressPreference = 'SilentlyContinue'
+        if (Test-WUCommandOverrideEnabled -Name 'Invoke-WebRequest') {
+            $ProgressPreference = 'SilentlyContinue'
+        }
         $steppablePipeline = $null
         try {
             $outBuffer = $null

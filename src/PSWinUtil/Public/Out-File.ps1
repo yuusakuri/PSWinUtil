@@ -8,6 +8,8 @@ function Out-File {
 
     Windows PowerShell 5.1 language redirection resolves this function but keeps its own target file handle after the function finishes. Use an explicit pipeline to Out-File when the same script must access the file immediately. Redirection operators are not covered by this function guarantee.
 
+    Disable-WUOutFileOverride turns off the UTF-8 and LF default for the current PowerShell session, and Enable-WUOutFileOverride turns it on again.
+
     .PARAMETER FilePath
     Specifies the output file path.
 
@@ -128,10 +130,11 @@ function Out-File {
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer)) {
             $PSBoundParameters.OutBuffer = 1
         }
-        if (-not $PSBoundParameters.ContainsKey('Encoding')) {
+        $overrideEnabled = Test-WUCommandOverrideEnabled -Name 'Out-File'
+        if ($overrideEnabled -and -not $PSBoundParameters.ContainsKey('Encoding')) {
             $PSBoundParameters.Encoding = 'UTF8'
         }
-        $normalizeOutput = $PSBoundParameters.Encoding -ieq 'UTF8'
+        $normalizeOutput = $overrideEnabled -and $PSBoundParameters.Encoding -ieq 'UTF8'
 
         if ($normalizeOutput) {
             $fullPath = ConvertTo-WUFullPath -Path $targetPath

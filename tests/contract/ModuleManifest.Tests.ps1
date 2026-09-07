@@ -39,6 +39,30 @@ Describe 'Built module manifest' {
         }
     }
 
+    It 'exports an override state command pair for every overridden command' {
+        $exportedCommands = @($script:Module.ExportedFunctions.Keys)
+
+        foreach ($commandName in @(
+                'Get-Content'
+                'Set-Content'
+                'Add-Content'
+                'Out-File'
+                'Invoke-WebRequest'
+            )) {
+            $overrideNoun = $commandName -replace '-', ''
+            foreach ($stateCommandName in @(
+                    "Enable-WU${overrideNoun}Override"
+                    "Disable-WU${overrideNoun}Override"
+                )) {
+                if ($PSVersionTable.PSEdition -eq 'Desktop') {
+                    $exportedCommands | Should -Contain $stateCommandName
+                } else {
+                    $exportedCommands | Should -Not -Contain $stateCommandName
+                }
+            }
+        }
+    }
+
     It 'accepts multiple Scope values in every scoped public command' {
         $scopedCommands = @(
             $script:Module.ExportedFunctions.Values |

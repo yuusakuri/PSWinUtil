@@ -87,6 +87,26 @@ $response = Invoke-WebRequest -Uri 'https://example.com/' -UseBasicParsing
 $response.StatusCode
 ```
 
+### Command overrides
+
+PSWinUtil replaces `Get-Content`, `Set-Content`, `Add-Content`, `Out-File`, and `Invoke-WebRequest` with proxy functions that change their Windows PowerShell 5.1 defaults. Each override is enabled when the module is imported, and an `Enable-` and `Disable-` command pair switches it for the current PowerShell session on its own. A disabled proxy delegates to the original cmdlet without changing its defaults, so the other overrides and other PowerShell sessions keep their own state.
+
+| Overridden command | Enable | Disable |
+| --- | --- | --- |
+| `Get-Content` | `Enable-WUGetContentOverride` | `Disable-WUGetContentOverride` |
+| `Set-Content` | `Enable-WUSetContentOverride` | `Disable-WUSetContentOverride` |
+| `Add-Content` | `Enable-WUAddContentOverride` | `Disable-WUAddContentOverride` |
+| `Out-File` | `Enable-WUOutFileOverride` | `Disable-WUOutFileOverride` |
+| `Invoke-WebRequest` | `Enable-WUInvokeWebRequestOverride` | `Disable-WUInvokeWebRequestOverride` |
+
+Read a file with the original Windows PowerShell encoding default, then restore the UTF-8 default:
+
+```powershell
+Disable-WUGetContentOverride
+Get-Content -LiteralPath 'C:\Data\legacy.txt' -Raw
+Enable-WUGetContentOverride
+```
+
 Use `Get-Help` to view the parameters and examples for any command:
 
 ```powershell

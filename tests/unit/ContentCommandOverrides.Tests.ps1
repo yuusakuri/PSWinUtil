@@ -3,6 +3,12 @@ BeforeAll {
 
     $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $script:UnicodeText = [string][char]0x3042
+    $script:AssertSameFileBytes = {
+        param([string]$ProxyPath, [string]$OriginalPath)
+
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($ProxyPath)) |
+            Should -Be ([Convert]::ToBase64String([System.IO.File]::ReadAllBytes($OriginalPath)))
+    }
     $script:AssertUtf8Lf = {
         param([string]$Path)
 
@@ -269,5 +275,133 @@ Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAva
         { 'new' | Out-File -LiteralPath $path -NoClobber } | Should -Throw
 
         [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be 'existing'
+    }
+}
+
+Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable) {
+    BeforeAll {
+        $script:GetOverrideState = {
+            param([string]$Name)
+
+            & (Get-Module -Name 'PSWinUtil') {
+                param($OverriddenCommandName)
+
+                Test-WUCommandOverrideEnabled -Name $OverriddenCommandName
+            } $Name
+        }
+    }
+
+    AfterEach {
+        Enable-WUGetContentOverride
+        Enable-WUSetContentOverride
+        Enable-WUAddContentOverride
+        Enable-WUOutFileOverride
+        Enable-WUInvokeWebRequestOverride
+    }
+
+    It 'enables every override before it is changed' {
+        foreach ($commandName in @(
+                'Get-Content'
+                'Set-Content'
+                'Add-Content'
+                'Out-File'
+                'Invoke-WebRequest'
+            )) {
+            & $script:GetOverrideState -Name $commandName | Should -BeTrue
+        }
+    }
+
+    It 'changes only the command named by the state command' {
+        Disable-WUInvokeWebRequestOverride
+
+        & $script:GetOverrideState -Name 'Invoke-WebRequest' | Should -BeFalse
+        foreach ($commandName in @(
+                'Get-Content'
+                'Set-Content'
+                'Add-Content'
+                'Out-File'
+            )) {
+            & $script:GetOverrideState -Name $commandName | Should -BeTrue
+        }
+
+        Enable-WUInvokeWebRequestOverride
+        & $script:GetOverrideState -Name 'Invoke-WebRequest' | Should -BeTrue
+    }
+
+    It 'keeps the state with WhatIf' {
+        Disable-WUGetContentOverride -WhatIf
+
+        & $script:GetOverrideState -Name 'Get-Content' | Should -BeTrue
+    }
+
+    It 'reads like the original cmdlet while the Get-Content override is disabled' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'state-get.txt'
+        [System.IO.File]::WriteAllText($path, $script:UnicodeText, $script:Utf8NoBom)
+
+        Disable-WUGetContentOverride
+        Get-Content -LiteralPath $path -Raw |
+            Should -Be (Microsoft.PowerShell.Management\Get-Content -LiteralPath $path -Raw)
+
+        Enable-WUGetContentOverride
+        Get-Content -LiteralPath $path -Raw | Should -Be $script:UnicodeText
+    }
+
+    It 'writes like the original cmdlet while the Set-Content override is disabled' {
+        $proxyPath = Join-Path -Path $TestDrive -ChildPath 'state-set-proxy.txt'
+        $originalPath = Join-Path -Path $TestDrive -ChildPath 'state-set-original.txt'
+
+        Disable-WUSetContentOverride
+        Set-Content -LiteralPath $proxyPath -Value @($script:UnicodeText, 'second')
+        Microsoft.PowerShell.Management\Set-Content `
+            -LiteralPath $originalPath `
+            -Value @($script:UnicodeText, 'second')
+
+        & $script:AssertSameFileBytes -ProxyPath $proxyPath -OriginalPath $originalPath
+    }
+
+    It 'appends like the original cmdlet while the Add-Content override is disabled' {
+        $proxyPath = Join-Path -Path $TestDrive -ChildPath 'state-add-proxy.txt'
+        $originalPath = Join-Path -Path $TestDrive -ChildPath 'state-add-original.txt'
+        foreach ($path in @($proxyPath, $originalPath)) {
+            [System.IO.File]::WriteAllText($path, "first`r`n", [System.Text.Encoding]::Unicode)
+        }
+
+        Disable-WUAddContentOverride
+        Add-Content -LiteralPath $proxyPath -Value 'second'
+        Microsoft.PowerShell.Management\Add-Content -LiteralPath $originalPath -Value 'second'
+
+        & $script:AssertSameFileBytes -ProxyPath $proxyPath -OriginalPath $originalPath
+    }
+
+    It 'writes like the original cmdlet while the Out-File override is disabled' {
+        $proxyPath = Join-Path -Path $TestDrive -ChildPath 'state-out-proxy.txt'
+        $originalPath = Join-Path -Path $TestDrive -ChildPath 'state-out-original.txt'
+
+        Disable-WUOutFileOverride
+        @($script:UnicodeText, 'second') | Out-File -LiteralPath $proxyPath
+        @($script:UnicodeText, 'second') |
+            Microsoft.PowerShell.Utility\Out-File -LiteralPath $originalPath
+
+        & $script:AssertSameFileBytes -ProxyPath $proxyPath -OriginalPath $originalPath
+    }
+
+    It 'sends a request while the Invoke-WebRequest override is disabled' {
+        Disable-WUInvokeWebRequestOverride
+
+        $originalProgressPreference = $ProgressPreference
+        $ProgressPreference = 'Continue'
+        try {
+            {
+                Invoke-WebRequest `
+                    -Uri 'http://127.0.0.1:1/' `
+                    -UseBasicParsing `
+                    -TimeoutSec 1 `
+                    -ErrorAction Stop
+            } | Should -Throw
+
+            $ProgressPreference | Should -Be 'Continue'
+        } finally {
+            $ProgressPreference = $originalProgressPreference
+        }
     }
 }

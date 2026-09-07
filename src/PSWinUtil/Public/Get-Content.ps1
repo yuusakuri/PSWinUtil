@@ -6,6 +6,8 @@ function Get-Content {
     .DESCRIPTION
     Proxies Microsoft.PowerShell.Management Get-Content with the Windows PowerShell 5.1 parameters. File system text is decoded as UTF-8 when Encoding is omitted. An explicit Encoding value and non-file-system providers keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Management\Get-Content. PSWinUtil exports this function only in Windows PowerShell Desktop.
 
+    Disable-WUGetContentOverride turns off the UTF-8 default for the current PowerShell session, and Enable-WUGetContentOverride turns it on again.
+
     .PARAMETER Path
     Specifies one or more paths and permits wildcard characters.
 
@@ -129,6 +131,7 @@ function Get-Content {
             $PSBoundParameters.OutBuffer = 1
         }
         if (
+            (Test-WUCommandOverrideEnabled -Name 'Get-Content') -and
             $MyInvocation.MyCommand.Parameters.ContainsKey('Encoding') -and
             -not $PSBoundParameters.ContainsKey('Encoding')
         ) {

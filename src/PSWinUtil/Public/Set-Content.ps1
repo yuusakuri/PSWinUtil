@@ -6,6 +6,8 @@ function Set-Content {
     .DESCRIPTION
     Proxies Microsoft.PowerShell.Management Set-Content with the Windows PowerShell 5.1 parameters. File system text uses UTF-8 when Encoding is omitted or UTF8 is specified, then the completed file is normalized to UTF-8 without BOM and LF. Other encodings, alternate streams, and non-file-system providers keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Management\Set-Content. PSWinUtil exports this function only in Windows PowerShell Desktop.
 
+    Disable-WUSetContentOverride turns off the UTF-8 and LF default for the current PowerShell session, and Enable-WUSetContentOverride turns it on again.
+
     .PARAMETER Value
     Specifies the content written to each selected item.
 
@@ -142,11 +144,13 @@ function Set-Content {
         if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer)) {
             $PSBoundParameters.OutBuffer = 1
         }
+        $overrideEnabled = Test-WUCommandOverrideEnabled -Name 'Set-Content'
         $hasEncodingParameter = $MyInvocation.MyCommand.Parameters.ContainsKey('Encoding')
-        if ($hasEncodingParameter -and -not $PSBoundParameters.ContainsKey('Encoding')) {
+        if ($overrideEnabled -and $hasEncodingParameter -and -not $PSBoundParameters.ContainsKey('Encoding')) {
             $PSBoundParameters.Encoding = 'UTF8'
         }
-        $normalizeOutput = $hasEncodingParameter -and
+        $normalizeOutput = $overrideEnabled -and
+        $hasEncodingParameter -and
         $PSBoundParameters.Encoding.ToString() -ieq 'UTF8' -and
         -not $PSBoundParameters.ContainsKey('Stream')
 
