@@ -50,7 +50,7 @@ function Resolve-WUAndroidSdkPackageVersion {
 
     $versions = @(
         [regex]::Matches($text, '(?m)^\s*build-tools/([0-9]+\.[0-9]+\.[0-9]+)\s+') |
-            ForEach-Object { [System.Management.Automation.SemanticVersion]$_.Groups[1].Value } |
+            ForEach-Object { [version]$_.Groups[1].Value } |
             Sort-Object -Descending -Unique
     )
     if ($versions.Count -eq 0) {
