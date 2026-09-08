@@ -6,7 +6,7 @@ It provides commands that:
 
 - Configure Windows interface, security, sign-in, and notification settings.
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
-- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
+- Work with UTF-8 text files, command overrides, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
 
 ## Requirements
 
@@ -78,30 +78,6 @@ Install a package by its exact winget ID and automatically accept the source and
 
 ```powershell
 Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-```
-
-Stop the progress bar for the whole session, which removes the rendering cost that Windows PowerShell 5.1 adds to commands such as `Invoke-WebRequest`:
-
-```powershell
-Set-WUProgressPreference -Value SilentlyContinue
-```
-
-### Command overrides
-
-PSWinUtil replaces `Get-Content`, `Set-Content`, `Add-Content`, and `Out-File` with proxy functions that change their Windows PowerShell 5.1 defaults to UTF-8 without a byte order mark and LF. Importing the module places all four proxy functions into the session.
-
-`Disable-WUCommandOverride` removes the proxy function of the commands you name, so PowerShell resolves them with their original cmdlets, and `Enable-WUCommandOverride` puts the proxy functions back. The proxy function is the override itself, so `Get-Command` always shows which one is in effect.
-
-```powershell
-Disable-WUCommandOverride -Name Get-Content
-Get-Content -LiteralPath 'C:\Data\legacy.txt' -Raw
-Enable-WUCommandOverride -Name Get-Content
-```
-
-Name several commands at once to switch them together:
-
-```powershell
-Disable-WUCommandOverride -Name Get-Content, Set-Content, Add-Content, Out-File
 ```
 
 Use `Get-Help` to view the parameters and examples for any command:
