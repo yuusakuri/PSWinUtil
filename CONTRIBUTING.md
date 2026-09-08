@@ -54,8 +54,9 @@ Implement exported commands in `src/PSWinUtil/Public/` and internal functions in
 | `.\dev.ps1 test unit` | Builds the module and runs unit tests. |
 | `.\dev.ps1 test integration` | Builds the module and runs Windows integration tests. |
 | `.\dev.ps1 test contract` | Builds the module and runs distribution and manifest contract tests. |
-| `.\dev.ps1 test all` | Builds the module and runs all test suites. |
-| `.\dev.ps1 verify` | Checks source, formatting, analysis, build output, import, the command reference, and all test suites. |
+| `.\dev.ps1 test all` | Builds the module and runs unit, integration, and contract tests without `Online` tests. |
+| `.\dev.ps1 test-online-integration` | Builds the module and runs opt-in integration tests against online services. |
+| `.\dev.ps1 verify` | Checks source, formatting, analysis, build output, import, the command reference, and tests that do not require online services. |
 | `.\dev.ps1 ci` | Runs the same verification as `verify`. |
 
 Version preparation and publication commands are described in [Releasing](RELEASING.md).

@@ -18,9 +18,6 @@ function Install-WUFlutterSdk {
     .PARAMETER DestinationPath
     Specifies the directory that contains the installed flutter directory. The default value is USERPROFILE, so Flutter is installed under USERPROFILE\flutter.
 
-    .PARAMETER TimeoutSeconds
-    Specifies the maximum number of seconds for the HTTP download. The default value is 900.
-
     .EXAMPLE
     Install-WUFlutterSdk
 
@@ -67,11 +64,7 @@ function Install-WUFlutterSdk {
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]$DestinationPath = $env:USERPROFILE,
-
-        [Parameter()]
-        [ValidateRange(1, 86400)]
-        [int]$TimeoutSeconds = 900
+        [string]$DestinationPath = $env:USERPROFILE
     )
 
     process {
@@ -108,7 +101,10 @@ function Install-WUFlutterSdk {
             }
 
             $downloadedPath = Join-Path -Path $temporaryDirectory -ChildPath $packageFileName
-            $downloadedPath = Invoke-WUHttpFileDownload -Uri $release.Uri -Path $downloadedPath -TimeoutSeconds $TimeoutSeconds
+            $downloadedPath = Invoke-WUHttpFileDownload `
+                -Uri $release.Uri `
+                -Path $downloadedPath `
+                -Confirm:$false
 
             $stagingDirectory = Join-Path -Path $fullDestinationPath -ChildPath ".flutter-install-$([guid]::NewGuid().ToString('N'))"
             $null = New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop
