@@ -88,6 +88,8 @@ Describe 'Built module manifest' {
             'Set-WUJavaWindowsRootTrustStore'
             'Start-WUAndroidEmulator'
             'Get-WUAndroidEmulator'
+            'Get-WUAndroidEmulatorPort'
+            'Test-WUAndroidEmulatorPort'
             'Get-WUAndroidCommandLineToolsUrl'
             'Get-WUFlutterSdkUrl'
             'Invoke-WUDefaultBrowserDownload'
@@ -119,6 +121,21 @@ Describe 'Built module manifest' {
 
         foreach ($expectedCommand in $expectedCommands) {
             $exportedCommands | Should -Contain $expectedCommand
+        }
+    }
+
+    It 'keeps emulator discovery and monitoring helpers private' {
+        Import-Module -Name $script:ManifestPath -Force -ErrorAction Stop
+        $exportedCommands = @((Get-Module -Name 'PSWinUtil').ExportedFunctions.Keys)
+
+        foreach ($privateCommand in @(
+                'Test-WUTcpPort'
+                'Get-WUAndroidEmulatorUnavailablePort'
+                'ConvertTo-WUWindowsCommandLineArgument'
+                'Select-WUAndroidEmulatorPort'
+                'Wait-WUAndroidEmulator'
+            )) {
+            $exportedCommands | Should -Not -Contain $privateCommand
         }
     }
 
