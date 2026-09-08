@@ -80,10 +80,10 @@ Install a package by its exact winget ID and automatically accept the source and
 Install-WUWingetPackage -Id 'Microsoft.PowerShell'
 ```
 
-Stop the progress bar for the whole session, which removes the rendering cost that Windows PowerShell 5.1 adds to commands such as `Invoke-WebRequest`:
+Stop the progress bar, which removes the rendering cost that Windows PowerShell 5.1 adds to commands such as `Invoke-WebRequest`:
 
 ```powershell
-Set-WUProgressPreference -Value SilentlyContinue
+$ProgressPreference = 'SilentlyContinue'
 ```
 
 ### Command overrides

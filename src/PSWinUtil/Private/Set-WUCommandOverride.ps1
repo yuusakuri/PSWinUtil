@@ -4,7 +4,9 @@ function Set-WUCommandOverride {
     Places or removes command override proxy functions.
 
     .DESCRIPTION
-    Writes each requested proxy function into the session when Enabled is specified, and removes it when Enabled is omitted. A command whose proxy function is absent is resolved by the original PowerShell cmdlet, so the presence of the proxy function is the override state itself. A name that PSWinUtil does not override is rejected, and a command that already has the requested state is left as it is.
+    Writes each requested proxy function into the session when Enabled is specified, and removes it when Enabled is omitted. A command whose proxy function is absent is resolved by the original PowerShell cmdlet, so the presence of the proxy function is the override state itself. Every requested name is checked before anything is changed, and a command that already has the requested state is left as it is.
+
+    Placing a proxy names the global scope in its path, because a path without a scope writes the function into the module. Removing one uses the path without a scope, because PowerShell then searches the scopes in turn and reaches the placed function, while a path that names the global scope removes nothing and reports no error.
 
     .PARAMETER Name
     Specifies one or more overridden command names.
@@ -39,15 +41,15 @@ function Set-WUCommandOverride {
     )
 
     $overrideNames = @(Get-WUCommandOverrideName)
-    foreach ($commandName in $Name) {
-        if ($commandName -notin $overrideNames) {
-            throw "The command override was not found: $commandName. PSWinUtil overrides $($overrideNames -join ', ')."
-        }
+    $unknownNames = @($Name | Where-Object { $_ -notin $overrideNames })
+    if ($unknownNames.Count -gt 0) {
+        throw "The command override was not found: $($unknownNames -join ', '). PSWinUtil overrides $($overrideNames -join ', ')."
     }
 
-    $action = 'Remove the command override proxy'
-    if ($Enabled) {
-        $action = 'Place the command override proxy'
+    $action = if ($Enabled) {
+        'Place the command override proxy'
+    } else {
+        'Remove the command override proxy'
     }
 
     foreach ($commandName in @($Name | Select-Object -Unique)) {
@@ -55,13 +57,12 @@ function Set-WUCommandOverride {
             continue
         }
 
-        $functionPath = "Function:\$commandName"
         if ($Enabled) {
             Microsoft.PowerShell.Management\Set-Item `
                 -Path "function:global:$commandName" `
                 -Value $script:WUCommandOverrideDefinition[$commandName]
-        } elseif (Microsoft.PowerShell.Management\Test-Path -LiteralPath $functionPath) {
-            Microsoft.PowerShell.Management\Remove-Item -LiteralPath $functionPath -Force
+        } elseif (Microsoft.PowerShell.Management\Test-Path -LiteralPath "Function:\$commandName") {
+            Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$commandName" -Force
         }
     }
 }
