@@ -4,7 +4,7 @@ function Get-WUCommandOverrideName {
     Gets the names of the commands overridden by PSWinUtil.
 
     .DESCRIPTION
-    Returns the Windows PowerShell command names that PSWinUtil replaces with a proxy function. The module import, the override commands, and their name validation share this single list.
+    Returns the Windows PowerShell command names that PSWinUtil replaces with a proxy function. The module import keeps and places every proxy from this single list, and the public override commands accept the same names through their own ValidateSet.
 
     .EXAMPLE
     Get-WUCommandOverrideName

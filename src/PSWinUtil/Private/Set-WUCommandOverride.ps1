@@ -4,7 +4,7 @@ function Set-WUCommandOverride {
     Places or removes command override proxy functions.
 
     .DESCRIPTION
-    Writes each requested proxy function into the session when Enabled is specified, and removes it when Enabled is omitted. A command whose proxy function is absent is resolved by the original PowerShell cmdlet, so the presence of the proxy function is the override state itself. Every requested name is checked before anything is changed, and a command that already has the requested state is left as it is.
+    Writes each requested proxy function into the session when Enabled is specified, and removes it when Enabled is omitted. A command whose proxy function is absent is resolved by the original PowerShell cmdlet, so the presence of the proxy function is the override state itself. A command that already has the requested state is left as it is. The callers restrict the accepted names, so this function does not check them again.
 
     Placing a proxy names the global scope in its path, because a path without a scope writes the function into the module. Removing one uses the path without a scope, because PowerShell then searches the scopes in turn and reaches the placed function, while a path that names the global scope removes nothing and reports no error.
 
@@ -39,12 +39,6 @@ function Set-WUCommandOverride {
         [Parameter()]
         [switch]$Enabled
     )
-
-    $overrideNames = @(Get-WUCommandOverrideName)
-    $unknownNames = @($Name | Where-Object { $_ -notin $overrideNames })
-    if ($unknownNames.Count -gt 0) {
-        throw "The command override was not found: $($unknownNames -join ', '). PSWinUtil overrides $($overrideNames -join ', ')."
-    }
 
     $action = if ($Enabled) {
         'Place the command override proxy'

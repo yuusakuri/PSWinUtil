@@ -33,7 +33,12 @@ function Disable-WUCommandOverride {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true)]
-        [ValidateNotNullOrEmpty()]
+        [ValidateSet(
+            'Get-Content',
+            'Set-Content',
+            'Add-Content',
+            'Out-File'
+        )]
         [string[]]$Name
     )
 

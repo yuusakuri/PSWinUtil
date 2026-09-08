@@ -104,6 +104,7 @@ Describe 'Built module manifest' {
             'Disable-WUClassicContextMenu'
             'Set-WUJapaneseImeHalfWidthInput'
             'Get-WUFileTreeWithContent'
+            'Set-WUProgressPreference'
         )
 
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
