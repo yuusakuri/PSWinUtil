@@ -22,14 +22,32 @@ git pull --ff-only
 .\dev.ps1 bump 1.2.3
 ```
 
-`bump` rejects a version that is not a greater `major.minor.patch` version than the current one, a version whose tag or release branch already exists on the remote, and a working tree with uncommitted tracked changes. It then writes the version to `src/PSWinUtil/PSWinUtil.psd1`, commits it on `release/1.2.3`, pushes the branch, and opens the release pull request. `-WhatIf` reports those steps without performing them.
+`bump` rejects a version that is not greater than the current release version, a version whose tag or release branch already exists on the remote, and a working tree with uncommitted tracked changes. It then writes the version to `src/PSWinUtil/PSWinUtil.psd1`, commits it on `release/1.2.3`, pushes the branch, and opens the release pull request. `-WhatIf` reports those steps without performing them.
+
+## Prepare a preview release
+
+Use an ASCII alphanumeric prerelease label after the three-part version:
+
+```powershell
+git switch master
+git pull --ff-only
+.\dev.ps1 bump 2.0.0-preview1
+```
+
+The release uses `ModuleVersion = '2.0.0'` and `PrivateData.PSData.Prerelease = 'preview1'`. It publishes `v2.0.0-preview1`, marks the GitHub Release as a prerelease, and publishes the same prerelease version to PowerShell Gallery. A later `2.0.0-preview2` advances the preview, while `2.0.0` removes the prerelease label and publishes the stable version.
+
+Install the newest Gallery preview with:
+
+```powershell
+Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery -Prerelease
+```
 
 ## Publication
 
 Merging the release pull request starts the `Release` workflow, which runs `dev.ps1 verify` and then `dev.ps1 release <merge-commit> -Branch <release-branch>`. That command:
 
 1. Checks that the checkout is the merged release commit, has no tracked changes or untracked source files, and belongs to the freshly fetched `origin/master`.
-2. Reads the manifest from that commit, resolves the version and tag from the release branch, and rejects a version that does not match or that is older than an existing tag.
+2. Reads the manifest from that commit, resolves the stable or prerelease version and tag from the release branch, and rejects a version that does not match or that is older than an existing tag.
 3. Reads which of the remote tag, the Gallery version, and the GitHub Release already exist. It stops if a service cannot be queried, a publication is inconsistent, or the GitHub Release is still a draft.
 4. Packs `PSWinUtil-<version>.zip`, creates the tag on the merged commit, publishes to PowerShell Gallery, waits until the Gallery exposes the version, and publishes the GitHub Release.
 
@@ -41,7 +59,9 @@ Both commands run on a developer machine, so a release can be rehearsed before i
 
 ```powershell
 .\dev.ps1 bump 1.2.3 -WhatIf
+.\dev.ps1 bump 2.0.0-preview1 -WhatIf
 .\dev.ps1 release <merge-commit> -Branch 'release/1.2.3' -WhatIf
+.\dev.ps1 release <merge-commit> -Branch 'release/2.0.0-preview1' -WhatIf
 ```
 
 Run `.\dev.ps1 verify` on the release commit before publishing locally. `release` reads the Gallery key from the `PSGALLERY_API_KEY` environment variable rather than a parameter. Its checks run before `-WhatIf` decides anything, so a rehearsal still reports a version mismatch or an inconsistent publication state. A rehearsal requires no Gallery key and creates no archive, tag, or publication. A real publication checks the key before creating its archive or tag.

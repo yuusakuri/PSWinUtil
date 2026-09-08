@@ -11,6 +11,14 @@ Describe 'Built module manifest' {
         { Test-ModuleManifest -Path $script:ManifestPath -ErrorAction Stop } | Should -Not -Throw
     }
 
+    It 'preserves the source release version' {
+        $sourceManifestPath = Join-Path -Path $repositoryRoot -ChildPath 'src/PSWinUtil/PSWinUtil.psd1'
+        $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+
+        Get-ReleaseManifestVersion -Manifest $script:Manifest |
+            Should -Be (Get-ReleaseManifestVersion -Manifest $sourceManifest)
+    }
+
     It 'targets Windows PowerShell 5.1 Desktop' {
         $script:Manifest.PowerShellVersion | Should -Be '5.1'
         $script:Manifest.CompatiblePSEditions | Should -Contain 'Desktop'

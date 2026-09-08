@@ -405,7 +405,9 @@ $invokeBuild = {
         }
     }
 
-    Build-Module -SourcePath $buildConfigurationPath | Out-Null
+    $sourceManifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
+    $sourceReleaseVersion = Get-ReleaseManifestVersion -Manifest $sourceManifest
+    Build-Module -SourcePath $buildConfigurationPath -SemVer $sourceReleaseVersion | Out-Null
 
     foreach ($expectedPath in @($outputManifestPath, $outputModulePath)) {
         if (-not (Test-Path -LiteralPath $expectedPath -PathType Leaf)) {
@@ -718,11 +720,112 @@ function Get-RequiredApplication {
     $application.Source
 }
 
+function ConvertTo-ReleaseVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Version
+    )
+
+    $versionPattern = '^(?<Base>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))(?:-(?<Prerelease>[0-9A-Za-z]+))?$'
+    if ($Version -notmatch $versionPattern) {
+        throw "Invalid release version: $Version"
+    }
+
+    [pscustomobject]@{
+        BaseVersion = [version]$Matches['Base']
+        Prerelease = [string]$Matches['Prerelease']
+        Version = $Version
+    }
+}
+
+function Compare-ReleaseVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ReferenceVersion,
+
+        [Parameter(Mandatory = $true)]
+        [string]$DifferenceVersion
+    )
+
+    $reference = ConvertTo-ReleaseVersion -Version $ReferenceVersion
+    $difference = ConvertTo-ReleaseVersion -Version $DifferenceVersion
+    $baseComparison = $reference.BaseVersion.CompareTo($difference.BaseVersion)
+    if ($baseComparison -ne 0) {
+        return [Math]::Sign($baseComparison)
+    }
+
+    $referenceIsStable = [string]::IsNullOrWhiteSpace($reference.Prerelease)
+    $differenceIsStable = [string]::IsNullOrWhiteSpace($difference.Prerelease)
+    if ($referenceIsStable -and $differenceIsStable) {
+        return 0
+    }
+    if ($referenceIsStable) {
+        return 1
+    }
+    if ($differenceIsStable) {
+        return -1
+    }
+
+    [Math]::Sign([string]::Compare(
+            $reference.Prerelease,
+            $difference.Prerelease,
+            [System.StringComparison]::OrdinalIgnoreCase
+        ))
+}
+
+function Get-ReleaseManifestVersion {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Manifest
+    )
+
+    $moduleVersion = ''
+    $privateData = $null
+    if ($Manifest -is [System.Collections.IDictionary]) {
+        if (-not $Manifest.Contains('ModuleVersion')) {
+            throw 'The module manifest does not define ModuleVersion.'
+        }
+        $moduleVersion = [string]$Manifest['ModuleVersion']
+        $privateData = $Manifest['PrivateData']
+    } else {
+        $moduleVersionProperty = $Manifest.PSObject.Properties['ModuleVersion']
+        if ($null -eq $moduleVersionProperty) {
+            $moduleVersionProperty = $Manifest.PSObject.Properties['Version']
+        }
+        if ($null -eq $moduleVersionProperty) {
+            throw 'The module manifest does not define ModuleVersion.'
+        }
+        $moduleVersion = [string]$moduleVersionProperty.Value
+        $privateDataProperty = $Manifest.PSObject.Properties['PrivateData']
+        if ($null -ne $privateDataProperty) {
+            $privateData = $privateDataProperty.Value
+        }
+    }
+
+    $prerelease = ''
+    if ($privateData -is [System.Collections.IDictionary] -and $privateData.Contains('PSData')) {
+        $psData = $privateData['PSData']
+        if ($psData -is [System.Collections.IDictionary] -and $psData.Contains('Prerelease')) {
+            $prerelease = [string]$psData['Prerelease']
+        }
+    }
+
+    $version = $moduleVersion
+    if (-not [string]::IsNullOrWhiteSpace($prerelease)) {
+        $version = "$moduleVersion-$prerelease"
+    }
+    (ConvertTo-ReleaseVersion -Version $version).Version
+}
+
 function Set-ReleaseVersion {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
+        [ValidateNotNullOrEmpty()]
         [string]$Version,
 
         [Parameter()]
@@ -736,9 +839,9 @@ function Set-ReleaseVersion {
         throw "The module manifest does not define ModuleVersion: $resolvedManifestPath"
     }
 
-    $currentVersion = [version][string]$manifest.ModuleVersion
-    $releaseVersion = [version]$Version
-    if ($releaseVersion -le $currentVersion) {
+    $currentVersion = Get-ReleaseManifestVersion -Manifest $manifest
+    $releaseVersion = ConvertTo-ReleaseVersion -Version $Version
+    if ((Compare-ReleaseVersion -ReferenceVersion $Version -DifferenceVersion $currentVersion) -le 0) {
         throw "Release version $Version must be greater than the current version $currentVersion."
     }
 
@@ -751,23 +854,39 @@ function Set-ReleaseVersion {
         throw "Expected exactly one single-quoted ModuleVersion entry: $resolvedManifestPath"
     }
 
+    $prereleasePattern = [regex]::new(
+        "(?m)^(?<Prefix>[ `t]*Prerelease[ `t]*=[ `t]*)'(?<Prerelease>[^']*)'(?<Suffix>[ `t]*)$"
+    )
+    $prereleaseMatches = $prereleasePattern.Matches($manifestText)
+    if ($prereleaseMatches.Count -ne 1) {
+        throw "Expected exactly one single-quoted Prerelease entry: $resolvedManifestPath"
+    }
+
     $updatedManifestText = $versionPattern.Replace(
         $manifestText,
         {
             param([System.Text.RegularExpressions.Match]$Match)
 
-            $Match.Groups['Prefix'].Value + "'$Version'" + $Match.Groups['Suffix'].Value
+            $Match.Groups['Prefix'].Value + "'$($releaseVersion.BaseVersion)'" + $Match.Groups['Suffix'].Value
+        }
+    )
+    $updatedManifestText = $prereleasePattern.Replace(
+        $updatedManifestText,
+        {
+            param([System.Text.RegularExpressions.Match]$Match)
+
+            $Match.Groups['Prefix'].Value + "'$($releaseVersion.Prerelease)'" + $Match.Groups['Suffix'].Value
         }
     )
 
-    if ($PSCmdlet.ShouldProcess($resolvedManifestPath, "Set ModuleVersion to $Version")) {
+    if ($PSCmdlet.ShouldProcess($resolvedManifestPath, "Set release version to $Version")) {
         $manifestEncoding = [System.Text.UTF8Encoding]::new($false)
         [System.IO.File]::WriteAllText($resolvedManifestPath, $updatedManifestText, $manifestEncoding)
     }
 
     [pscustomobject]@{
         ManifestPath = $resolvedManifestPath
-        PreviousVersion = $currentVersion.ToString()
+        PreviousVersion = $currentVersion
         Version = $Version
     }
 }
@@ -791,7 +910,7 @@ function Get-ReleaseIdentity {
         [string[]]$ExistingTagName = @()
     )
 
-    $branchPattern = '^release/(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$'
+    $branchPattern = '^release/(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+)?)$'
     if ($Branch -notmatch $branchPattern) {
         throw "Invalid release branch: $Branch"
     }
@@ -807,31 +926,48 @@ function Get-ReleaseIdentity {
             throw "The module manifest does not define ModuleVersion: $resolvedManifestPath"
         }
 
-        $ManifestVersion = [string]$manifest.ModuleVersion
+        $ManifestVersion = Get-ReleaseManifestVersion -Manifest $manifest
     }
 
     if ($manifestVersion -ne $version) {
-        throw "Release branch version $version does not match ModuleVersion $manifestVersion."
+        throw "Release branch version $version does not match manifest version $manifestVersion."
     }
 
-    $releasedVersions = @(
-        foreach ($existingTag in $ExistingTagName) {
-            if ($existingTag -match '^v(?<Version>[0-9]+\.[0-9]+\.[0-9]+)$') {
-                [version]$Matches['Version']
-            }
+    $latestReleasedVersion = $null
+    foreach ($existingTag in $ExistingTagName) {
+        if (
+            $existingTag -notmatch `
+                '^v(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+)?)$'
+        ) {
+            continue
         }
-    )
-    $latestReleasedVersion = $releasedVersions |
-        Sort-Object -Descending |
-        Select-Object -First 1
-    if ($null -ne $latestReleasedVersion -and [version]$version -lt $latestReleasedVersion) {
+
+        $existingVersion = $Matches['Version']
+        if (
+            $null -eq $latestReleasedVersion -or
+            (Compare-ReleaseVersion `
+                -ReferenceVersion $existingVersion `
+                -DifferenceVersion $latestReleasedVersion) -gt 0
+        ) {
+            $latestReleasedVersion = $existingVersion
+        }
+    }
+    if (
+        $null -ne $latestReleasedVersion -and
+        (Compare-ReleaseVersion `
+            -ReferenceVersion $version `
+            -DifferenceVersion $latestReleasedVersion) -lt 0
+    ) {
         throw "Release version $version is older than existing tag v$latestReleasedVersion."
     }
 
+    $parsedVersion = ConvertTo-ReleaseVersion -Version $version
     [pscustomobject]@{
         Version = $version
         TagName = $tagName
         ManifestPath = $resolvedManifestPath
+        Prerelease = $parsedVersion.Prerelease
+        IsPrerelease = -not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)
     }
 }
 
@@ -880,16 +1016,18 @@ function Invoke-Bump {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
+        [ValidateNotNullOrEmpty()]
         [string]$Version
     )
 
+    $null = ConvertTo-ReleaseVersion -Version $Version
     $tagName = "v$Version"
     $branchName = "release/$Version"
     $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
     $manifest = Import-PowerShellDataFile -LiteralPath $sourceManifestPath
-    if ([version]$Version -le [version][string]$manifest.ModuleVersion) {
-        throw "Release version $Version must be greater than the current version $($manifest.ModuleVersion)."
+    $currentVersion = Get-ReleaseManifestVersion -Manifest $manifest
+    if ((Compare-ReleaseVersion -ReferenceVersion $Version -DifferenceVersion $currentVersion) -le 0) {
+        throw "Release version $Version must be greater than the current version $currentVersion."
     }
 
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release branch.'
@@ -917,13 +1055,13 @@ function Invoke-Bump {
     }
 
     $shouldProcessTarget = "$branchName and its pull request into master"
-    $shouldProcessAction = "Set ModuleVersion to $Version, push the branch, and open the pull request"
+    $shouldProcessAction = "Set release version to $Version, push the branch, and open the pull request"
     if (-not $PSCmdlet.ShouldProcess($shouldProcessTarget, $shouldProcessAction)) {
         return
     }
 
     $result = Set-ReleaseVersion -Version $Version -Confirm:$false
-    Write-Output -InputObject "ModuleVersion $($result.PreviousVersion) -> $($result.Version)"
+    Write-Output -InputObject "Release version $($result.PreviousVersion) -> $($result.Version)"
 
     $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
     $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
@@ -933,7 +1071,7 @@ function Invoke-Bump {
     $pullRequestBody = @(
         '## Release'
         ''
-        "- ModuleVersion: $Version"
+        "- Version: $Version"
         "- Tag after merge: $tagName"
         '- Merging this pull request tags the merge commit, publishes to PowerShell Gallery, and publishes the GitHub Release.'
     ) -join [Environment]::NewLine
@@ -995,10 +1133,11 @@ function Invoke-Release {
     )
 
     $manifest = Get-ReleaseManifest -GitPath $git -ReleaseCommit $ReleaseCommit
+    $manifestVersion = Get-ReleaseManifestVersion -Manifest $manifest
     $existingTagNames = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*'))
     $identity = Get-ReleaseIdentity `
         -Branch $Branch `
-        -ManifestVersion ([string]$manifest.ModuleVersion) `
+        -ManifestVersion $manifestVersion `
         -ExistingTagName $existingTagNames
     $state = Get-RemoteReleaseState `
         -ReleaseCommit $ReleaseCommit `
@@ -1063,12 +1202,19 @@ function Test-GalleryPublication {
         [string]$Version
     )
 
+    $parsedVersion = ConvertTo-ReleaseVersion -Version $Version
+    $findParameters = @{
+        Name = 'PSWinUtil'
+        Version = "[$Version]"
+        Repository = 'PSGallery'
+        ErrorAction = 'Stop'
+    }
+    if (-not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)) {
+        $findParameters.Prerelease = $true
+    }
+
     try {
-        $resource = Find-PSResource `
-            -Name 'PSWinUtil' `
-            -Version "[$Version]" `
-            -Repository 'PSGallery' `
-            -ErrorAction Stop
+        $resource = Find-PSResource @findParameters
     } catch {
         if ($_.FullyQualifiedErrorId -eq 'PackageNotFound,Microsoft.PowerShell.PSResourceGet.Cmdlets.FindPSResource') {
             return $false
@@ -1087,7 +1233,10 @@ function Test-GitHubRelease {
         [string]$GhPath,
 
         [Parameter(Mandatory = $true)]
-        [string]$TagName
+        [string]$TagName,
+
+        [Parameter()]
+        [switch]$Prerelease
     )
 
     $releaseJson = @(Invoke-ExternalCommand -FilePath $GhPath -ArgumentList @(
@@ -1099,6 +1248,11 @@ function Test-GitHubRelease {
             if ($release.tag_name -eq $TagName) {
                 if ($release.draft) {
                     throw "GitHub Release $TagName is a draft. Publish or remove the draft before retrying."
+                }
+                $prereleaseProperty = $release.PSObject.Properties['prerelease']
+                $releaseIsPrerelease = $null -ne $prereleaseProperty -and [bool]$prereleaseProperty.Value
+                if ($releaseIsPrerelease -ne [bool]$Prerelease) {
+                    throw "GitHub Release $TagName has an incorrect prerelease state."
                 }
 
                 return $true
@@ -1120,6 +1274,8 @@ function Get-RemoteReleaseState {
     )
 
     $tagName = "v$Version"
+    $parsedVersion = ConvertTo-ReleaseVersion -Version $Version
+    $isPrerelease = -not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git reports whether the release tag exists.'
     $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI reports whether the release exists.'
 
@@ -1138,7 +1294,10 @@ function Get-RemoteReleaseState {
 
     Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
     $galleryExists = Test-GalleryPublication -Version $Version
-    $gitHubReleaseExists = Test-GitHubRelease -GhPath $gh -TagName $tagName
+    $gitHubReleaseExists = Test-GitHubRelease `
+        -GhPath $gh `
+        -TagName $tagName `
+        -Prerelease:$isPrerelease
 
     Get-ReleasePublicationState `
         -TagName $tagName `
@@ -1204,8 +1363,9 @@ function Invoke-ReleasePublish {
     }
 
     $builtManifest = Test-ModuleManifest -Path $manifestPath -ErrorAction Stop
-    if ([string]$builtManifest.Version -ne $Version) {
-        throw "Built ModuleVersion $($builtManifest.Version) does not match the release version $Version."
+    $builtVersion = Get-ReleaseManifestVersion -Manifest $builtManifest
+    if ($builtVersion -ne $Version) {
+        throw "Built version $builtVersion does not match the release version $Version."
     }
 
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release tag.'
@@ -1252,9 +1412,14 @@ function Invoke-ReleasePublish {
         Wait-GalleryPublication -Version $Version
     }
 
-    $null = Invoke-ExternalCommand -FilePath $gh -ArgumentList @(
+    $releaseArguments = @(
         'release', 'create', $tagName, $ArtifactPath, '--verify-tag', '--title', $Version, '--generate-notes'
     )
+    $parsedVersion = ConvertTo-ReleaseVersion -Version $Version
+    if (-not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)) {
+        $releaseArguments += '--prerelease'
+    }
+    $null = Invoke-ExternalCommand -FilePath $gh -ArgumentList $releaseArguments
 
     [pscustomobject]@{
         Version = $Version
