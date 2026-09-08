@@ -1,12 +1,12 @@
 # PSWinUtil
 
-PSWinUtil is a Windows PowerShell 5.1 module for repeatable Windows configuration and administration.
+PSWinUtil provides Windows PowerShell 5.1 commands for configuring Windows settings and development tools from scripts.
 
-It provides commands that:
+It provides commands to:
 
 - Configure Windows interface, security, sign-in, and notification settings.
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
-- Work with UTF-8 text files, command overrides, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
+- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, and development tools.
 
 ## Requirements
 
@@ -17,39 +17,22 @@ It provides commands that:
 
 ### PowerShell Gallery
 
-Install PSWinUtil from PowerShell Gallery for the current user:
+Install PSWinUtil for the current user:
 
 ```powershell
+Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser
+Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
+Set-PSResourceRepository -Name 'PSGallery' -Trusted
 Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
 ```
 
 ### Release ZIP
 
-To use PSWinUtil without installing it from PowerShell Gallery, download the ZIP file for the required version from [Releases](https://github.com/yuusakuri/PSWinUtil/releases). Extract the archive to any directory, find the included `PSWinUtil.psd1` module manifest, and import it by its full path.
+Download a ZIP from [Releases](https://github.com/yuusakuri/PSWinUtil/releases), extract it, and import the included `PSWinUtil.psd1` by its full path.
 
-The following example uses a ZIP file saved as `Downloads\PSWinUtil.zip`:
+## Quick start
 
-```powershell
-$archivePath = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads\PSWinUtil.zip'
-$destinationPath = Join-Path -Path $env:USERPROFILE -ChildPath 'Downloads\PSWinUtil-release'
-
-Expand-Archive -LiteralPath $archivePath -DestinationPath $destinationPath
-$manifestPath = Get-ChildItem -LiteralPath $destinationPath -Filter 'PSWinUtil.psd1' -File -Recurse |
-    Select-Object -First 1 -ExpandProperty FullName
-
-if ($null -eq $manifestPath) {
-    throw 'PSWinUtil.psd1 was not found in the extracted release.'
-}
-
-Import-Module -Name $manifestPath
-Get-Command -Module 'PSWinUtil'
-```
-
-The imported commands are available in the current Windows PowerShell session. In a new session, run `Import-Module` with the extracted manifest path again.
-
-## Usage
-
-Import the module and list its commands:
+Import the installed module and list its commands:
 
 ```powershell
 Import-Module -Name 'PSWinUtil'
@@ -62,30 +45,26 @@ Read an environment variable from the current user profile:
 Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
 ```
 
-Preview a persistent environment variable update without changing the system:
+Preview a persistent environment variable update:
 
 ```powershell
 Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
 ```
 
-Preview enabling Win32 long path support:
-
-```powershell
-Enable-WULongPaths -WhatIf
-```
-
-Install a package by its exact winget ID and automatically accept the source and package agreements:
-
-```powershell
-Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-```
-
-Use `Get-Help` to view the parameters and examples for any command:
+Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
 ```powershell
 Get-Help -Name 'Set-WUEnvironmentVariable' -Full
 ```
 
-## Contributing
+## Documentation
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, verification commands, coding conventions, and pull request requirements.
+- [Command reference](docs/reference/commands.md) lists the exported commands and their summaries generated from PowerShell help.
+- [Architecture](docs/explanation/architecture.md) explains the source, build, distribution, and test boundaries.
+- [Contributing](CONTRIBUTING.md) describes the development workflow and repository-specific verification.
+- [Releasing](RELEASING.md) describes version preparation and publication.
+- [Changelog](CHANGELOG.md) records released and unreleased changes.
+
+## License
+
+PSWinUtil is licensed under the [Apache License 2.0](LICENSE).
