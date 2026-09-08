@@ -246,7 +246,7 @@ Describe 'Install-WUFlutterSdk' {
     }
 
     It 'installs the package, configures both PATH scopes, and runs the SDK commands' {
-        $result = Install-WUFlutterSdk -Version '3.47.1' -DestinationPath $script:DestinationPath -TimeoutSeconds 120
+        $result = Install-WUFlutterSdk -Version '3.47.1' -DestinationPath $script:DestinationPath
         $flutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         $flutterBinPath = Join-Path -Path $flutterPath -ChildPath 'bin'
 
@@ -260,8 +260,7 @@ Describe 'Install-WUFlutterSdk' {
             $Architecture -eq 'x64'
         }
         Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Uri.AbsoluteUri -eq 'https://storage.example.test/flutter_windows_3.47.1-stable.zip' -and
-            $TimeoutSeconds -eq 120
+            $Uri.AbsoluteUri -eq 'https://storage.example.test/flutter_windows_3.47.1-stable.zip'
         }
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Path -eq $flutterBinPath -and $Scope -eq 'User' -and $Prepend

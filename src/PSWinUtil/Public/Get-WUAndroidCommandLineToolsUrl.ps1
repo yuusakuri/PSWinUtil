@@ -21,27 +21,5 @@ function Get-WUAndroidCommandLineToolsUrl {
     [OutputType([string])]
     param()
 
-    $downloadPageUri = 'https://developer.android.com/studio'
-    $repositoryUri = 'https://dl.google.com/android/repository'
-    $progressPreference = 'SilentlyContinue'
-    try {
-        $response = Invoke-WebRequest -UseBasicParsing -Uri $downloadPageUri -ErrorAction Stop
-    } catch {
-        throw "Could not read the Android Studio download page. $($_.Exception.Message)"
-    }
-
-    $packageNames = @(
-        [regex]::Matches(
-            [string]$response.Content,
-            'commandlinetools-win-\d+_latest\.zip',
-            [Text.RegularExpressions.RegexOptions]::IgnoreCase
-        ) |
-            ForEach-Object { $_.Value } |
-            Select-Object -Unique
-    )
-    if ($packageNames.Count -eq 0) {
-        throw 'The Windows Android command-line tools package was not found on the download page.'
-    }
-
-    "$repositoryUri/$($packageNames[0])"
+    (Get-WUAndroidCommandLineToolsPackage).Uri.AbsoluteUri
 }

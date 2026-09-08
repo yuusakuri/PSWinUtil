@@ -1,6 +1,7 @@
 namespace PSWinUtil.Tests
 {
     using System;
+    using System.Linq;
     using System.Net;
     using System.Net.Http;
     using System.Threading;
@@ -30,6 +31,11 @@ namespace PSWinUtil.Tests
         /// </summary>
         public Uri RequestUri { get; private set; }
 
+        /// <summary>
+        /// Gets the requested range start, or null when no range was requested.
+        /// </summary>
+        public long? RangeStart { get; private set; }
+
         /// <inheritdoc/>
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -41,6 +47,10 @@ namespace PSWinUtil.Tests
             }
 
             this.RequestUri = request.RequestUri;
+            var range = request.Headers.Range;
+            this.RangeStart = range == null
+                ? (long?)null
+                : range.Ranges.Single().From;
             var response = new HttpResponseMessage(this.statusCode);
             response.Content = new ByteArrayContent(this.body);
             return Task.FromResult(response);

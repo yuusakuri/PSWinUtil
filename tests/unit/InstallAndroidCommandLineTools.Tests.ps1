@@ -6,121 +6,117 @@ BeforeAll {
 
 Describe 'Install-WUAndroidCommandLineTools' {
     BeforeEach {
-        $script:AndroidHome = Join-Path -Path $TestDrive -ChildPath 'AndroidSdk'
-        $script:DownloadDirectory = Join-Path -Path $TestDrive -ChildPath 'Downloads'
-        $null = New-Item -Path $script:AndroidHome -ItemType Directory -Force
-        $null = New-Item -Path $script:DownloadDirectory -ItemType Directory -Force
+        $script:SdkPath = Join-Path -Path $TestDrive -ChildPath 'AndroidSdk'
+        Remove-Item -LiteralPath $script:SdkPath -Recurse -Force -ErrorAction Ignore
 
-        Mock -CommandName Get-WUAndroidCommandLineToolsUrl -ModuleName PSWinUtil -MockWith {
-            'https://dl.google.com/android/repository/commandlinetools-win-123456_latest.zip'
+        $script:Package = [pscustomobject]@{
+            Uri = [uri]'https://dl.google.com/android/repository/commandlinetools-win-123456_latest.zip'
+            FileName = 'commandlinetools-win-123456_latest.zip'
+            Sha256 = $null
         }
-        Mock -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -MockWith {
-            throw 'The browser download helper must not be used.'
+        Mock -CommandName Get-WUAndroidCommandLineToolsPackage -ModuleName PSWinUtil -MockWith {
+            $script:Package
         }
         Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
             $zipSource = Join-Path -Path $TestDrive -ChildPath "ZipSource-$([guid]::NewGuid().ToString('N'))"
             $sdkManagerDirectory = Join-Path -Path $zipSource -ChildPath 'cmdline-tools\bin'
             $null = New-Item -Path $sdkManagerDirectory -ItemType Directory -Force
-            [IO.File]::WriteAllText(
+            [System.IO.File]::WriteAllText(
                 (Join-Path -Path $sdkManagerDirectory -ChildPath 'sdkmanager.bat'),
                 '@echo off'
             )
-            [IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $Path)
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $Path)
             Remove-Item -LiteralPath $zipSource -Recurse -Force
+            $script:Package.Sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
             $Path
         }
     }
 
-    It 'requires AndroidHome' {
+    It 'exposes only SdkPath as a command parameter' {
+        $command = Get-Command -Name Install-WUAndroidCommandLineTools
+        $command.Parameters.Keys | Should -Contain 'SdkPath'
+        $command.Parameters.Keys | Should -Not -Contain 'AndroidHome'
+        $command.Parameters.Keys | Should -Not -Contain 'DownloadDirectory'
+        $command.Parameters.Keys | Should -Not -Contain 'TimeoutSeconds'
+        $command.Parameters.Keys | Should -Not -Contain 'PassThru'
+    }
+
+    It 'requires SdkPath when LOCALAPPDATA is unavailable' {
         {
-            Install-WUAndroidCommandLineTools -AndroidHome '' -DownloadDirectory $script:DownloadDirectory
-        } | Should -Throw '*AndroidHome is required*'
+            Install-WUAndroidCommandLineTools -SdkPath ''
+        } | Should -Throw '*SdkPath is required*'
     }
 
-    It 'does not expose a license switch' {
-        (Get-Command -Name Install-WUAndroidCommandLineTools).Parameters.Keys |
-            Should -Not -Contain 'AcceptLicense'
-    }
+    It 'creates the SDK directory and installs the validated package' {
+        Install-WUAndroidCommandLineTools -SdkPath $script:SdkPath
+        $sdkManagerPath = Join-Path `
+            -Path $script:SdkPath `
+            -ChildPath 'cmdline-tools\latest\bin\sdkmanager.bat'
 
-    It 'requires an existing AndroidHome directory' {
-        $missingPath = Join-Path -Path $TestDrive -ChildPath 'MissingSdk'
-
-        {
-            Install-WUAndroidCommandLineTools -AndroidHome $missingPath -DownloadDirectory $script:DownloadDirectory
-        } | Should -Throw '*does not exist*'
-    }
-
-    It 'does not start the operation with WhatIf' {
-        Install-WUAndroidCommandLineTools -AndroidHome $script:AndroidHome -DownloadDirectory $script:DownloadDirectory -WhatIf
-
-        Should -Invoke -CommandName Get-WUAndroidCommandLineToolsUrl -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-
-    It 'installs the validated package and returns the directory' {
-        $result = Install-WUAndroidCommandLineTools -AndroidHome $script:AndroidHome -DownloadDirectory $script:DownloadDirectory -PassThru
-        $latestPath = Join-Path -Path $script:AndroidHome -ChildPath 'cmdline-tools\latest'
-
-        $result | Should -BeOfType ([System.IO.DirectoryInfo])
-        $result.FullName | Should -Be ([IO.Path]::GetFullPath($latestPath))
-        Test-Path -LiteralPath (Join-Path -Path $latestPath -ChildPath 'bin\sdkmanager.bat') -PathType Leaf |
-            Should -BeTrue
-        Get-ChildItem -LiteralPath $script:DownloadDirectory -File | Should -HaveCount 0
-        Should -Invoke -CommandName Get-WUAndroidCommandLineToolsUrl -ModuleName PSWinUtil -Times 1 -Exactly
+        Test-Path -LiteralPath $sdkManagerPath -PathType Leaf | Should -BeTrue
+        Should -Invoke -CommandName Get-WUAndroidCommandLineToolsPackage -ModuleName PSWinUtil -Times 1 -Exactly
         Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Uri.AbsoluteUri -eq 'https://dl.google.com/android/repository/commandlinetools-win-123456_latest.zip' -and
-            $Path.StartsWith($script:DownloadDirectory, [System.StringComparison]::OrdinalIgnoreCase) -and
-            $TimeoutSeconds -eq 300
+            $Uri.AbsoluteUri -eq 'https://dl.google.com/android/repository/commandlinetools-win-123456_latest.zip'
         }
-        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
-    It 'replaces an existing latest directory' {
-        $latestPath = Join-Path -Path $script:AndroidHome -ChildPath 'cmdline-tools\latest'
-        $null = New-Item -Path $latestPath -ItemType Directory -Force
-        [IO.File]::WriteAllText((Join-Path -Path $latestPath -ChildPath 'old.txt'), 'old')
+    It 'does not download when sdkmanager is already installed' {
+        $sdkManagerDirectory = Join-Path `
+            -Path $script:SdkPath `
+            -ChildPath 'cmdline-tools\latest\bin'
+        $null = New-Item -Path $sdkManagerDirectory -ItemType Directory -Force
+        [System.IO.File]::WriteAllText(
+            (Join-Path -Path $sdkManagerDirectory -ChildPath 'sdkmanager.bat'),
+            '@echo off'
+        )
 
-        Install-WUAndroidCommandLineTools -AndroidHome $script:AndroidHome -DownloadDirectory $script:DownloadDirectory
+        Install-WUAndroidCommandLineTools -SdkPath $script:SdkPath
 
-        Test-Path -LiteralPath (Join-Path -Path $latestPath -ChildPath 'old.txt') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path -Path $latestPath -ChildPath 'bin\sdkmanager.bat') | Should -BeTrue
-        Get-ChildItem -LiteralPath (Split-Path -Path $latestPath -Parent) -Directory -Filter '.latest-backup-*' |
-            Should -HaveCount 0
+        Should -Invoke -CommandName Get-WUAndroidCommandLineToolsPackage -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'does not start the installation with WhatIf' {
+        Install-WUAndroidCommandLineTools -SdkPath $script:SdkPath -WhatIf
+
+        Test-Path -LiteralPath $script:SdkPath | Should -BeFalse
+        Should -Invoke -CommandName Get-WUAndroidCommandLineToolsPackage -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'keeps an existing latest directory when package validation fails' {
-        $latestPath = Join-Path -Path $script:AndroidHome -ChildPath 'cmdline-tools\latest'
+        $latestPath = Join-Path -Path $script:SdkPath -ChildPath 'cmdline-tools\latest'
         $null = New-Item -Path $latestPath -ItemType Directory -Force
         $oldPath = Join-Path -Path $latestPath -ChildPath 'old.txt'
-        [IO.File]::WriteAllText($oldPath, 'old')
+        [System.IO.File]::WriteAllText($oldPath, 'old')
         Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
             $zipSource = Join-Path -Path $TestDrive -ChildPath 'InvalidZipSource'
             $null = New-Item -Path $zipSource -ItemType Directory -Force
-            [IO.File]::WriteAllText((Join-Path -Path $zipSource -ChildPath 'unexpected.txt'), 'bad')
-            [IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $Path)
+            [System.IO.File]::WriteAllText((Join-Path -Path $zipSource -ChildPath 'unexpected.txt'), 'bad')
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($zipSource, $Path)
             Remove-Item -LiteralPath $zipSource -Recurse -Force
+            $script:Package.Sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
             $Path
         }
 
         {
-            Install-WUAndroidCommandLineTools -AndroidHome $script:AndroidHome -DownloadDirectory $script:DownloadDirectory
+            Install-WUAndroidCommandLineTools -SdkPath $script:SdkPath
         } | Should -Throw '*expected cmdline-tools*'
 
         Test-Path -LiteralPath $oldPath -PathType Leaf | Should -BeTrue
-        Get-ChildItem -LiteralPath $script:DownloadDirectory -File | Should -HaveCount 0
     }
 
-    It 'removes the downloaded archive when extraction fails' {
+    It 'rejects a package with an unexpected checksum' {
+        $script:Package.Sha256 = '0000000000000000000000000000000000000000000000000000000000000000'
         Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
-            [IO.File]::WriteAllText($Path, 'not a zip file')
+            [System.IO.File]::WriteAllText($Path, 'unexpected content')
             $Path
         }
 
         {
-            Install-WUAndroidCommandLineTools -AndroidHome $script:AndroidHome -DownloadDirectory $script:DownloadDirectory
-        } | Should -Throw
+            Install-WUAndroidCommandLineTools -SdkPath $script:SdkPath
+        } | Should -Throw '*checksum is invalid*'
 
-        Get-ChildItem -LiteralPath $script:DownloadDirectory -File | Should -HaveCount 0
+        Test-Path -LiteralPath $script:SdkPath -PathType Container | Should -BeFalse
     }
 }

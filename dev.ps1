@@ -3,7 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release', 'docs'
+        'bump', 'release', 'docs', 'test-online-integration'
     )]
     [string]$Command,
 
@@ -52,6 +52,7 @@ Usage:
   .\dev.ps1 test integration
   .\dev.ps1 test contract
   .\dev.ps1 test all
+  .\dev.ps1 test-online-integration
   .\dev.ps1 verify
   .\dev.ps1 ci
   .\dev.ps1 bump 1.2.3
@@ -526,10 +527,45 @@ $invokeTest = {
     $configuration.Run.Path = $testPaths
     $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
+    $configuration.Filter.ExcludeTag = @('Online')
 
     $testResult = Invoke-Pester -Configuration $configuration
-    if ($null -eq $testResult -or $testResult.FailedCount -gt 0) {
+    if (
+        $null -eq $testResult -or
+        $testResult.FailedCount -gt 0 -or
+        $testResult.FailedContainersCount -gt 0
+    ) {
         throw 'Pester reported one or more failed tests.'
+    }
+}
+
+$invokeOnlineIntegrationTest = {
+    & $invokeBuild
+
+    $onlineIntegrationTests = @(
+        Get-ChildItem `
+            -LiteralPath (Join-Path -Path $repositoryRoot -ChildPath 'tests') `
+            -File `
+            -Recurse `
+            -Filter '*.OnlineIntegration.Tests.ps1'
+    )
+    if ($onlineIntegrationTests.Count -eq 0) {
+        throw 'No online integration tests were found.'
+    }
+
+    $configuration = New-PesterConfiguration
+    $configuration.Run.Path = @($onlineIntegrationTests.FullName)
+    $configuration.Run.PassThru = $true
+    $configuration.Output.Verbosity = 'Detailed'
+    $configuration.Filter.Tag = @('Online')
+
+    $testResult = Invoke-Pester -Configuration $configuration
+    if (
+        $null -eq $testResult -or
+        $testResult.FailedCount -gt 0 -or
+        $testResult.FailedContainersCount -gt 0
+    ) {
+        throw 'Pester reported one or more failed online integration tests.'
     }
 }
 
@@ -1319,6 +1355,12 @@ switch ($Command) {
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
         & $invokeTest -SelectedTestType $selectedTestType
+    }
+    'test-online-integration' {
+        & $assertSource
+        Import-RequiredModule -Name 'ModuleBuilder'
+        Import-RequiredModule -Name 'Pester'
+        & $invokeOnlineIntegrationTest
     }
     'verify' {
         & $invokeVerify

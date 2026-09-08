@@ -25,7 +25,7 @@ Each public command's help describes its inputs, outputs, and behavior.
 Tests import the generated manifest from `output/PSWinUtil`:
 
 - Unit tests isolate command behavior and internal logic with mocks or test doubles.
-- Integration tests exercise Windows APIs, files, processes, and external components.
+- Integration tests exercise Windows APIs, files, processes, and external components. The `Online` tag identifies integration tests that access an internet service.
 - Contract tests validate the distribution, manifest, assembly loading, public parameter conventions, and public command help.
 
-`dev.ps1 verify` runs the repository checks, builds the distribution, checks the generated command reference, and runs all test suites. GitHub Actions uses the same command.
+`dev.ps1 verify` runs the repository checks, builds the distribution, checks the generated command reference, and runs tests without the `Online` tag. GitHub Actions uses the same command. `dev.ps1 test-online-integration` explicitly runs integration tests tagged `Online`.

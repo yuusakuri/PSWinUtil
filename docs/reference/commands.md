@@ -67,12 +67,14 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WURegistrySetting` | Gets a Windows registry setting state. |
 | `Get-WUStartupEntry` | Gets Windows startup entries. |
 | `Get-WUWindowsAutoLogon` | Gets the Windows auto logon configuration. |
-| `Install-WUAndroidCommandLineTools` | Installs the current Android command-line tools package. |
+| `Install-WUAndroidCommandLineTools` | Installs Android SDK Command-Line Tools when missing. |
+| `Install-WUAndroidSdk` | Installs and configures an Android SDK. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
 | `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
 | `Install-WUWingetPackage` | Installs an exact package with Windows Package Manager. |
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
+| `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |

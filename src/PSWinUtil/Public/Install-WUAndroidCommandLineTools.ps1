@@ -1,113 +1,118 @@
 function Install-WUAndroidCommandLineTools {
     <#
     .SYNOPSIS
-    Installs the current Android command-line tools package.
+    Installs Android SDK Command-Line Tools when missing.
 
     .DESCRIPTION
-    Gets the current official Windows package URL, downloads the package directly over HTTP, and installs it under cmdline-tools\latest in an existing Android SDK directory. Running this command automatically accepts the Android SDK license shown on the official Android Studio download page. The command validates the extracted package before replacing an existing installation. The downloaded archive and temporary extraction directory are removed after the operation.
+    Installs the current official Windows Command-Line Tools package under cmdline-tools\latest when sdkmanager.bat is missing. The SDK directory is created when necessary. Running this command automatically accepts the Android SDK license shown on the official Android Studio download page. The downloaded archive and extraction directory are removed after the operation.
 
-    .PARAMETER AndroidHome
-    Specifies an existing Android SDK directory. The default value is ANDROID_HOME.
-
-    .PARAMETER DownloadDirectory
-    Specifies the existing directory used for the temporary package download. The default value is the current user Downloads directory.
-
-    .PARAMETER TimeoutSeconds
-    Specifies the maximum number of seconds for the HTTP download. The default value is 300.
-
-    .PARAMETER PassThru
-    Returns the installed cmdline-tools\latest directory.
+    .PARAMETER SdkPath
+    Specifies the Android SDK directory. The default value is LOCALAPPDATA\Android\Sdk.
 
     .EXAMPLE
     Install-WUAndroidCommandLineTools
 
-    Installs the current package under ANDROID_HOME.
+    Installs Command-Line Tools in the default Android SDK directory when missing.
 
     .EXAMPLE
-    Install-WUAndroidCommandLineTools -AndroidHome 'C:\Android\Sdk' -DownloadDirectory 'C:\Downloads' -PassThru
+    Install-WUAndroidCommandLineTools -SdkPath 'D:\Android\Sdk'
 
-    Installs the current package and returns the installation directory.
+    Installs Command-Line Tools in D:\Android\Sdk when missing.
 
     .INPUTS
     None
 
     .OUTPUTS
-    System.IO.DirectoryInfo
+    None
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseSingularNouns',
         '',
-        Justification = 'Android command-line tools is the official package name used by this public command.'
+        Justification = 'Android Command-Line Tools is the official package name used by this public command.'
     )]
     [CmdletBinding(SupportsShouldProcess = $true)]
-    [OutputType([System.IO.DirectoryInfo])]
     param(
         [Parameter()]
         [AllowEmptyString()]
-        [string]$AndroidHome = $env:ANDROID_HOME,
-
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$DownloadDirectory = "$env:USERPROFILE\Downloads",
-
-        [Parameter()]
-        [ValidateRange(1, 86400)]
-        [int]$TimeoutSeconds = 300,
-
-        [Parameter()]
-        [switch]$PassThru
+        [string]$SdkPath = $(
+            if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+                ''
+            } else {
+                Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
+            }
+        )
     )
 
-    if ([string]::IsNullOrWhiteSpace($AndroidHome)) {
-        throw 'AndroidHome is required. Specify it or set ANDROID_HOME.'
+    if ([string]::IsNullOrWhiteSpace($SdkPath)) {
+        throw 'SdkPath is required. Specify it or set LOCALAPPDATA.'
     }
-    $fullAndroidHome = Resolve-WUPath -LiteralPath $AndroidHome -DenyMultiplePaths |
-        ConvertTo-WUFullPath
-    Assert-WUPathProperty -LiteralPath $fullAndroidHome -Container
-    $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
-        ConvertTo-WUFullPath
-    Assert-WUPathProperty -LiteralPath $fullDownloadDirectory -Container
-
-    $commandLineToolsRoot = Join-Path -Path $fullAndroidHome -ChildPath 'cmdline-tools'
+    $fullSdkPath = ConvertTo-WUFullPath -Path $SdkPath
+    Assert-WUPathProperty -LiteralPath $fullSdkPath -Container -AllowNonExisting
+    $commandLineToolsRoot = Join-Path -Path $fullSdkPath -ChildPath 'cmdline-tools'
     $latestPath = Join-Path -Path $commandLineToolsRoot -ChildPath 'latest'
-    if (-not $PSCmdlet.ShouldProcess($latestPath, 'Download and install Android command-line tools')) {
+    $sdkManagerPath = Join-Path -Path $latestPath -ChildPath 'bin\sdkmanager.bat'
+    if (Test-Path -LiteralPath $sdkManagerPath -PathType Leaf) {
+        return
+    }
+    if (-not $PSCmdlet.ShouldProcess($latestPath, 'Install Android SDK Command-Line Tools')) {
         return
     }
 
-    $downloadedPath = $null
-    $temporaryDirectory = $null
+    $temporaryDirectory = Join-Path `
+        -Path ([System.IO.Path]::GetTempPath()) `
+        -ChildPath "PSWinUtil-AndroidTools-$([guid]::NewGuid().ToString('N'))"
     $backupPath = $null
+    $sdkDirectoryCreated = $false
     try {
-        $packageUrl = Get-WUAndroidCommandLineToolsUrl
-        $packageUri = [uri]$packageUrl
-        $packageFileName = [IO.Path]::GetFileName($packageUri.AbsolutePath)
-        if ([string]::IsNullOrWhiteSpace($packageFileName)) {
-            throw "The package file name could not be determined from URL: $packageUrl"
+        if (-not (Test-Path -LiteralPath $fullSdkPath -PathType Container)) {
+            $null = New-Item -Path $fullSdkPath -ItemType Directory -Force -ErrorAction Stop
+            $sdkDirectoryCreated = $true
         }
+        $null = New-Item -Path $temporaryDirectory -ItemType Directory -Force -ErrorAction Stop
 
-        $downloadName = "PSWinUtil-$([guid]::NewGuid().ToString('N'))-$packageFileName"
-        $downloadedPath = Join-Path -Path $fullDownloadDirectory -ChildPath $downloadName
-        $downloadParameters = @{
-            Uri = $packageUri
-            Path = $downloadedPath
-            TimeoutSeconds = $TimeoutSeconds
+        $package = Get-WUAndroidCommandLineToolsPackage
+        $downloadedPath = Join-Path -Path $temporaryDirectory -ChildPath $package.FileName
+        $downloadedPath = Invoke-WUHttpFileDownload `
+            -Uri $package.Uri `
+            -Path $downloadedPath `
+            -Confirm:$false
+        $downloadHash = (Get-FileHash -LiteralPath $downloadedPath -Algorithm SHA256).Hash
+        if ($downloadHash -ne $package.Sha256) {
+            throw "The Android Command-Line Tools package checksum is invalid: $downloadedPath"
         }
-        $downloadedPath = Invoke-WUHttpFileDownload @downloadParameters
-
-        $temporaryName = "PSWinUtil-AndroidTools-$([guid]::NewGuid().ToString('N'))"
-        $temporaryDirectory = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath $temporaryName
         $extractPath = Join-Path -Path $temporaryDirectory -ChildPath 'extracted'
         $null = New-Item -Path $extractPath -ItemType Directory -Force -ErrorAction Stop
 
         Add-Type -AssemblyName 'System.IO.Compression.FileSystem' -ErrorAction Stop
-        [IO.Compression.ZipFile]::ExtractToDirectory($downloadedPath, $extractPath)
+        $archive = [System.IO.Compression.ZipFile]::OpenRead($downloadedPath)
+        try {
+            $extractFullPath = [System.IO.Path]::GetFullPath($extractPath)
+            $extractPrefix = $extractFullPath.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+            foreach ($entry in $archive.Entries) {
+                $entryPath = $entry.FullName.Replace(
+                    [System.IO.Path]::AltDirectorySeparatorChar,
+                    [System.IO.Path]::DirectorySeparatorChar
+                )
+                $entryFullPath = [System.IO.Path]::GetFullPath(
+                    [System.IO.Path]::Combine($extractFullPath, $entryPath)
+                )
+                if (-not $entryFullPath.StartsWith(
+                        $extractPrefix,
+                        [System.StringComparison]::OrdinalIgnoreCase
+                    )) {
+                    throw "The Android Command-Line Tools archive contains an unsafe path: $($entry.FullName)"
+                }
+            }
+        } finally {
+            $archive.Dispose()
+        }
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($downloadedPath, $extractPath)
 
         $extractedToolsPath = Join-Path -Path $extractPath -ChildPath 'cmdline-tools'
-        $sdkManagerPath = Join-Path -Path $extractedToolsPath -ChildPath 'bin\sdkmanager.bat'
-        if (
-            -not (Test-Path -LiteralPath $extractedToolsPath -PathType Container) -or
-            -not (Test-Path -LiteralPath $sdkManagerPath -PathType Leaf)
-        ) {
+        $extractedSdkManagerPath = Join-Path `
+            -Path $extractedToolsPath `
+            -ChildPath 'bin\sdkmanager.bat'
+        if (-not (Test-Path -LiteralPath $extractedSdkManagerPath -PathType Leaf)) {
             throw 'The downloaded package does not contain the expected cmdline-tools directory.'
         }
 
@@ -138,10 +143,6 @@ function Install-WUAndroidCommandLineTools {
             Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
             $backupPath = $null
         }
-
-        if ($PassThru) {
-            Get-Item -LiteralPath $latestPath -ErrorAction Stop
-        }
     } finally {
         if (
             $null -ne $backupPath -and
@@ -150,11 +151,15 @@ function Install-WUAndroidCommandLineTools {
         ) {
             Move-Item -LiteralPath $backupPath -Destination $latestPath -ErrorAction Stop
         }
-        if ($null -ne $temporaryDirectory -and (Test-Path -LiteralPath $temporaryDirectory)) {
-            Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force -ErrorAction Stop
+        if (Test-Path -LiteralPath $temporaryDirectory) {
+            Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force -ErrorAction SilentlyContinue
         }
-        if ($null -ne $downloadedPath -and (Test-Path -LiteralPath $downloadedPath -PathType Leaf)) {
-            Remove-Item -LiteralPath $downloadedPath -Force -ErrorAction Stop
+        if (
+            $sdkDirectoryCreated -and
+            (Test-Path -LiteralPath $fullSdkPath -PathType Container) -and
+            @(Get-ChildItem -LiteralPath $fullSdkPath -Force).Count -eq 0
+        ) {
+            Remove-Item -LiteralPath $fullSdkPath -Force -ErrorAction SilentlyContinue
         }
     }
 }

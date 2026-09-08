@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `Get-WUAndroidEmulator` lists local Android virtual device names.
 - `Get-WUAndroidEmulatorPort` and `Test-WUAndroidEmulatorPort` find and test available emulator console ports.
+- `Install-WUAndroidSdk` installs missing stable Android SDK packages and configures the SDK environment.
+- `Invoke-WUHttpFileDownload` downloads files directly and resumes interrupted transfers from saved content.
 - `Enable-WUCommandOverride` and `Disable-WUCommandOverride` control content command overrides.
 - `Set-WUProgressPreference` controls progress display for the current session.
 - `Install-WUGit` installs Git for Windows and configures its path.
@@ -21,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Direct HTTP SDK downloads use progress-based resume without retry-count or timeout parameters.
 - `Start-WUAndroidEmulator` assigns ports, starts the selected virtual devices, and waits for ADB availability. `-Name` selects one device, `-Port` sets its console port, and `-NoWait` returns after launch.
 - Rebuilt the module around one public or private function per source file and a generated distribution under `output/PSWinUtil`.
 - Limited the supported runtime to Windows PowerShell 5.1 Desktop.

@@ -953,7 +953,14 @@ Describe 'Get-WUAndroidCommandLineToolsUrl' {
     It 'returns the Windows package URL from the official page' {
         Mock -CommandName Invoke-WebRequest -ModuleName PSWinUtil -MockWith {
             [pscustomobject]@{
-                Content = 'commandlinetools-win-123456_latest.zip commandlinetools-win-123456_latest.zip'
+                Content = @'
+<tr>
+  <td>Windows</td>
+  <td>commandlinetools-win-123456_latest.zip</td>
+  <td>100 MB</td>
+  <td>0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</td>
+</tr>
+'@
             }
         }
 
@@ -969,11 +976,11 @@ Describe 'Get-WUAndroidCommandLineToolsUrl' {
         { Get-WUAndroidCommandLineToolsUrl } | Should -Throw '*network failure*'
     }
 
-    It 'reports a missing Windows package name' {
+    It 'reports missing Windows package metadata' {
         Mock -CommandName Invoke-WebRequest -ModuleName PSWinUtil -MockWith {
             [pscustomobject]@{ Content = 'No Windows package is present.' }
         }
 
-        { Get-WUAndroidCommandLineToolsUrl } | Should -Throw '*package was not found*'
+        { Get-WUAndroidCommandLineToolsUrl } | Should -Throw '*package and checksum were not found*'
     }
 }
