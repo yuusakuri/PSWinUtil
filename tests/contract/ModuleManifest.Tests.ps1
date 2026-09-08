@@ -20,7 +20,7 @@ Describe 'Built module manifest' {
         @($script:Manifest.RequiredModules).Count | Should -Be 0
     }
 
-    It 'exports content command overrides only in Windows PowerShell' {
+    It 'places content command overrides only in Windows PowerShell' {
         $exportedCommands = @($script:Module.ExportedFunctions.Keys)
 
         foreach ($commandName in @(
@@ -29,11 +29,15 @@ Describe 'Built module manifest' {
                 'Add-Content'
                 'Out-File'
             )) {
+            $exportedCommands | Should -Not -Contain $commandName
+            $command = Get-Command -Name $commandName -ErrorAction Stop
+
             if ($PSVersionTable.PSEdition -eq 'Desktop') {
-                $exportedCommands | Should -Contain $commandName
+                $command.CommandType | Should -Be 'Function'
+                $command.ModuleName | Should -Be 'PSWinUtil'
             } else {
-                $exportedCommands | Should -Not -Contain $commandName
-                (Get-Command -Name $commandName).ModuleName | Should -Not -Be 'PSWinUtil'
+                $command.CommandType | Should -Be 'Cmdlet'
+                $command.ModuleName | Should -Not -Be 'PSWinUtil'
             }
         }
     }
