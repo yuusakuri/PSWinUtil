@@ -4,7 +4,7 @@ function Install-WUAndroidSdk {
     Installs and configures an Android SDK.
 
     .DESCRIPTION
-    Installs missing Android Command-Line Tools, platform-tools, SDK Platform, Build Tools, and emulator packages. Omitted versions select the greatest stable package reported by sdkmanager --list --channel=0. SDK Manager can prompt for licenses that have not been accepted. The command sets ANDROID_HOME for the current user and process, adds SDK command directories to both PATH values, and points build-tools\latest to the selected Build Tools version.
+    Installs Android CLI and uses it to install missing platform-tools, SDK Platform, Build Tools, and emulator packages. Omitted versions select the greatest stable package reported by android sdk list. The command sets ANDROID_HOME for the current user and process, adds SDK command directories to both PATH values, and points build-tools\latest to the selected Build Tools version.
 
     .PARAMETER SdkPath
     Specifies the Android SDK directory. The default value is LOCALAPPDATA\Android\Sdk.
@@ -67,11 +67,11 @@ function Install-WUAndroidSdk {
         return
     }
 
-    Install-WUAndroidCommandLineTools -SdkPath $fullSdkPath -Confirm:$false
-    $sdkManagerPath = Join-Path `
-        -Path $fullSdkPath `
-        -ChildPath 'cmdline-tools\latest\bin\sdkmanager.bat'
-    Assert-WUPathProperty -LiteralPath $sdkManagerPath -Leaf
+    Install-WUAndroidCli -Confirm:$false
+    $androidCliPath = Get-WUAndroidCliPath
+    if ([string]::IsNullOrWhiteSpace($androidCliPath)) {
+        throw 'The Android CLI executable was not found after the installation.'
+    }
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
         [string]$PlatformVersion
@@ -84,20 +84,26 @@ function Install-WUAndroidSdk {
         $null
     }
     if ($null -eq $resolvedPlatformVersion -or $null -eq $resolvedBuildToolsVersion) {
-        $listArguments = @('--list', '--channel=0', "--sdk_root=$fullSdkPath")
-        $availablePackages = @(
-            Invoke-WUAndroidSdkManager `
-                -SdkManagerPath $sdkManagerPath `
-                -ArgumentList $listArguments
-        )
         if ($null -eq $resolvedPlatformVersion) {
+            $availablePlatforms = @(
+                Invoke-WUAndroidCli `
+                    -AndroidCliPath $androidCliPath `
+                    -SdkPath $fullSdkPath `
+                    -ArgumentList 'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
+            )
             $resolvedPlatformVersion = Resolve-WUAndroidSdkPackageVersion `
-                -InputObject $availablePackages `
+                -InputObject $availablePlatforms `
                 -PackageType Platform
         }
         if ($null -eq $resolvedBuildToolsVersion) {
+            $availableBuildTools = @(
+                Invoke-WUAndroidCli `
+                    -AndroidCliPath $androidCliPath `
+                    -SdkPath $fullSdkPath `
+                    -ArgumentList 'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
+            )
             $resolvedBuildToolsVersion = Resolve-WUAndroidSdkPackageVersion `
-                -InputObject $availablePackages `
+                -InputObject $availableBuildTools `
                 -PackageType BuildTools
         }
     }
@@ -115,19 +121,20 @@ function Install-WUAndroidSdk {
         $packages += 'platform-tools'
     }
     if (-not (Test-Path -LiteralPath (Join-Path -Path $platformPath -ChildPath 'android.jar') -PathType Leaf)) {
-        $packages += "platforms;android-$resolvedPlatformVersion"
+        $packages += "platforms/android-$resolvedPlatformVersion"
     }
     if (-not (Test-Path -LiteralPath (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe') -PathType Leaf)) {
-        $packages += "build-tools;$resolvedBuildToolsVersion"
+        $packages += "build-tools/$resolvedBuildToolsVersion"
     }
     if (-not (Test-Path -LiteralPath (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe') -PathType Leaf)) {
         $packages += 'emulator'
     }
 
     if ($packages.Count -gt 0) {
-        $installArguments = @($packages + '--channel=0' + "--sdk_root=$fullSdkPath")
-        $null = Invoke-WUAndroidSdkManager `
-            -SdkManagerPath $sdkManagerPath `
+        $installArguments = @('sdk', 'install') + $packages
+        $null = Invoke-WUAndroidCli `
+            -AndroidCliPath $androidCliPath `
+            -SdkPath $fullSdkPath `
             -ArgumentList $installArguments
     }
 
@@ -139,7 +146,7 @@ function Install-WUAndroidSdk {
     )
     foreach ($requiredFile in $requiredFiles) {
         if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
-            throw "Android SDK Manager did not install an expected file: $requiredFile"
+            throw "Android CLI did not install an expected file: $requiredFile"
         }
     }
 
@@ -155,7 +162,6 @@ function Install-WUAndroidSdk {
     $userPaths = @(
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
-        '%ANDROID_HOME%\cmdline-tools\latest\bin'
         '%ANDROID_HOME%\build-tools\latest'
     )
     Add-WUPathEnvironmentVariable `
@@ -165,7 +171,6 @@ function Install-WUAndroidSdk {
     $processPaths = @(
         $platformToolsPath
         $emulatorPath
-        (Join-Path -Path $fullSdkPath -ChildPath 'cmdline-tools\latest\bin')
         (Join-Path -Path $buildToolsRoot -ChildPath 'latest')
     )
     Add-WUPathEnvironmentVariable `

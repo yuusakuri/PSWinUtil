@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `Get-WUAndroidEmulator` lists local Android virtual device names.
 - `Get-WUAndroidEmulatorPort` and `Test-WUAndroidEmulatorPort` find and test available emulator console ports.
-- `Install-WUAndroidSdk` installs missing stable Android SDK packages and configures the SDK environment.
+- `Install-WUAndroidCli` installs Android CLI and configures its path.
+- `Install-WUAndroidSdk` uses Android CLI to install missing stable Android SDK packages and configures the SDK environment.
 - `Invoke-WUHttpFileDownload` downloads files directly and resumes interrupted transfers from saved content.
 - `Enable-WUCommandOverride` and `Disable-WUCommandOverride` control content command overrides.
 - `Set-WUProgressPreference` controls progress display for the current session.

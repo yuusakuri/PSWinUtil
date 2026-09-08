@@ -4,16 +4,16 @@ function Resolve-WUAndroidSdkPackageVersion {
     Resolves the latest stable Android SDK package version.
 
     .DESCRIPTION
-    Parses stable-channel SDK Manager output and returns the greatest Android platform API level or three-part Build Tools version.
+    Parses Android CLI package output and returns the greatest stable Android platform API level or three-part Build Tools version.
 
     .PARAMETER InputObject
-    Specifies lines returned by sdkmanager --list --channel=0.
+    Specifies lines returned by android sdk list.
 
     .PARAMETER PackageType
     Specifies Platform or BuildTools.
 
     .EXAMPLE
-    Resolve-WUAndroidSdkPackageVersion -InputObject 'platforms;android-36 | 2 | Android SDK Platform 36' -PackageType Platform
+    Resolve-WUAndroidSdkPackageVersion -InputObject 'platforms/android-36  2.0.0  Android SDK Platform 36' -PackageType Platform
 
     Returns 36.
 
@@ -38,7 +38,7 @@ function Resolve-WUAndroidSdkPackageVersion {
     $text = $InputObject -join "`n"
     if ($PackageType -eq 'Platform') {
         $versions = @(
-            [regex]::Matches($text, '(?m)^\s*platforms;android-(\d+)\s+\|') |
+            [regex]::Matches($text, '(?m)^\s*platforms/android-(\d+)\s+') |
                 ForEach-Object { [int]$_.Groups[1].Value } |
                 Sort-Object -Descending -Unique
         )
@@ -49,8 +49,8 @@ function Resolve-WUAndroidSdkPackageVersion {
     }
 
     $versions = @(
-        [regex]::Matches($text, '(?m)^\s*build-tools;([0-9]+\.[0-9]+\.[0-9]+)\s+\|') |
-            ForEach-Object { [version]$_.Groups[1].Value } |
+        [regex]::Matches($text, '(?m)^\s*build-tools/([0-9]+\.[0-9]+\.[0-9]+)\s+') |
+            ForEach-Object { [System.Management.Automation.SemanticVersion]$_.Groups[1].Value } |
             Sort-Object -Descending -Unique
     )
     if ($versions.Count -eq 0) {
