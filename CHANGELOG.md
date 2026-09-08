@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Set-WUProgressPreference` controls progress display for the current session.
 - `Install-WUGit` installs Git for Windows and configures its path.
 - `dev.ps1 bump` and `dev.ps1 release` prepare and publish releases.
+- Preview versions publish to PowerShell Gallery and GitHub Releases without replacing the corresponding stable release.
 - `dev.ps1 docs` generates the command reference from exported commands and their help; `docs check` verifies the committed reference.
 - A ModuleBuilder-based build, PSScriptAnalyzer checks, and unit, integration, and contract test suites for Windows PowerShell 5.1.
 - Commands for environment variables, registry settings, startup entries, automatic logon, keyboard remapping, Windows 11 settings, certificate trust, downloads, package installation, and Android and Flutter tooling.

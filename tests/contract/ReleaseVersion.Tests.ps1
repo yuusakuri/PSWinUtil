@@ -9,37 +9,45 @@ Describe 'Set-ReleaseVersion' {
         $script:ManifestPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil.psd1'
         Copy-Item -LiteralPath $script:SourceManifestPath -Destination $script:ManifestPath
         $script:OriginalManifestText = [System.IO.File]::ReadAllText($script:ManifestPath)
-        $script:CurrentVersion = [version](
-            Import-PowerShellDataFile -LiteralPath $script:ManifestPath
-        ).ModuleVersion
-        $script:NextVersion = [version]::new(
-            $script:CurrentVersion.Major,
-            ($script:CurrentVersion.Minor + 1),
-            0
-        ).ToString()
+        $script:CurrentManifest = Import-PowerShellDataFile -LiteralPath $script:ManifestPath
+        $script:CurrentVersion = Get-ReleaseManifestVersion -Manifest $script:CurrentManifest
+        $script:BaseVersion = [string]$script:CurrentManifest.ModuleVersion
+        $script:NextVersion = "$($script:BaseVersion)-preview1"
     }
 
-    It 'updates only ModuleVersion to a greater stable version' {
+    It 'updates ModuleVersion and Prerelease for a preview version' {
         $result = Set-ReleaseVersion `
             -Version $script:NextVersion `
             -ManifestPath $script:ManifestPath
 
         $updatedManifest = Import-PowerShellDataFile -LiteralPath $script:ManifestPath
-        [string]$updatedManifest.ModuleVersion | Should -Be $script:NextVersion
-        $result.PreviousVersion | Should -Be $script:CurrentVersion.ToString()
+        [string]$updatedManifest.ModuleVersion | Should -Be $script:BaseVersion
+        $updatedManifest.PrivateData.PSData.Prerelease | Should -Be 'preview1'
+        $result.PreviousVersion | Should -Be $script:CurrentVersion
         $result.Version | Should -Be $script:NextVersion
 
         $expectedManifestText = $script:OriginalManifestText.Replace(
-            "ModuleVersion = '$($script:CurrentVersion)'",
-            "ModuleVersion = '$($script:NextVersion)'"
+            "Prerelease = 'preview0'",
+            "Prerelease = 'preview1'"
         )
         [System.IO.File]::ReadAllText($script:ManifestPath) | Should -BeExactly $expectedManifestText
+    }
+
+    It 'clears Prerelease for the stable version with the same base' {
+        $result = Set-ReleaseVersion `
+            -Version $script:BaseVersion `
+            -ManifestPath $script:ManifestPath
+
+        $updatedManifest = Import-PowerShellDataFile -LiteralPath $script:ManifestPath
+        [string]$updatedManifest.ModuleVersion | Should -Be $script:BaseVersion
+        $updatedManifest.PrivateData.PSData.Prerelease | Should -BeNullOrEmpty
+        $result.Version | Should -Be $script:BaseVersion
     }
 
     It 'rejects a version that is not greater than the current version' {
         {
             Set-ReleaseVersion `
-                -Version $script:CurrentVersion.ToString() `
+                -Version $script:CurrentVersion `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
 
@@ -58,10 +66,15 @@ Describe 'Set-ReleaseVersion' {
             Should -BeExactly $script:OriginalManifestText
     }
 
-    It 'rejects a version outside the major.minor.patch format' {
+    It 'rejects an unsupported release version' -ForEach @(
+        @{ Version = '2.1' }
+        @{ Version = '2.1.0-preview.1' }
+        @{ Version = '2.1.0-preview+1' }
+        @{ Version = '2.1.0-preview-1' }
+    ) {
         {
             Set-ReleaseVersion `
-                -Version '2.1' `
+                -Version $Version `
                 -ManifestPath $script:ManifestPath
         } | Should -Throw
 

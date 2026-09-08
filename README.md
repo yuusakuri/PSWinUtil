@@ -26,6 +26,12 @@ Set-PSResourceRepository -Name 'PSGallery' -Trusted
 Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
 ```
 
+Install the latest preview release for the current user:
+
+```powershell
+Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery -Prerelease
+```
+
 ### Release ZIP
 
 Download a ZIP from [Releases](https://github.com/yuusakuri/PSWinUtil/releases), extract it, and import the included `PSWinUtil.psd1` by its full path.

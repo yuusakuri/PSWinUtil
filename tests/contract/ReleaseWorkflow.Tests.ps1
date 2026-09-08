@@ -22,6 +22,21 @@ Describe 'Release publication queries' {
         }
     }
 
+    It 'includes prerelease packages in an exact Gallery query' {
+        Mock Find-PSResource {
+            [pscustomobject]@{
+                Version = [version]'2.0.0'
+                Prerelease = 'preview1'
+            }
+        }
+
+        Test-GalleryPublication -Version '2.0.0-preview1' | Should -BeTrue
+        Should -Invoke Find-PSResource -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'PSWinUtil' -and $Version -eq '[2.0.0-preview1]' -and
+            $Repository -eq 'PSGallery' -and $Prerelease
+        }
+    }
+
     It 'accepts only the Gallery package-not-found error as unpublished' {
         Mock Find-PSResource {
             throw [System.Management.Automation.ErrorRecord]::new(
@@ -65,6 +80,30 @@ Describe 'Release publication queries' {
         }
 
         Test-GitHubRelease -GhPath 'gh' -TagName 'v1.2.3' | Should -BeTrue
+    }
+
+    It 'finds a matching GitHub prerelease' {
+        Mock Invoke-ExternalCommand {
+            '[[{"tag_name":"v2.0.0-preview1","draft":false,"prerelease":true}]]'
+        }
+
+        Test-GitHubRelease `
+            -GhPath 'gh' `
+            -TagName 'v2.0.0-preview1' `
+            -Prerelease | Should -BeTrue
+    }
+
+    It 'rejects an incorrect GitHub prerelease state' {
+        Mock Invoke-ExternalCommand {
+            '[[{"tag_name":"v2.0.0-preview1","draft":false,"prerelease":false}]]'
+        }
+
+        {
+            Test-GitHubRelease `
+                -GhPath 'gh' `
+                -TagName 'v2.0.0-preview1' `
+                -Prerelease
+        } | Should -Throw '*incorrect prerelease state*'
     }
 
     It 'rejects an unpublished GitHub draft' {
@@ -111,6 +150,24 @@ Describe 'Release publication queries' {
         $state.TagExists | Should -BeFalse
     }
 
+    It 'queries a prerelease across Gallery and GitHub' {
+        Mock Invoke-ExternalCommand {}
+        Mock Test-GalleryPublication { $false }
+        Mock Test-GitHubRelease { $false }
+
+        $state = Get-RemoteReleaseState `
+            -ReleaseCommit $script:ReleaseCommit `
+            -Version '2.0.0-preview1'
+
+        $state.TagExists | Should -BeFalse
+        Should -Invoke Test-GalleryPublication -Times 1 -Exactly -ParameterFilter {
+            $Version -eq '2.0.0-preview1'
+        }
+        Should -Invoke Test-GitHubRelease -Times 1 -Exactly -ParameterFilter {
+            $TagName -eq 'v2.0.0-preview1' -and $Prerelease
+        }
+    }
+
     It 'waits for a missing Gallery version to appear' {
         $script:Attempts = 0
         Mock Test-GalleryPublication { (++$script:Attempts) -eq 2 }
@@ -151,8 +208,8 @@ Describe 'Invoke-ReleasePublish' {
             ModuleDirectory = $TestDrive
             ArtifactPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil-1.2.3.zip'
         }
-        $manifestPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil.psd1'
-        New-ModuleManifest -Path $manifestPath -ModuleVersion '1.2.3'
+        $script:ManifestPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil.psd1'
+        New-ModuleManifest -Path $script:ManifestPath -ModuleVersion '1.2.3'
         [System.IO.File]::WriteAllText($script:PublishArguments.ArtifactPath, 'original archive')
         Mock Get-RequiredApplication { $Name }
         Mock Import-RequiredModule {}
@@ -196,6 +253,33 @@ Describe 'Invoke-ReleasePublish' {
         $results.Count | Should -Be 1
         $results[0].Version | Should -Be '1.2.3'
         $results[0].ArtifactPath | Should -Be $script:PublishArguments.ArtifactPath
+    }
+
+    It 'publishes a prerelease with matching Gallery and GitHub metadata' {
+        [System.IO.File]::WriteAllText(
+            $script:ManifestPath,
+            "@{ ModuleVersion = '2.0.0'; PrivateData = @{ PSData = @{ Prerelease = 'preview1' } } }"
+        )
+        $script:PublishArguments.Version = '2.0.0-preview1'
+        $script:PublishArguments.ArtifactPath = Join-Path `
+            -Path $TestDrive `
+            -ChildPath 'PSWinUtil-2.0.0-preview1.zip'
+        $script:PublishArguments.State = Get-ReleasePublicationState `
+            -TagName 'v2.0.0-preview1' `
+            -Version '2.0.0-preview1' `
+            -ReleaseCommit $script:ReleaseCommit
+
+        $result = Invoke-ReleasePublish @script:PublishArguments -Confirm:$false
+
+        $result.Version | Should -Be '2.0.0-preview1'
+        Should -Invoke Wait-GalleryPublication -Times 1 -Exactly -ParameterFilter {
+            $Version -eq '2.0.0-preview1'
+        }
+        Should -Invoke Invoke-ExternalCommand -Times 1 -Exactly -ParameterFilter {
+            $ArgumentList[0] -eq 'release' -and
+            $ArgumentList -contains 'v2.0.0-preview1' -and
+            $ArgumentList -contains '--prerelease'
+        }
     }
 
     It 'reuses a matching local tag after a failed push' {
@@ -291,6 +375,33 @@ Describe 'Release checkout validation' {
         Should -Invoke Invoke-ReleasePublish -Times 1 -Exactly -ParameterFilter { $Version -eq '1.2.3' }
     }
 
+    It 'uses the committed prerelease label in the publication version' {
+        Mock Get-ReleaseManifest {
+            @{
+                ModuleVersion = '2.0.0'
+                PrivateData = @{ PSData = @{ Prerelease = 'preview1' } }
+            }
+        }
+        Mock Get-RemoteReleaseState {
+            Get-ReleasePublicationState `
+                -TagName 'v2.0.0-preview1' `
+                -Version '2.0.0-preview1' `
+                -ReleaseCommit $script:ReleaseCommit
+        }
+
+        Invoke-Release `
+            -ReleaseCommit $script:ReleaseCommit `
+            -Branch 'release/2.0.0-preview1' `
+            -WhatIf
+
+        Should -Invoke Get-RemoteReleaseState -Times 1 -Exactly -ParameterFilter {
+            $Version -eq '2.0.0-preview1'
+        }
+        Should -Invoke Invoke-ReleasePublish -Times 1 -Exactly -ParameterFilter {
+            $Version -eq '2.0.0-preview1'
+        }
+    }
+
     It 'rejects a checkout on a different commit' {
         Mock Invoke-ExternalCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
             $ArgumentList[0] -eq 'rev-parse'
@@ -327,7 +438,7 @@ Describe 'Release checkout validation' {
     }
 
     It 'rejects a branch version that differs from the committed manifest' {
-        { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.4' -WhatIf } | Should -Throw '*does not match ModuleVersion*'
+        { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.4' -WhatIf } | Should -Throw '*does not match manifest version*'
         Should -Invoke Get-RemoteReleaseState -Times 0 -Exactly
     }
 
@@ -350,6 +461,16 @@ Describe 'Committed release manifest' {
             $ArgumentList[0] -eq 'show' -and
             $ArgumentList[1] -eq "$($script:ReleaseCommit):src/PSWinUtil/PSWinUtil.psd1"
         }
+    }
+
+    It 'reads a prerelease label from the requested commit' {
+        Mock Invoke-ExternalCommand {
+            "@{ ModuleVersion = '2.0.0'; PrivateData = @{ PSData = @{ Prerelease = 'preview1' } } }"
+        }
+
+        $manifest = Get-ReleaseManifest -GitPath 'git' -ReleaseCommit $script:ReleaseCommit
+
+        Get-ReleaseManifestVersion -Manifest $manifest | Should -Be '2.0.0-preview1'
     }
 
     It 'rejects a manifest without a version' {
@@ -394,5 +515,11 @@ Describe 'Invoke-Bump WhatIf' {
 
     It 'validates version ordering even with WhatIf' {
         { Invoke-Bump -Version '0.0.0' -WhatIf } | Should -Throw '*must be greater*'
+    }
+
+    It 'accepts the next preview version with WhatIf' {
+        Invoke-Bump -Version '2.0.0-preview1' -WhatIf
+
+        Should -Invoke Set-ReleaseVersion -Times 0 -Exactly
     }
 }

@@ -20,6 +20,7 @@
     AliasesToExport = @()
     PrivateData = @{
         PSData = @{
+            Prerelease = 'preview0'
             Tags = @(
                 'Windows'
                 'PowerShell'
