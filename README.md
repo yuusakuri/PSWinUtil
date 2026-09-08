@@ -20,15 +20,10 @@ It provides commands to:
 Install PSWinUtil for the current user:
 
 ```powershell
-Install-Module -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
-```
-
-On a Windows PowerShell 5.1 installation that has never used PowerShell Gallery, enable TLS 1.2 and install the NuGet provider for the current user first:
-
-```powershell
-[Net.ServicePointManager]::SecurityProtocol =
-    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-Install-PackageProvider -Name 'NuGet' -MinimumVersion '2.8.5.201' -Scope CurrentUser -Force
+Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -Scope CurrentUser
+Import-Module -Name 'Microsoft.PowerShell.PSResourceGet'
+Set-PSResourceRepository -Name 'PSGallery' -Trusted
+Install-PSResource -Name 'PSWinUtil' -Scope CurrentUser -Repository PSGallery
 ```
 
 ### Release ZIP
@@ -64,9 +59,9 @@ Get-Help -Name 'Set-WUEnvironmentVariable' -Full
 
 ## Documentation
 
-- [Command reference](docs/reference/commands.md) shows how to find commands and read their help.
+- [Command reference](docs/reference/commands.md) lists the exported commands and their summaries generated from PowerShell help.
 - [Architecture](docs/explanation/architecture.md) explains the source, build, distribution, and test boundaries.
-- [Contributing](CONTRIBUTING.md) describes the development workflow and required verification.
+- [Contributing](CONTRIBUTING.md) describes the development workflow and repository-specific verification.
 - [Releasing](RELEASING.md) describes version preparation and publication.
 - [Changelog](CHANGELOG.md) records released and unreleased changes.
 

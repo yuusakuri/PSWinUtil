@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Set-WUProgressPreference` controls progress display for the current session.
 - `Install-WUGit` installs Git for Windows and configures its path.
 - `dev.ps1 bump` and `dev.ps1 release` prepare and publish releases.
+- `dev.ps1 docs` generates the command reference from exported commands and their help; `docs check` verifies the committed reference.
 - A ModuleBuilder-based build, PSScriptAnalyzer checks, and unit, integration, and contract test suites for Windows PowerShell 5.1.
 - Commands for environment variables, registry settings, startup entries, automatic logon, keyboard remapping, Windows 11 settings, certificate trust, downloads, package installation, and Android and Flutter tooling.
 - A compiled `PSWinUtil.Native` assembly for Windows native interoperability.
@@ -36,36 +37,23 @@ The 1.x releases between 1.2.2 and 1.6.9 are listed with their notes and tags in
 
 ## [1.2.2]
 
-### Changed
+- `Add-WUEnvPath`: Fixed this script not being able to run.
+- Added description to manifest.
 
-- The module manifest includes a description.
+## [1.2.0]
 
-### Fixed
-
-- `Add-WUEnvPath` sets environment variables without the errors encountered in some environments.
-
-## [1.2.0] - 2020-09-22
-
-### Added
-
-- `Disable-WUWindowsSecurityNonCriticalNotifications` and `Enable-WUWindowsSecurityNonCriticalNotifications`.
+- `Disable-WUWindowsSecurityNonCriticalNotifications`: Added to disable non-essential notifications for Windows Security.
+- `Enable-WUWindowsSecurityNonCriticalNotifications`: Added to enable non-essential notifications for Windows Security
 
 ## [1.1.0]
 
-### Added
+- `Set-WUPS1Action`: Modify parameter set.
+- `Set-WUWindowsAutoLogin`: Added to set automatic login for windows.
+- `Set-WUScalingBehavior`: Added to set high DPI scaling per app.
 
-- `Set-WUWindowsAutoLogin` configures Windows automatic logon.
-- `Set-WUScalingBehavior` configures per-application high-DPI scaling.
+## [1.0.0]
 
-### Changed
-
-- `Set-WUPS1Action` provides revised parameter sets.
-
-## [1.0.0] - 2020-09-21
-
-### Added
-
-- Initial stable release.
+- Initial stable release
 
 [Unreleased]: https://github.com/yuusakuri/PSWinUtil/compare/v1.6.9...HEAD
 [1.2.2]: https://github.com/yuusakuri/PSWinUtil/commit/8e3bde8

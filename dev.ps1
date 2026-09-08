@@ -3,7 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release'
+        'bump', 'release', 'docs'
     )]
     [string]$Command,
 
@@ -36,6 +36,7 @@ $testSupportProjectPath = Join-Path `
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
+$commandReferencePath = Join-Path -Path $repositoryRoot -ChildPath 'docs/reference/commands.md'
 
 $writeUsage = {
     Write-Output -InputObject @'
@@ -45,6 +46,8 @@ Usage:
   .\dev.ps1 lint
   .\dev.ps1 build
   .\dev.ps1 import
+  .\dev.ps1 docs
+  .\dev.ps1 docs check
   .\dev.ps1 test unit
   .\dev.ps1 test integration
   .\dev.ps1 test contract
@@ -527,6 +530,103 @@ $invokeTest = {
     $testResult = Invoke-Pester -Configuration $configuration
     if ($null -eq $testResult -or $testResult.FailedCount -gt 0) {
         throw 'Pester reported one or more failed tests.'
+    }
+}
+
+function Get-CommandReference {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ManifestPath
+    )
+
+    $moduleName = [System.IO.Path]::GetFileNameWithoutExtension($ManifestPath)
+    Get-Module -Name $moduleName -All | Remove-Module -Force
+    $module = Import-Module -Name $ManifestPath -Force -PassThru -ErrorAction Stop
+    $commands = @(
+        Get-Command -Module $module.Name |
+            Where-Object {
+                $_.Module.Path -eq $module.Path -and
+                $module.ExportedCommands.ContainsKey($_.Name)
+            }
+    )
+    if ($commands.Count -eq 0) {
+        throw "The built module exports no commands: $ManifestPath"
+    }
+
+    $commandNames = [string[]]@($commands.Name)
+    [System.Array]::Sort($commandNames, [System.StringComparer]::Ordinal)
+    $lines = @(
+        '# Command reference'
+        ''
+        'The following table is generated from the exported commands and their comment-based help.'
+        ''
+        '| Command | Synopsis |'
+        '| --- | --- |'
+        foreach ($commandName in $commandNames) {
+            $help = Get-Help -Name "$($module.Name)\$commandName" -ErrorAction Stop
+            $synopsis = [string]$help.Synopsis
+            if (
+                [string]::IsNullOrWhiteSpace($synopsis) -or
+                $help.PSObject.TypeNames -notcontains 'MamlCommandHelpInfo'
+            ) {
+                throw "Comment-based Synopsis is required for $commandName."
+            }
+
+            $cell = [System.Net.WebUtility]::HtmlEncode($synopsis.Trim())
+            $cell = $cell.Replace('\', '\\').Replace('`', '\`').Replace('|', '&#124;')
+            $cell = $cell -replace '\r\n|\r|\n', '<br>'
+            '| `{0}` | {1} |' -f $commandName, $cell
+        }
+        ''
+        'Read the complete help for a command with:'
+        ''
+        '```powershell'
+        "Get-Help -Name '<CommandName>' -Full"
+        '```'
+        ''
+        'Find commands by name with:'
+        ''
+        '```powershell'
+        "Get-Command -Module 'PSWinUtil' -Name '*Android*'"
+        '```'
+        ''
+    )
+
+    $lines -join "`n"
+}
+
+function Update-CommandReference {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ManifestPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter()]
+        [switch]$Check
+    )
+
+    $reference = Get-CommandReference -ManifestPath $ManifestPath
+    $expectedBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($reference)
+    if ($Check) {
+        if (-not [System.IO.File]::Exists($Path)) {
+            throw "docs/reference/commands.md is out of date. Run '.\dev.ps1 docs' and commit the generated file."
+        }
+
+        $actualBytes = [System.IO.File]::ReadAllBytes($Path)
+        if (-not [System.Linq.Enumerable]::SequenceEqual($expectedBytes, $actualBytes)) {
+            throw "docs/reference/commands.md is out of date. Run '.\dev.ps1 docs' and commit the generated file."
+        }
+        return
+    }
+
+    if ($PSCmdlet.ShouldProcess($Path, 'Write the generated command reference')) {
+        $null = [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($Path))
+        [System.IO.File]::WriteAllBytes($Path, $expectedBytes)
     }
 }
 
@@ -1192,6 +1292,19 @@ switch ($Command) {
     }
     'import' {
         & $invokeImport
+    }
+    'docs' {
+        if (-not [string]::IsNullOrWhiteSpace($Argument) -and $Argument -ne 'check') {
+            throw "The docs command accepts only 'check' as an argument."
+        }
+
+        & $assertSource
+        Import-RequiredModule -Name 'ModuleBuilder'
+        & $invokeBuild
+        Update-CommandReference `
+            -ManifestPath $outputManifestPath `
+            -Path $commandReferencePath `
+            -Check:($Argument -eq 'check')
     }
     'test' {
         $selectedTestType = 'all'

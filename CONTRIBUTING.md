@@ -24,15 +24,15 @@ powershell.exe -ExecutionPolicy Bypass -File '.\install.ps1'
 
 ## Development workflow
 
-Follow the project [Git guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/core/git-guidelines.md). This repository uses `master` as its default branch, so create one focused [Conventional Branch](https://conventional-branch.github.io/) from the latest `master` branch:
+Follow the [Git guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/development/git-guidelines.md) for branch names, commits, pull requests, reviews, and merging.
+
+This repository uses `master` as its default branch. Create a focused branch from the latest `master` branch.
 
 ```powershell
 git switch master
 git pull --ff-only
 git switch -c 'fix/describe-the-change'
 ```
-
-Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) with a title of at most 50 characters. Do not add an AI-agent prefix to the branch name.
 
 ## Source files
 
@@ -49,11 +49,13 @@ Implement exported commands in `src/PSWinUtil/Public/` and internal functions in
 | `.\dev.ps1 lint` | Checks formatting and runs static analysis. |
 | `.\dev.ps1 build` | Builds the PowerShell module, native assembly, and test-support assemblies into `output/`. |
 | `.\dev.ps1 import` | Imports the previously built module into the current Windows PowerShell session. |
+| `.\dev.ps1 docs` | Builds the module and generates the command reference from its exports and help. |
+| `.\dev.ps1 docs check` | Builds the module and compares the command reference with its exports and help. |
 | `.\dev.ps1 test unit` | Builds the module and runs unit tests. |
 | `.\dev.ps1 test integration` | Builds the module and runs Windows integration tests. |
 | `.\dev.ps1 test contract` | Builds the module and runs distribution and manifest contract tests. |
 | `.\dev.ps1 test all` | Builds the module and runs all test suites. |
-| `.\dev.ps1 verify` | Checks source, formatting, analysis, build output, import, and all test suites. |
+| `.\dev.ps1 verify` | Checks source, formatting, analysis, build output, import, the command reference, and all test suites. |
 | `.\dev.ps1 ci` | Runs the same verification as `verify`. |
 
 Version preparation and publication commands are described in [Releasing](RELEASING.md).
@@ -70,18 +72,13 @@ Get-Command -Module 'PSWinUtil'
 
 Follow the [Windows PowerShell module development guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/implementation/windows-powershell-module-guidelines.md).
 
-PowerShell source files use ASCII characters, UTF-8 without a byte-order mark (BOM), and LF line endings. `dev.ps1` validates the source files before building or testing.
+After changing an exported command or its synopsis, regenerate and commit the command reference:
 
-Public functions require comment-based help with `.SYNOPSIS`, `.DESCRIPTION`, documentation for every public parameter, and at least one `.EXAMPLE`. Add `.INPUTS` and `.OUTPUTS` when applicable. Contract tests verify these requirements against the built module.
+```powershell
+.\dev.ps1 docs
+```
 
-Documentation has distinct roles:
-
-- Keep `README.md` focused on the project purpose, requirements, installation, and a minimal example.
-- Put task-oriented instructions in `docs/how-to/` when needed.
-- Put factual command or configuration material in `docs/reference/`.
-- Put design background in `docs/explanation/`.
-
-Write examples against the built module and prefer `-WhatIf` when demonstrating state-changing commands.
+`docs/reference/commands.md` contains the exported command names and their help summaries. `dev.ps1 verify` checks that this file matches the current build.
 
 ## Verification
 
@@ -91,10 +88,6 @@ Run the complete repository verification before submitting a pull request:
 powershell.exe -ExecutionPolicy Bypass -File '.\dev.ps1' verify
 ```
 
-Warnings from formatting, analysis, builds, or tests must be resolved before merge.
-
 ## Pull requests
 
-Push the branch and open a pull request into `master`, and complete every section of the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
-
-At least one approval is required. Merge with squash after all required checks pass.
+Push the branch and open a pull request into `master`, then complete every section of the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
