@@ -23,6 +23,18 @@ Describe 'Content command override integration' -Skip:(-not $contentCommandOverr
         }
     }
 
+    It 'restores every proxy when the module is imported again' {
+        Disable-WUCommandOverride -Name 'Get-Content', 'Set-Content', 'Add-Content', 'Out-File'
+
+        $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
+        $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
+        Import-Module -Name $manifestPath -Force -ErrorAction Stop
+
+        foreach ($commandName in @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')) {
+            (Get-Command -Name $commandName).ModuleName | Should -Be 'PSWinUtil'
+        }
+    }
+
     It 'writes UTF-8 without BOM and LF through every write command' {
         $setPath = Join-Path -Path $TestDrive -ChildPath 'set.txt'
         $addPath = Join-Path -Path $TestDrive -ChildPath 'add.txt'

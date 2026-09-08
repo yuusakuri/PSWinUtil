@@ -6,7 +6,7 @@ It provides commands that:
 
 - Configure Windows interface, security, sign-in, and notification settings.
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
-- Work with UTF-8 text files, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
+- Work with UTF-8 text files, command overrides, paths, URIs, SSH keys, downloads, winget packages, and Android command-line tools.
 
 ## Requirements
 
@@ -78,13 +78,6 @@ Install a package by its exact winget ID and automatically accept the source and
 
 ```powershell
 Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-```
-
-Send a web request without the Windows PowerShell 5.1 progress-rendering overhead:
-
-```powershell
-$response = Invoke-WebRequest -Uri 'https://example.com/' -UseBasicParsing
-$response.StatusCode
 ```
 
 Use `Get-Help` to view the parameters and examples for any command:

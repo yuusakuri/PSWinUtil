@@ -38,6 +38,38 @@ Describe 'Set-WUNativeCommandEncoding' {
     }
 }
 
+Describe 'Set-WUProgressPreference' {
+    BeforeEach {
+        $script:SavedProgressPreference = $global:ProgressPreference
+    }
+
+    AfterEach {
+        $global:ProgressPreference = $script:SavedProgressPreference
+    }
+
+    It 'sets the session progress preference' {
+        Set-WUProgressPreference -Value SilentlyContinue
+
+        $global:ProgressPreference | Should -Be ([System.Management.Automation.ActionPreference]::SilentlyContinue)
+
+        Set-WUProgressPreference -Value Continue
+
+        $global:ProgressPreference | Should -Be ([System.Management.Automation.ActionPreference]::Continue)
+    }
+
+    It 'does not change the progress preference with WhatIf' {
+        $global:ProgressPreference = [System.Management.Automation.ActionPreference]::Continue
+
+        Set-WUProgressPreference -Value SilentlyContinue -WhatIf
+
+        $global:ProgressPreference | Should -Be ([System.Management.Automation.ActionPreference]::Continue)
+    }
+
+    It 'rejects a value that is not an action preference' {
+        { Set-WUProgressPreference -Value 'Quiet' } | Should -Throw
+    }
+}
+
 Describe 'ConvertTo-WUNativeCommandArgument' {
     It 'preserves an empty argument in Windows PowerShell' {
         ConvertTo-WUNativeCommandArgument -Argument '' | Should -Be '""'

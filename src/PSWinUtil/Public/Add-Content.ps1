@@ -4,7 +4,9 @@ function Add-Content {
     Appends content with UTF-8 without BOM and LF by default.
 
     .DESCRIPTION
-    Proxies Microsoft.PowerShell.Management Add-Content with the Windows PowerShell 5.1 parameters. File system text uses UTF-8 when Encoding is omitted or UTF8 is specified, then the completed file is normalized to UTF-8 without BOM and LF. Other encodings, alternate streams, and non-file-system providers keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Management\Add-Content. PSWinUtil exports this function only in Windows PowerShell Desktop.
+    Proxies Microsoft.PowerShell.Management Add-Content with the Windows PowerShell 5.1 parameters. File system text uses UTF-8 when Encoding is omitted or UTF8 is specified, then the completed file is normalized to UTF-8 without BOM and LF. Other encodings, alternate streams, and non-file-system providers keep the original cmdlet behavior. The original cmdlet remains available as Microsoft.PowerShell.Management\Add-Content. PSWinUtil places this function into the session only in Windows PowerShell Desktop.
+
+    Disable-WUCommandOverride removes this function from the session so the original cmdlet resolves instead, and Enable-WUCommandOverride puts it back.
 
     .PARAMETER Value
     Specifies the content appended to each selected item.
