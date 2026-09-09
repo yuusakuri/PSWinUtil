@@ -2,97 +2,9 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 }
 
-Describe 'Windows 11 registry setting commands' {
-    BeforeEach {
-        Mock -CommandName Set-WURegistrySetting -ModuleName PSWinUtil
-    }
 
-    It 'enables and disables device setup suggestions' {
-        Enable-WUDeviceSetupSuggestions
-        Disable-WUDeviceSetupSuggestions
 
-        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'DeviceSetupSuggestions' -and $Option -eq 'Enable'
-        }
-        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'DeviceSetupSuggestions' -and $Option -eq 'Disable'
-        }
-    }
 
-    It 'sets both taskbar alignments' {
-        Set-WUTaskbarAlignment -Alignment Left
-        Set-WUTaskbarAlignment -Alignment Center
-
-        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'TaskbarAlignment' -and $Option -eq 'Left'
-        }
-        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'TaskbarAlignment' -and $Option -eq 'Center'
-        }
-    }
-
-    It 'sets every taskbar search mode' {
-        foreach ($mode in @('Hidden', 'Icon', 'SearchBox')) {
-            Set-WUTaskbarSearchMode -Mode $mode
-        }
-
-        foreach ($mode in @('Hidden', 'Icon', 'SearchBox')) {
-            Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-                $Name -eq 'TaskbarSearchMode' -and $Option -eq $mode
-            }
-        }
-    }
-
-    It 'sets all Japanese IME input widths through one setting' {
-        Set-WUJapaneseImeHalfWidthInput
-
-        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'JapaneseImeHalfWidthInput' -and $Option -eq 'Set'
-        }
-    }
-
-    It 'forwards WhatIf to registry settings' {
-        Set-WUTaskbarAlignment -Alignment Left -WhatIf
-
-        Should -Invoke -CommandName Set-WURegistrySetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf -eq $true
-        }
-    }
-}
-
-Describe 'Classic context menu commands' {
-    BeforeEach {
-        Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil
-        Mock -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil
-    }
-
-    It 'sets the empty default registry value when enabled' {
-        Enable-WUClassicContextMenu
-
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -like '*InprocServer32' -and
-            $Name -eq '' -and
-            $Value -eq '' -and
-            $Type -eq 'String'
-        }
-    }
-
-    It 'removes only the default registry value when disabled' {
-        Disable-WUClassicContextMenu
-
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -like '*InprocServer32' -and $Name -eq ''
-        }
-    }
-
-    It 'forwards WhatIf to the registry property command' {
-        Enable-WUClassicContextMenu -WhatIf
-
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf -eq $true
-        }
-    }
-}
 
 Describe 'Set-WUJapaneseKeyboardLayout' {
     BeforeAll {

@@ -8,6 +8,20 @@ BeforeAll {
 }
 
 Describe 'Registry property commands' {
+    It 'preserves typed array values across repeated writes and updates' -TestCases @(
+        @{ Type = 'Binary'; First = [byte[]]@(1, 2); Second = [byte[]]@(2, 1) }
+        @{ Type = 'MultiString'; First = @('first', 'second'); Second = @('second', 'first') }
+    ) {
+        param($Type, $First, $Second)
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name Array -Value $First -Type $Type
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name Array -Value $First -Type $Type
+        $stored = Get-WURegistryProperty -Path $script:RegistryTestPath -Name Array
+        $stored.Type | Should -Be $Type
+        $stored.Value | Should -Be $First
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name Array -Value $Second -Type $Type
+        (Get-WURegistryProperty -Path $script:RegistryTestPath -Name Array).Value | Should -Be $Second
+    }
+
     AfterEach {
         if (Test-Path -LiteralPath $script:RegistryTestPath) {
             Remove-Item -LiteralPath $script:RegistryTestPath -Recurse -Force

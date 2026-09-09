@@ -1,0 +1,31 @@
+name: Online integration contracts
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+  pull_request:
+    paths:
+      - 'src/PSWinUtil/Public/Get-WUFlutterSdkUrl.ps1'
+      - 'src/PSWinUtil/Private/Get-WUFlutterSdkRelease.ps1'
+      - 'src/PSWinUtil/Public/Invoke-WUHttpFileDownload.ps1'
+      - 'tests/integration/*OnlineIntegration.Tests.ps1'
+      - '.github/workflows/online-integration.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  online:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: .\install.ps1
+      - run: .\dev.ps1 test-online-integration

@@ -24,8 +24,29 @@ Each public command's help describes its inputs, outputs, and behavior.
 
 Tests import the generated manifest from `output/PSWinUtil`:
 
-- Unit tests isolate command behavior and internal logic with mocks or test doubles.
+- Unit tests verify calculations, transformations, constraints, and state transitions through public behavior. Use test doubles only for dependencies needed to create otherwise impractical scenarios.
 - Integration tests exercise Windows APIs, files, processes, and external components. The `Online` tag identifies integration tests that access an internet service.
 - Contract tests validate the distribution, manifest, assembly loading, public parameter conventions, and public command help.
 
 `dev.ps1 verify` runs the repository checks, builds the distribution, checks the generated command reference, and runs tests without the `Online` tag. GitHub Actions uses the same command. `dev.ps1 test-online-integration` explicitly runs integration tests tagged `Online`.
+
+Follow the [testing guidelines](https://github.com/yuusakuri/dev-rules/pull/60).
+Prefer observable values, saved bytes, registry values, and environment state over
+assertions about calls to internal helpers. Exercise private helpers through public
+commands. Tests that touch real files or environment variables belong in integration,
+even when they need no network or administrator privileges. Test inputs should cover
+meaningfully different valid and invalid groups, boundaries, and prohibited transitions.
+
+The HTTP response integration tests use a loopback TCP server with the real HttpClient
+and file system. They cover a new download, accepted and ignored ranges, interrupted
+transfers, invalid ranges, failure without progress, and WhatIf. These tests verify the
+saved bytes and file handle release; the existing online download tests cover remote
+service behavior. Certificate configuration and environment setting file tests verify
+the real environment through public commands and restore changed values afterward.
+
+Machine environment and PATH tests require an elevated process and are skipped without
+it, like the existing machine registry tests. A successful non-administrator run does
+not establish those behaviors. Run the full suite on an elevated disposable Windows
+runner before merging; autologon, keyboard layout, and online tests retain their explicit
+opt-in requirements. Do not enable destructive tests on a normal workstation simply to
+increase a pass count.
