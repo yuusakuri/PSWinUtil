@@ -1,6 +1,16 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
     $script:Module = Get-Module -Name 'PSWinUtil' -ErrorAction Stop
+    $script:AndroidCommandWasPresent = $null -ne (Get-Command -Name 'android.exe' -ErrorAction SilentlyContinue)
+    if (-not $script:AndroidCommandWasPresent) {
+        Set-Item -Path Function:\global:android.exe -Value { }
+    }
+}
+
+AfterAll {
+    if (-not $script:AndroidCommandWasPresent) {
+        Remove-Item -Path Function:\global:android.exe -ErrorAction SilentlyContinue
+    }
 }
 
 Describe 'Get-WUAndroidPlatformVersion' {
@@ -121,8 +131,9 @@ Describe 'Install-WUAndroidSdk' {
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
         Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil
         Mock -CommandName android.exe -ModuleName PSWinUtil -MockWith {
+            $global:LASTEXITCODE = 0
             $androidArguments = @($args)
-            $script:AndroidCalls += ,$androidArguments
+            $script:AndroidCalls += , $androidArguments
             if ($androidArguments -contains 'list') {
                 if ($androidArguments -contains 'platforms/android-*') {
                     return @(

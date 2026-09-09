@@ -87,7 +87,7 @@ function Install-WUAndroidSdk {
             throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
         }
         $textOutput
-    }.GetNewClosure()
+    }
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
         [string]$PlatformVersion
