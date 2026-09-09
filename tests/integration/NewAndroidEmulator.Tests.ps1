@@ -1,0 +1,50 @@
+$runAndroidIntegration = $env:PSWINUTIL_RUN_ANDROID_INTEGRATION -eq '1'
+
+BeforeAll {
+    . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+}
+
+Describe 'Android SDK AVD integration and CLI contract' -Skip:(-not $runAndroidIntegration) {
+    BeforeAll {
+        if ([string]::IsNullOrWhiteSpace($env:PSWINUTIL_ANDROID_TEST_SDK)) {
+            throw 'Set PSWINUTIL_ANDROID_TEST_SDK to a prepared SDK with Command-Line Tools and accepted licenses.'
+        }
+        $script:SavedAvdHome = $env:ANDROID_AVD_HOME
+        $script:AvdHome = Join-Path $TestDrive 'isolated avds'
+        $null = New-Item -Path $script:AvdHome -ItemType Directory
+        $env:ANDROID_AVD_HOME = $script:AvdHome
+    }
+
+    AfterAll {
+        $env:ANDROID_AVD_HOME = $script:SavedAvdHome
+    }
+
+    It 'creates a real AVD using the selected image and newest installed Pixel profile' {
+        $result = New-WUAndroidEmulator -SdkPath $env:PSWINUTIL_ANDROID_TEST_SDK -Name contract_device -PlatformVersion 29 -SystemImageTag default
+        $result.Name | Should -Be 'contract_device'
+        $result.Device | Should -Match '^pixel_[0-9]+$'
+        $config = [IO.File]::ReadAllText((Join-Path $script:AvdHome 'contract_device.avd/config.ini'))
+        $config | Should -Match ('(?m)^hw.device.name=' + [regex]::Escape($result.Device) + '\r?$')
+        $config | Should -Match '(?m)^image.sysdir.1=system-images[\\/]android-29[\\/]default[\\/]x86_64[\\/]?\r?$'
+        $config | Should -Match '(?m)^abi.type=x86_64\r?$'
+        [IO.File]::ReadAllText((Join-Path $script:AvdHome 'contract_device.ini')) |
+            Should -Match '(?m)^target=android-29\r?$'
+    }
+
+    It 'rejects duplicate names without overwriting an existing configuration' {
+        $parameters = @{ SdkPath = $env:PSWINUTIL_ANDROID_TEST_SDK; Name = 'duplicate'; Device = 'pixel_8'; PlatformVersion = 29; SystemImageTag = 'default' }
+        $null = New-WUAndroidEmulator @parameters
+        $configPath = Join-Path $script:AvdHome 'duplicate.avd/config.ini'
+        $before = [IO.File]::ReadAllText($configPath)
+        { New-WUAndroidEmulator @parameters } | Should -Throw '*already exists*'
+        [IO.File]::ReadAllText($configPath) | Should -Be $before
+        $parameters.Device = 'pixel_9'
+        $null = New-WUAndroidEmulator @parameters -Force
+        [IO.File]::ReadAllText($configPath) | Should -Match '(?m)^hw.device.name=pixel_9\r?$'
+    }
+
+    It 'leaves the isolated AVD home unchanged with WhatIf' {
+        New-WUAndroidEmulator -SdkPath $env:PSWINUTIL_ANDROID_TEST_SDK -Name preview -WhatIf
+        Test-Path -LiteralPath (Join-Path $script:AvdHome 'preview.ini') | Should -BeFalse
+    }
+}

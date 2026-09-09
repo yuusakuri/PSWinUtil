@@ -57,6 +57,22 @@ Preview a persistent environment variable update:
 Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
 ```
 
+Create an Android virtual device with the newest standard Pixel profile available
+in your installed SDK tools and the latest stable system image:
+
+```powershell
+New-WUAndroidEmulator
+New-WUAndroidEmulator -Name 'App_API_35' -Device pixel_8 -PlatformVersion 35
+New-WUAndroidEmulator -PlatformVersion 35 -SystemImageTag google_apis_playstore -Abi x86_64
+```
+
+Java and Android SDK Command-Line Tools are required. Accept the image licenses
+with `sdkmanager --licenses` first. `SdkPath` defaults to `ANDROID_HOME`, then
+`LOCALAPPDATA\Android\Sdk`. `CommandLineToolsVersion` selects an installed tools
+directory (default: `latest`); update the tools to obtain newer Pixel profiles.
+Creation installs the image but does not boot the emulator. Existing AVDs are
+preserved unless `-Force` is supplied; `-WhatIf` performs no SDK calls.
+
 Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
 ```powershell

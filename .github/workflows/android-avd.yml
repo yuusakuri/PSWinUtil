@@ -1,0 +1,51 @@
+name: Android AVD integration
+
+on:
+  pull_request:
+    paths:
+      - 'src/PSWinUtil/**'
+      - 'tests/integration/NewAndroidEmulator.Tests.ps1'
+      - '.github/workflows/android-avd.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '31 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  android-avd:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare Android SDK image
+        run: |
+          $sdkManager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
+          1..100 | ForEach-Object { 'y' } | & $sdkManager --licenses
+          if ($LASTEXITCODE -ne 0) { throw 'SDK license acceptance failed.' }
+          & $sdkManager --install 'system-images;android-29;default;x86_64'
+          if ($LASTEXITCODE -ne 0) { throw 'SDK image installation failed.' }
+      - name: Build the module
+        run: |
+          .\install.ps1
+          .\dev.ps1 build
+      - name: Verify real AVD creation and SDK CLI contracts
+        run: |
+          $env:PSWINUTIL_RUN_ANDROID_INTEGRATION = '1'
+          $env:PSWINUTIL_ANDROID_TEST_SDK = $env:ANDROID_HOME
+          Import-Module Pester -RequiredVersion 6.0.1
+          $result = Invoke-Pester -Path .\tests\integration\NewAndroidEmulator.Tests.ps1 -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0 -or $result.PassedCount -ne 3) {
+            throw 'Android AVD integration did not pass all three tests.'
+          }
