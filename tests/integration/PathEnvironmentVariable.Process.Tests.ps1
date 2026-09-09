@@ -1,4 +1,29 @@
 Describe 'Process PATH integration' {
+    It 'prepends pipeline paths in order and removes all normalized matches' {
+        $env:Path = 'C:\Existing;C:\Duplicate;C:\DUPLICATE\'
+        @('C:\First', 'C:\Second', 'C:\first\') | Add-WUPathEnvironmentVariable -Prepend -Scope Process
+        $env:Path | Should -Be 'C:\First;C:\Second;C:\Existing;C:\Duplicate;C:\DUPLICATE\'
+        Remove-WUPathEnvironmentVariable -Path 'c:\duplicate' -Scope Process
+        $env:Path | Should -Be 'C:\First;C:\Second;C:\Existing'
+        Remove-WUPathEnvironmentVariable -Path 'C:\Missing' -Scope Process
+        $env:Path | Should -Be 'C:\First;C:\Second;C:\Existing'
+    }
+
+    It 'preserves literal environment references while comparing their spelling' {
+        $env:Path = '%TEMP%'
+        Add-WUPathEnvironmentVariable -Path '%temp%' -Scope Process
+        $env:Path | Should -Be '%TEMP%'
+        Remove-WUPathEnvironmentVariable -Path '%temp%' -Scope Process
+        [Environment]::GetEnvironmentVariable('Path', 'Process') | Should -BeNullOrEmpty
+    }
+
+    It 'previews additions and removals without changing the PATH value' {
+        $env:Path = 'C:\Existing'
+        Add-WUPathEnvironmentVariable -Path 'C:\New' -Scope Process -WhatIf
+        Remove-WUPathEnvironmentVariable -Path 'C:\Existing' -Scope Process -WhatIf
+        $env:Path | Should -Be 'C:\Existing'
+    }
+
     BeforeAll {
         $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
         $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'

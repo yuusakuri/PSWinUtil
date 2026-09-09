@@ -3,7 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release', 'docs', 'test-online-integration'
+        'bump', 'release', 'docs', 'test-network-integration'
     )]
     [string]$Command,
 
@@ -52,7 +52,7 @@ Usage:
   .\dev.ps1 test integration
   .\dev.ps1 test contract
   .\dev.ps1 test all
-  .\dev.ps1 test-online-integration
+  .\dev.ps1 test-network-integration
   .\dev.ps1 verify
   .\dev.ps1 ci
   .\dev.ps1 bump 1.2.3
@@ -529,7 +529,7 @@ function Invoke-DevTest {
     $configuration.Run.Path = $testPaths
     $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
-    $configuration.Filter.ExcludeTag = @('Online')
+    $configuration.Filter.ExcludeTag = @('Network')
 
     $testResult = Invoke-Pester -Configuration $configuration
     if (
@@ -541,33 +541,33 @@ function Invoke-DevTest {
     }
 }
 
-function Invoke-DevOnlineIntegrationTest {
+function Invoke-DevNetworkIntegrationTest {
     Invoke-DevBuild
 
-    $onlineIntegrationTests = @(
+    $networkIntegrationTests = @(
         Get-ChildItem `
             -LiteralPath (Join-Path -Path $repositoryRoot -ChildPath 'tests') `
             -File `
             -Recurse `
-            -Filter '*.OnlineIntegration.Tests.ps1'
+            -Filter '*.NetworkIntegration.Tests.ps1'
     )
-    if ($onlineIntegrationTests.Count -eq 0) {
-        throw 'No online integration tests were found.'
+    if ($networkIntegrationTests.Count -eq 0) {
+        throw 'No network integration tests were found.'
     }
 
     $configuration = New-PesterConfiguration
-    $configuration.Run.Path = @($onlineIntegrationTests.FullName)
+    $configuration.Run.Path = @($networkIntegrationTests.FullName)
     $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
-    $configuration.Filter.Tag = @('Online')
+    $configuration.Filter.Tag = @('Network')
 
     $testResult = Invoke-Pester -Configuration $configuration
     if (
         $null -eq $testResult -or
         $testResult.FailedCount -gt 0 -or
-        $testResult.FailedContainersCount -gt 0
+        $testResult.FailedContainersCount -gt 0 -or $testResult.PassedCount -le 0
     ) {
-        throw 'Pester reported one or more failed online integration tests.'
+        throw 'Pester reported one or more failed network integration tests.'
     }
 }
 
@@ -1521,11 +1521,11 @@ switch ($Command) {
         Import-RequiredModule -Name 'Pester'
         Invoke-DevTest -SelectedTestType $selectedTestType
     }
-    'test-online-integration' {
+    'test-network-integration' {
         Assert-DevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        Invoke-DevOnlineIntegrationTest
+        Invoke-DevNetworkIntegrationTest
     }
     'verify' {
         Invoke-DevVerify

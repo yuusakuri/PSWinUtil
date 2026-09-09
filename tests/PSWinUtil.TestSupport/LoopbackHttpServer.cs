@@ -2,6 +2,7 @@ namespace PSWinUtil.Tests
 {
     using System;
     using System.IO;
+    using System.Globalization;
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
@@ -59,20 +60,27 @@ namespace PSWinUtil.Tests
                     using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, true))
                     {
                         var request = reader.ReadLine() ?? string.Empty;
-                        var offset = 0;
+                        var offset = 0L;
                         string line;
                         while (!string.IsNullOrEmpty(line = reader.ReadLine()))
                         {
                             if (line.StartsWith("Range: bytes=", StringComparison.OrdinalIgnoreCase))
                             {
-                                offset = int.Parse(line.Substring(13).TrimEnd('-'));
+                                offset = long.Parse(line.Substring(13).TrimEnd('-'), CultureInfo.InvariantCulture);
                             }
                         }
 
                         var failure = request.Contains("/fail ");
                         var invalid = request.Contains("/invalid ");
                         var partial = offset > 0 && !request.Contains("/ignore ") && !failure;
-                        var start = partial ? offset : 0;
+                        if (partial && offset >= this.body.LongLength)
+                        {
+                            var unsatisfied = Encoding.ASCII.GetBytes("HTTP/1.1 416 Range Not Satisfiable\r\nConnection: close\r\nContent-Length: 0\r\nContent-Range: bytes */" + this.body.LongLength + "\r\n\r\n");
+                            stream.Write(unsatisfied, 0, unsatisfied.Length);
+                            continue;
+                        }
+
+                        var start = partial ? checked((int)offset) : 0;
                         var length = failure ? 0 : this.body.Length - start;
                         var status = failure ? "503 Service Unavailable" : partial ? "206 Partial Content" : "200 OK";
                         var headers = "HTTP/1.1 " + status + "\r\nConnection: close\r\nContent-Length: " + length + "\r\n";

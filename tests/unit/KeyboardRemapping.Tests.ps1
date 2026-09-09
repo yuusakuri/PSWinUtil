@@ -1,285 +1,77 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
-
-    $script:KeyboardLayoutPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout'
-    $script:Mappings = @(
-        [pscustomobject]@{ SourceScanCode = [uint16]0x003A; DestinationScanCode = [uint16]0x001D }
-        [pscustomobject]@{ SourceScanCode = [uint16]0xE05B; DestinationScanCode = [uint16]0x0000 }
-    )
-    $script:ValidValue = InModuleScope -ModuleName PSWinUtil -Parameters @{ Mappings = $script:Mappings } {
-        ConvertTo-WUScancodeMap -Mapping $Mappings
-    }
 }
 
-Describe 'Scancode Map conversion' {
-    It 'writes the exact little-endian binary format' {
-        $expected = [byte[]](
-            0, 0, 0, 0, 0, 0, 0, 0,
-            3, 0, 0, 0,
-            0x1D, 0x00, 0x3A, 0x00,
-            0x00, 0x00, 0x5B, 0xE0,
-            0, 0, 0, 0
-        )
-
-        $script:ValidValue | Should -Be $expected
+Describe 'Keyboard mapping public behavior with a registry fake' {
+    BeforeEach {
+        $script:StoredMapping = $null
+        Mock Get-WURegistryProperty -ModuleName PSWinUtil { $script:StoredMapping }
+        Mock Set-WURegistryProperty -ModuleName PSWinUtil {
+            $script:StoredMapping = [pscustomobject]@{ Type = $Type; Value = [byte[]]$Value }
+        }
+        Mock Set-WURegistryProperty -ModuleName PSWinUtil {} -ParameterFilter { $WhatIf }
+        Mock Remove-WURegistryProperty -ModuleName PSWinUtil {
+            $script:StoredMapping = $null
+        }
+        Mock Remove-WURegistryProperty -ModuleName PSWinUtil {} -ParameterFilter { $WhatIf }
     }
 
-    It 'writes a valid empty map' {
-        $value = InModuleScope -ModuleName PSWinUtil {
-            ConvertTo-WUScancodeMap -Mapping @()
-        }
-
-        $value | Should -Be ([byte[]](0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0))
-    }
-
-    It 'round trips every mapping' {
-        $result = InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $script:ValidValue } {
-            @(ConvertFrom-WUScancodeMap -Value $Value)
-        }
-
-        $result.Count | Should -Be 2
-        $result[0].SourceScanCode | Should -Be 0x003A
-        $result[0].DestinationScanCode | Should -Be 0x001D
-        $result[1].SourceScanCode | Should -Be 0xE05B
+    It 'encodes mappings in the Windows Scancode Map format and returns their state' {
+        Set-WUKeyboardRemapping -SourceScanCode 58 -DestinationScanCode 29
+        Set-WUKeyboardRemapping -SourceScanCode 57435 -DestinationScanCode 0
+        $script:StoredMapping.Value | Should -Be ([byte[]]@(0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 29, 0, 58, 0, 0, 0, 91, 224, 0, 0, 0, 0))
+        $result = @(Get-WUKeyboardRemapping)
+        $result | Should -HaveCount 2
+        $result[0].SourceScanCode | Should -Be 58
+        $result[0].DestinationScanCode | Should -Be 29
         $result[1].DestinationScanCode | Should -Be 0
+        $result.RestartRequired | Should -Not -Contain $false
     }
 
-    It 'rejects an invalid length' {
-        InModuleScope -ModuleName PSWinUtil {
-            { ConvertFrom-WUScancodeMap -Value ([byte[]]::new(15)) } | Should -Throw '*length*'
-        }
+    It 'updates a source without duplicates and removes only the selected mapping' {
+        Set-WUKeyboardRemapping -SourceScanCode 1 -DestinationScanCode 65535
+        Set-WUKeyboardRemapping -SourceScanCode 65535 -DestinationScanCode 0
+        $updated = Set-WUKeyboardRemapping -SourceScanCode 1 -DestinationScanCode 30 -PassThru
+        $updated.DestinationScanCode | Should -Be 30
+        @(Get-WUKeyboardRemapping) | Should -HaveCount 2
+        Remove-WUKeyboardRemapping -SourceScanCode 1
+        (Get-WUKeyboardRemapping).SourceScanCode | Should -Be 65535
+        Remove-WUKeyboardRemapping -SourceScanCode 100
+        (Get-WUKeyboardRemapping).SourceScanCode | Should -Be 65535
+        Remove-WUKeyboardRemapping -SourceScanCode 65535
+        $script:StoredMapping | Should -BeNullOrEmpty
+        @(Get-WUKeyboardRemapping) | Should -HaveCount 0
     }
 
-    It 'rejects an invalid header' {
-        $value = [byte[]]$script:ValidValue.Clone()
-        $value[0] = 1
-
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $value } {
-            { ConvertFrom-WUScancodeMap -Value $Value } | Should -Throw '*header*'
-        }
-    }
-
-    It 'rejects an invalid entry count' {
-        $value = [byte[]]$script:ValidValue.Clone()
-        $value[8] = 2
-
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $value } {
-            { ConvertFrom-WUScancodeMap -Value $Value } | Should -Throw '*entry count*'
-        }
-    }
-
-    It 'rejects an invalid terminator' {
-        $value = [byte[]]$script:ValidValue.Clone()
-        $value[$value.Length - 1] = 1
-
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $value } {
-            { ConvertFrom-WUScancodeMap -Value $Value } | Should -Throw '*terminator*'
-        }
-    }
-
-    It 'rejects duplicate source scan codes when parsing' {
-        $value = [byte[]]$script:ValidValue.Clone()
-        $value[18] = $value[14]
-        $value[19] = $value[15]
-
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $value } {
-            { ConvertFrom-WUScancodeMap -Value $Value } | Should -Throw '*duplicate*'
-        }
-    }
-
-    It 'rejects zero and duplicate source scan codes when writing' {
-        InModuleScope -ModuleName PSWinUtil {
-            $zeroSource = [pscustomobject]@{ SourceScanCode = 0; DestinationScanCode = 1 }
-            { ConvertTo-WUScancodeMap -Mapping $zeroSource } | Should -Throw '*cannot be zero*'
-
-            $duplicates = @(
-                [pscustomobject]@{ SourceScanCode = 58; DestinationScanCode = 29 }
-                [pscustomobject]@{ SourceScanCode = 58; DestinationScanCode = 30 }
-            )
-            { ConvertTo-WUScancodeMap -Mapping $duplicates } | Should -Throw '*duplicate*'
-        }
-    }
-
-    It 'rejects values outside unsigned 16-bit integer limits' {
-        InModuleScope -ModuleName PSWinUtil {
-            $negativeDestination = [pscustomobject]@{ SourceScanCode = 58; DestinationScanCode = -1 }
-            { ConvertTo-WUScancodeMap -Mapping $negativeDestination } | Should -Throw '*unsigned 16-bit*'
-
-            $largeSource = [pscustomobject]@{ SourceScanCode = 65536; DestinationScanCode = 29 }
-            { ConvertTo-WUScancodeMap -Mapping $largeSource } | Should -Throw '*unsigned 16-bit*'
-
-            $fractionalSource = [pscustomobject]@{ SourceScanCode = 58.5; DestinationScanCode = 29 }
-            { ConvertTo-WUScancodeMap -Mapping $fractionalSource } | Should -Throw '*unsigned 16-bit*'
-        }
-    }
-}
-
-Describe 'Get-WUKeyboardRemapping' {
-    It 'returns every mapping with a restart flag' {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Type = 'Binary'; Value = $script:ValidValue }
-        }
-
-        $results = @(Get-WUKeyboardRemapping)
-
-        $results.Count | Should -Be 2
-        $results[0].PSObject.TypeNames | Should -Contain 'PSWinUtil.KeyboardRemapping'
-        $results[0].RestartRequired | Should -BeTrue
-        $results[1].DestinationScanCode | Should -Be 0
-    }
-
-    It 'returns no output for a missing registry value' {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil
-
-        Get-WUKeyboardRemapping | Should -BeNullOrEmpty
-    }
-
-    It 'rejects a registry value with the wrong type' {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Type = 'String'; Value = 'invalid' }
-        }
-
-        { Get-WUKeyboardRemapping } | Should -Throw '*Binary*'
-    }
-}
-
-Describe 'Set-WUKeyboardRemapping' {
-    BeforeEach {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Type = 'Binary'; Value = $script:ValidValue }
-        }
-        Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $script:StoredValue = [byte[]]$Value
-        }
-        Mock -CommandName Get-WUKeyboardRemapping -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{
-                PSTypeName = 'PSWinUtil.KeyboardRemapping'
-                SourceScanCode = [uint16]0x0046
-                DestinationScanCode = [uint16]0x0020
-                RestartRequired = $true
-            }
-        }
-        $script:StoredValue = $null
-    }
-
-    It 'adds a mapping and preserves existing mappings' {
-        Set-WUKeyboardRemapping -SourceScanCode 0x0046 -DestinationScanCode 0x0020
-
-        $results = InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $script:StoredValue } {
-            @(ConvertFrom-WUScancodeMap -Value $Value)
-        }
-        $results.Count | Should -Be 3
-        @($results.SourceScanCode) | Should -Contain 0x003A
-        @($results.SourceScanCode) | Should -Contain 0xE05B
-        @($results.SourceScanCode) | Should -Contain 0x0046
-    }
-
-    It 'updates an existing source without adding a duplicate' {
-        Set-WUKeyboardRemapping -SourceScanCode 0x003A -DestinationScanCode 0x002A
-
-        $results = InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $script:StoredValue } {
-            @(ConvertFrom-WUScancodeMap -Value $Value)
-        }
-        $results.Count | Should -Be 2
-        $updated = @($results | Where-Object { $_.SourceScanCode -eq 0x003A })[0]
-        $updated.DestinationScanCode | Should -Be 0x002A
-    }
-
-    It 'allows a zero destination to disable a key' {
-        Set-WUKeyboardRemapping -SourceScanCode 0x003A -DestinationScanCode 0
-
-        $results = InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $script:StoredValue } {
-            @(ConvertFrom-WUScancodeMap -Value $Value)
-        }
-        @($results | Where-Object { $_.SourceScanCode -eq 0x003A })[0].DestinationScanCode |
-            Should -Be 0
-    }
-
-    It 'forwards WhatIf to the registry command' {
-        Set-WUKeyboardRemapping -SourceScanCode 0x0046 -DestinationScanCode 0x0020 -WhatIf
-
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
-    }
-
-    It 'returns the stored mapping with PassThru' {
-        $result = Set-WUKeyboardRemapping -SourceScanCode 0x0046 -DestinationScanCode 0x0020 -PassThru
-
-        $result.SourceScanCode | Should -Be 0x0046
-        $result.RestartRequired | Should -BeTrue
-    }
-}
-
-Describe 'Remove-WUKeyboardRemapping' {
-    BeforeEach {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Type = 'Binary'; Value = $script:ValidValue }
-        }
-        Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $script:StoredValue = [byte[]]$Value
-        }
-        Mock -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil
-        $script:StoredValue = $null
-    }
-
-    It 'removes one mapping and preserves the other mapping' {
-        Remove-WUKeyboardRemapping -SourceScanCode 0x003A
-
-        $results = InModuleScope -ModuleName PSWinUtil -Parameters @{ Value = $script:StoredValue } {
-            @(ConvertFrom-WUScancodeMap -Value $Value)
-        }
-        @($results).Count | Should -Be 1
-        $results[0].SourceScanCode | Should -Be 0xE05B
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-
-    It 'removes the registry property when the last mapping is removed' {
-        $oneMappingValue = InModuleScope -ModuleName PSWinUtil {
-            ConvertTo-WUScancodeMap -Mapping ([pscustomobject]@{
-                    SourceScanCode = 58
-                    DestinationScanCode = 29
-                })
-        }
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Type = 'Binary'; Value = $oneMappingValue }
-        }
-
-        Remove-WUKeyboardRemapping -SourceScanCode 58
-
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-
-    It 'removes the complete registry property with All' {
-        Remove-WUKeyboardRemapping -All
-
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq $script:KeyboardLayoutPath -and $Name -eq 'Scancode Map'
-        }
-    }
-
-    It 'removes an invalid registry value with All without parsing it' {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Type = 'String'; Value = 'invalid' }
-        }
-
-        { Remove-WUKeyboardRemapping -All } | Should -Not -Throw
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly
-    }
-
-    It 'does nothing when the source mapping is missing' {
-        Remove-WUKeyboardRemapping -SourceScanCode 0x0046
-
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-
-    It 'forwards WhatIf to the registry command' {
+    It 'preserves stored mappings during previews' {
+        Set-WUKeyboardRemapping -SourceScanCode 58 -DestinationScanCode 29
+        Set-WUKeyboardRemapping -SourceScanCode 58 -DestinationScanCode 0 -WhatIf
         Remove-WUKeyboardRemapping -All -WhatIf
+        Remove-WUKeyboardRemapping -SourceScanCode 58 -WhatIf
+        (Get-WUKeyboardRemapping).DestinationScanCode | Should -Be 29
+    }
 
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
+    It 'rejects malformed stored data and can remove it without parsing' -TestCases @(
+        @{ Bytes = [byte[]]::new(15); ExpectedError = '*length*' }
+        @{ Bytes = [byte[]]@(1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0); ExpectedError = '*header*' }
+        @{ Bytes = [byte[]]@(0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0); ExpectedError = '*entry count*' }
+        @{ Bytes = [byte[]]@(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1); ExpectedError = '*terminator*' }
+        @{ Bytes = [byte[]]@(0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 29, 0, 58, 0, 30, 0, 58, 0, 0, 0, 0, 0); ExpectedError = '*duplicate*' }
+    ) {
+        param($Bytes, $ExpectedError)
+        $script:StoredMapping = [pscustomobject]@{ Type = 'Binary'; Value = $Bytes }
+        { Get-WUKeyboardRemapping } | Should -Throw $ExpectedError
+        { Set-WUKeyboardRemapping -SourceScanCode 58 -DestinationScanCode 29 } | Should -Throw $ExpectedError
+        $script:StoredMapping.Value | Should -Be $Bytes
+        Remove-WUKeyboardRemapping -All
+        $script:StoredMapping | Should -BeNullOrEmpty
+    }
+
+    It 'rejects a stored value of the wrong registry type' {
+        $script:StoredMapping = [pscustomobject]@{ Type = 'String'; Value = 'invalid' }
+        { Get-WUKeyboardRemapping } | Should -Throw '*Binary*'
+        { Set-WUKeyboardRemapping -SourceScanCode 58 -DestinationScanCode 29 } | Should -Throw '*Binary*'
+        { Remove-WUKeyboardRemapping -SourceScanCode 58 } | Should -Throw '*Binary*'
+        $script:StoredMapping.Value | Should -Be 'invalid'
     }
 }

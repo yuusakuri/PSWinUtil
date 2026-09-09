@@ -8,6 +8,20 @@ BeforeAll {
 }
 
 Describe 'Registry property commands' {
+    It 'round-trips a 64-bit integer beyond the 32-bit range' {
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Large' -Type QWord -Value ([long]4294967296)
+        $stored = Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Large'
+        $stored.Type | Should -Be 'QWord'
+        $stored.Value | Should -Be ([long]4294967296)
+    }
+
+    It 'preserves unexpanded environment references in ExpandString values' {
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Location' -Type ExpandString -Value '%TEMP%\PSWinUtil'
+        $stored = Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Location'
+        $stored.Type | Should -Be 'ExpandString'
+        $stored.Value | Should -Be '%TEMP%\PSWinUtil'
+    }
+
     It 'preserves typed array values across repeated writes and updates' -TestCases @(
         @{ Type = 'Binary'; First = [byte[]]@(1, 2); Second = [byte[]]@(2, 1) }
         @{ Type = 'MultiString'; First = @('first', 'second'); Second = @('second', 'first') }

@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 }
 
-Describe 'Flutter release metadata contract' -Tag Online {
+Describe 'Flutter release metadata contract' -Tag Network {
     It 'resolves a published <Channel> Windows SDK archive' -TestCases @(
         @{ Channel = 'stable' }
         @{ Channel = 'beta' }

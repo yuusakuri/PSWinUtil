@@ -1,4 +1,4 @@
-name: Online integration contracts
+name: Network integration contracts
 
 on:
   workflow_dispatch:
@@ -9,14 +9,14 @@ on:
       - 'src/PSWinUtil/Public/Get-WUFlutterSdkUrl.ps1'
       - 'src/PSWinUtil/Private/Get-WUFlutterSdkRelease.ps1'
       - 'src/PSWinUtil/Public/Invoke-WUHttpFileDownload.ps1'
-      - 'tests/integration/*OnlineIntegration.Tests.ps1'
-      - '.github/workflows/online-integration.yml'
+      - 'tests/integration/*NetworkIntegration.Tests.ps1'
+      - '.github/workflows/network-integration.yml'
 
 permissions:
   contents: read
 
 jobs:
-  online:
+  network:
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
@@ -28,4 +28,4 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - run: .\install.ps1
-      - run: .\dev.ps1 test-online-integration
+      - run: .\dev.ps1 test-network-integration

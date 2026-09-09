@@ -32,6 +32,10 @@ Describe 'Convert-WUUri' {
 }
 
 Describe 'New-WURandomString' {
+    It 'supports the minimum requested length' {
+        New-WURandomString -Length 1 | Should -Match '^[A-Za-z0-9]$'
+    }
+
     It 'returns the requested length and character set' {
         $result = New-WURandomString -Length 128
 
