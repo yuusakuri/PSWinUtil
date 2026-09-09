@@ -156,8 +156,7 @@ Describe 'Invoke-WUFlutterSdkCommand' {
 
                 Invoke-WUFlutterSdkCommand `
                     -Command $Executable `
-                    -ArgumentList '-NoProfile', '-Command', '$lines=@($input);Write-Output $lines.Count;exit 0' `
-                    -SendYesInput
+                    -ArgumentList '-NoProfile', '-Command', '$lines=@($input);Write-Output $lines.Count;#', '--android-licenses'
             } $script:PowerShellExecutable 6>&1
         )
 
@@ -307,7 +306,7 @@ Describe 'Install-WUFlutterSdk' {
             $ArgumentList.Count -eq 2 -and
             $ArgumentList[0] -eq 'doctor' -and
             $ArgumentList[1] -eq '--android-licenses' -and
-            $SendYesInput
+            $ArgumentList -contains '--android-licenses'
         }
         $script:OperationOrder | Should -Be @(
             'release'

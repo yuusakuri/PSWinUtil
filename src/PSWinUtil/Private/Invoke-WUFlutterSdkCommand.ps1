@@ -15,9 +15,6 @@ function Invoke-WUFlutterSdkCommand {
     .PARAMETER IgnoreExitCode
     Prevents a nonzero exit code from causing an error.
 
-    .PARAMETER SendYesInput
-    Sends up to 100 y lines to the command's standard input.
-
     .EXAMPLE
     Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
 
@@ -44,11 +41,7 @@ function Invoke-WUFlutterSdkCommand {
         [ValidateNotNull()]
         [string[]]$ArgumentList,
 
-        [Parameter()]
-        [switch]$IgnoreExitCode,
-
-        [Parameter()]
-        [switch]$SendYesInput
+        [switch]$IgnoreExitCode
     )
 
     $application = Get-Command -Name $Command -CommandType Application -ErrorAction Stop |
@@ -56,7 +49,7 @@ function Invoke-WUFlutterSdkCommand {
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        if ($SendYesInput) {
+        if ($ArgumentList -contains '--android-licenses') {
             $commandOutput = @(
                 & { 1..100 | ForEach-Object { 'y' } } | & $application.Source @ArgumentList 2>&1
             )
