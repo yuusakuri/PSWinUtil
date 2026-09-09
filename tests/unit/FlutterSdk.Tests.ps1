@@ -148,6 +148,22 @@ Describe 'Invoke-WUFlutterSdkCommand' {
             } $script:PowerShellExecutable
         } | Should -Not -Throw
     }
+
+    It 'responds to a y/N prompt with y' {
+        $informationOutput = @(
+            & $script:Module {
+                param($Executable)
+
+                Invoke-WUFlutterSdkCommand `
+                    -Command $Executable `
+                    -ArgumentList '-NoProfile', '-Command', '[Console]::Out.Write(''(y/N)?'');[Console]::Out.Flush();$line=[Console]::In.ReadLine();Write-Output $line;exit 0' `
+                    -RespondToYesPrompt
+            } $script:PowerShellExecutable 6>&1
+        )
+
+        (@($informationOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine) |
+            Should -Match '\(y/N\)\?y'
+    }
 }
 
 Describe 'Install-WUFlutterSdk' {
@@ -286,6 +302,13 @@ Describe 'Install-WUFlutterSdk' {
             $ArgumentList[0] -eq 'doctor' -and
             $IgnoreExitCode
         }
+        Should -Invoke -CommandName Invoke-WUFlutterSdkCommand -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Command -eq 'flutter' -and
+            $ArgumentList.Count -eq 2 -and
+            $ArgumentList[0] -eq 'doctor' -and
+            $ArgumentList[1] -eq '--android-licenses' -and
+            $RespondToYesPrompt
+        }
         $script:OperationOrder | Should -Be @(
             'release'
             'download'
@@ -293,6 +316,7 @@ Describe 'Install-WUFlutterSdk' {
             'path-Process'
             'flutter --version'
             'dart --version'
+            'flutter doctor --android-licenses'
             'flutter doctor'
         )
     }

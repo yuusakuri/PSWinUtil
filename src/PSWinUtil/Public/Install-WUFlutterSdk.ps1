@@ -159,6 +159,10 @@ function Install-WUFlutterSdk {
 
             Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
             Invoke-WUFlutterSdkCommand -Command 'dart' -ArgumentList '--version'
+            Invoke-WUFlutterSdkCommand `
+                -Command 'flutter' `
+                -ArgumentList 'doctor', '--android-licenses' `
+                -RespondToYesPrompt
             Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList 'doctor' -IgnoreExitCode
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
