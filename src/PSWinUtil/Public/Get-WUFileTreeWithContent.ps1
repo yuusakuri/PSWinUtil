@@ -93,50 +93,6 @@ function Get-WUFileTreeWithContent {
         }
 
         $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
-        $writeItem = {
-            param(
-                [Parameter(Mandatory = $true)]
-                [System.IO.FileSystemInfo]$Item
-            )
-
-            $isDirectory = $Item -is [System.IO.DirectoryInfo]
-            $content = $null
-            if (-not $isDirectory) {
-                try {
-                    $candidateContent = [System.IO.File]::ReadAllText($Item.FullName, $utf8)
-                    if ($candidateContent.IndexOf([char]0) -lt 0) {
-                        $content = $candidateContent
-                    }
-                } catch [System.Text.DecoderFallbackException] {
-                    $content = $null
-                }
-            }
-
-            if (-not $AsXml) {
-                [pscustomobject]@{
-                    PSTypeName = 'PSWinUtil.FileTreeContent'
-                    Path = $Item.FullName
-                    ItemType = if ($isDirectory) { 'Directory' } else { 'File' }
-                    Content = $content
-                }
-                return
-            }
-
-            $null = [System.Xml.XmlConvert]::VerifyXmlChars($Item.FullName)
-            $escapedPath = [System.Security.SecurityElement]::Escape($Item.FullName)
-            if ($isDirectory) {
-                '<document path="{0}" type="directory" />' -f $escapedPath
-                return
-            }
-            if ($null -eq $content) {
-                '<document path="{0}" type="file" />' -f $escapedPath
-                return
-            }
-
-            $null = [System.Xml.XmlConvert]::VerifyXmlChars($content)
-            $escapedContent = [System.Security.SecurityElement]::Escape($content)
-            '<document path="{0}" type="file">{1}</document>' -f $escapedPath, $escapedContent
-        }
 
         if ($AsXml) {
             '<documents>'
@@ -155,7 +111,10 @@ function Get-WUFileTreeWithContent {
         )
         foreach ($fullPath in $fullPaths) {
             if ([System.IO.File]::Exists($fullPath)) {
-                & $writeItem -Item ([System.IO.FileInfo]::new($fullPath))
+                Write-WUFileTreeContentItem `
+                    -Item ([System.IO.FileInfo]::new($fullPath)) `
+                    -Utf8 $utf8 `
+                    -AsXml:$AsXml
                 continue
             }
 
@@ -167,7 +126,10 @@ function Get-WUFileTreeWithContent {
             while ($stack.Count -gt 0) {
                 $node = $stack.Pop()
                 if ($node.Depth -ge $MinDepth) {
-                    & $writeItem -Item $node.Item
+                    Write-WUFileTreeContentItem `
+                        -Item $node.Item `
+                        -Utf8 $utf8 `
+                        -AsXml:$AsXml
                 }
 
                 $isDirectory = $node.Item -is [System.IO.DirectoryInfo]

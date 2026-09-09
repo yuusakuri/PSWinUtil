@@ -1,5 +1,38 @@
 $runKeyboardLayoutIntegration = $env:PSWINUTIL_RUN_KEYBOARD_LAYOUT_INTEGRATION -eq '1'
 
+function Save-PSWinUtilRegistryProperty {
+    param([hashtable[]]$Property)
+
+    @(
+        foreach ($inputProperty in $Property) {
+            [pscustomobject]@{
+                Path = $inputProperty.Path
+                Name = $inputProperty.Name
+                Value = Get-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name
+            }
+        }
+    )
+}
+
+function Restore-PSWinUtilRegistryProperty {
+    param([object[]]$Property)
+
+    foreach ($inputProperty in $Property) {
+        if ($null -eq $inputProperty.Value) {
+            Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name -Confirm:$false
+            continue
+        }
+        $parameters = @{
+            Path = $inputProperty.Path
+            Name = $inputProperty.Name
+            Value = $inputProperty.Value.Value
+            Type = $inputProperty.Value.Type
+            Confirm = $false
+        }
+        Set-WURegistryProperty @parameters
+    }
+}
+
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
@@ -66,48 +99,15 @@ BeforeAll {
             Name = 'OverrideKeyboardType'
         }
     )
-
-    $script:SaveRegistryProperties = {
-        param([hashtable[]]$Property)
-
-        @(
-            foreach ($inputProperty in $Property) {
-                [pscustomobject]@{
-                    Path = $inputProperty.Path
-                    Name = $inputProperty.Name
-                    Value = Get-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name
-                }
-            }
-        )
-    }
-
-    $script:RestoreRegistryProperties = {
-        param([object[]]$Property)
-
-        foreach ($inputProperty in $Property) {
-            if ($null -eq $inputProperty.Value) {
-                Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name -Confirm:$false
-                continue
-            }
-            $parameters = @{
-                Path = $inputProperty.Path
-                Name = $inputProperty.Name
-                Value = $inputProperty.Value.Value
-                Type = $inputProperty.Value.Type
-                Confirm = $false
-            }
-            Set-WURegistryProperty @parameters
-        }
-    }
 }
 
 Describe 'Windows 11 user setting registry changes' {
     BeforeEach {
-        $script:SavedWindows11Properties = & $script:SaveRegistryProperties -Property $script:Windows11RegistryProperties
+        $script:SavedWindows11Properties = Save-PSWinUtilRegistryProperty -Property $script:Windows11RegistryProperties
     }
 
     AfterEach {
-        & $script:RestoreRegistryProperties -Property $script:SavedWindows11Properties
+        Restore-PSWinUtilRegistryProperty -Property $script:SavedWindows11Properties
     }
 
     It 'writes both device setup suggestion states' {
@@ -170,7 +170,7 @@ Describe 'Japanese keyboard layout device behavior' {
         if (-not $runKeyboardLayoutIntegration) {
             return
         }
-        $script:SavedKeyboardProperties = & $script:SaveRegistryProperties -Property $script:KeyboardRegistryProperties
+        $script:SavedKeyboardProperties = Save-PSWinUtilRegistryProperty -Property $script:KeyboardRegistryProperties
         $script:SavedLanguageList = Get-WinUserLanguageList
     }
 
@@ -178,7 +178,7 @@ Describe 'Japanese keyboard layout device behavior' {
         if (-not $runKeyboardLayoutIntegration) {
             return
         }
-        & $script:RestoreRegistryProperties -Property $script:SavedKeyboardProperties
+        Restore-PSWinUtilRegistryProperty -Property $script:SavedKeyboardProperties
         Set-WinUserLanguageList -LanguageList $script:SavedLanguageList -Force
     }
 

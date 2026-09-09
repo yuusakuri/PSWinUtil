@@ -1,3 +1,46 @@
+function Restore-PSWinUtilEnvironment {
+    [System.Environment]::SetEnvironmentVariable(
+        $script:EnvironmentName,
+        $script:OriginalUserValue,
+        $script:UserTarget
+    )
+    [System.Environment]::SetEnvironmentVariable(
+        $script:EnvironmentName,
+        $script:OriginalMachineValue,
+        $script:MachineTarget
+    )
+    [System.Environment]::SetEnvironmentVariable(
+        'Path',
+        $script:OriginalUserPath,
+        $script:UserTarget
+    )
+    [System.Environment]::SetEnvironmentVariable(
+        'Path',
+        $script:OriginalMachinePath,
+        $script:MachineTarget
+    )
+
+    $currentProcessEnvironment = [System.Environment]::GetEnvironmentVariables(
+        $script:ProcessTarget
+    )
+    foreach ($environmentName in $currentProcessEnvironment.Keys) {
+        if (-not $script:OriginalProcessEnvironment.Contains($environmentName)) {
+            [System.Environment]::SetEnvironmentVariable(
+                [string]$environmentName,
+                $null,
+                $script:ProcessTarget
+            )
+        }
+    }
+    foreach ($environmentName in $script:OriginalProcessEnvironment.Keys) {
+        [System.Environment]::SetEnvironmentVariable(
+            [string]$environmentName,
+            [string]$script:OriginalProcessEnvironment[$environmentName],
+            $script:ProcessTarget
+        )
+    }
+}
+
 Describe 'Process environment update integration' {
     BeforeAll {
         $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
@@ -31,61 +74,18 @@ Describe 'Process environment update integration' {
         $script:UserTestPath = Join-Path -Path $TestDrive -ChildPath 'user-path'
         $null = [System.IO.Directory]::CreateDirectory($script:MachineTestPath)
         $null = [System.IO.Directory]::CreateDirectory($script:UserTestPath)
-
-        $script:RestoreEnvironment = {
-            [System.Environment]::SetEnvironmentVariable(
-                $script:EnvironmentName,
-                $script:OriginalUserValue,
-                $script:UserTarget
-            )
-            [System.Environment]::SetEnvironmentVariable(
-                $script:EnvironmentName,
-                $script:OriginalMachineValue,
-                $script:MachineTarget
-            )
-            [System.Environment]::SetEnvironmentVariable(
-                'Path',
-                $script:OriginalUserPath,
-                $script:UserTarget
-            )
-            [System.Environment]::SetEnvironmentVariable(
-                'Path',
-                $script:OriginalMachinePath,
-                $script:MachineTarget
-            )
-
-            $currentProcessEnvironment = [System.Environment]::GetEnvironmentVariables(
-                $script:ProcessTarget
-            )
-            foreach ($environmentName in $currentProcessEnvironment.Keys) {
-                if (-not $script:OriginalProcessEnvironment.Contains($environmentName)) {
-                    [System.Environment]::SetEnvironmentVariable(
-                        [string]$environmentName,
-                        $null,
-                        $script:ProcessTarget
-                    )
-                }
-            }
-            foreach ($environmentName in $script:OriginalProcessEnvironment.Keys) {
-                [System.Environment]::SetEnvironmentVariable(
-                    [string]$environmentName,
-                    [string]$script:OriginalProcessEnvironment[$environmentName],
-                    $script:ProcessTarget
-                )
-            }
-        }
     }
 
     BeforeEach {
-        & $script:RestoreEnvironment
+        Restore-PSWinUtilEnvironment
     }
 
     AfterEach {
-        & $script:RestoreEnvironment
+        Restore-PSWinUtilEnvironment
     }
 
     AfterAll {
-        & $script:RestoreEnvironment
+        Restore-PSWinUtilEnvironment
     }
 
     It 'copies a Machine variable to the current process' {

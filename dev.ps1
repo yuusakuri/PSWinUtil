@@ -38,7 +38,7 @@ $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnal
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
 $commandReferencePath = Join-Path -Path $repositoryRoot -ChildPath 'docs/reference/commands.md'
 
-$writeUsage = {
+function Write-DevUsage {
     Write-Output -InputObject @'
 Usage:
   .\dev.ps1 format
@@ -63,7 +63,7 @@ Usage:
 $isDotSourced = $MyInvocation.InvocationName -eq '.'
 
 if ([string]::IsNullOrWhiteSpace($Command) -and -not $isDotSourced) {
-    & $writeUsage
+    Write-DevUsage
     exit 0
 }
 
@@ -92,7 +92,7 @@ function Import-RequiredModule {
     }
 }
 
-$getSourceFiles = {
+function Get-DevSourceFile {
     $rootFileNames = @(
         'install.ps1'
         'dev.ps1'
@@ -125,7 +125,7 @@ $getSourceFiles = {
     @($files | Sort-Object -Property FullName -Unique)
 }
 
-$getDotnetSourceFiles = {
+function Get-DevDotnetSourceFile {
     $projectDirectories = @(
         (Split-Path -Path $nativeProjectPath -Parent)
         (Split-Path -Path $testSupportProjectPath -Parent)
@@ -147,7 +147,7 @@ $getDotnetSourceFiles = {
     @($files | Sort-Object -Property FullName -Unique)
 }
 
-$assertAsciiFile = {
+function Assert-DevAsciiFile {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -174,7 +174,7 @@ $assertAsciiFile = {
     }
 }
 
-$assertPowerShellSyntax = {
+function Assert-DevPowerShellSyntax {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -194,7 +194,7 @@ $assertPowerShellSyntax = {
     }
 }
 
-$assertFunctionFile = {
+function Assert-DevFunctionFile {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -227,7 +227,7 @@ $assertFunctionFile = {
     }
 }
 
-$assertSource = {
+function Assert-DevSource {
     $requiredPaths = @(
         $moduleSourceDirectory
         (Join-Path -Path $moduleSourceDirectory -ChildPath 'Public')
@@ -273,14 +273,14 @@ $assertSource = {
         }
     }
 
-    $sourceFiles = @(& $getSourceFiles)
+    $sourceFiles = @(Get-DevSourceFile)
     foreach ($sourceFile in $sourceFiles) {
-        & $assertAsciiFile -File $sourceFile
-        & $assertPowerShellSyntax -File $sourceFile
+        Assert-DevAsciiFile -File $sourceFile
+        Assert-DevPowerShellSyntax -File $sourceFile
     }
 
-    foreach ($dotnetSourceFile in @(& $getDotnetSourceFiles)) {
-        & $assertAsciiFile -File $dotnetSourceFile
+    foreach ($dotnetSourceFile in @(Get-DevDotnetSourceFile)) {
+        Assert-DevAsciiFile -File $dotnetSourceFile
     }
 
     $functionDirectories = @(
@@ -292,18 +292,18 @@ $assertSource = {
             Get-ChildItem -LiteralPath $functionDirectory -Filter '*.ps1' -File
         )
         foreach ($functionFile in $functionFiles) {
-            & $assertFunctionFile -File $functionFile
+            Assert-DevFunctionFile -File $functionFile
         }
     }
 }
 
-$invokeFormat = {
+function Invoke-DevFormat {
     param(
         [switch]$Check
     )
 
     $differentFiles = @()
-    foreach ($sourceFile in @(& $getSourceFiles)) {
+    foreach ($sourceFile in @(Get-DevSourceFile)) {
         $sourceText = [System.IO.File]::ReadAllText($sourceFile.FullName)
         $formattedText = Invoke-Formatter -ScriptDefinition $sourceText -Settings $formatterSettingsPath
 
@@ -326,9 +326,9 @@ $invokeFormat = {
     }
 }
 
-$invokeAnalyze = {
+function Invoke-DevAnalyze {
     $analysisResults = @()
-    foreach ($sourceFile in @(& $getSourceFiles)) {
+    foreach ($sourceFile in @(Get-DevSourceFile)) {
         $analysisResults += @(
             Invoke-ScriptAnalyzer -Path $sourceFile.FullName -Settings $analyzerSettingsPath
         )
@@ -345,7 +345,7 @@ $invokeAnalyze = {
     }
 }
 
-$buildDotnetAssembly = {
+function Invoke-DevDotnetAssembly {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectPath,
@@ -398,7 +398,7 @@ $buildDotnetAssembly = {
     Copy-Item -LiteralPath $builtAssemblyPath -Destination $DestinationDirectory -Force
 }
 
-$invokeBuild = {
+function Invoke-DevBuild {
     foreach ($staleDirectory in @($outputModuleDirectory, $outputTestSupportDirectory)) {
         if (Test-Path -LiteralPath $staleDirectory) {
             Remove-Item -LiteralPath $staleDirectory -Recurse -Force
@@ -415,7 +415,7 @@ $invokeBuild = {
         }
     }
 
-    & $buildDotnetAssembly `
+    Invoke-DevDotnetAssembly `
         -ProjectPath $nativeProjectPath `
         -TargetFramework 'netstandard2.0' `
         -AssemblyFileName 'PSWinUtil.Native.dll' `
@@ -425,7 +425,7 @@ $invokeBuild = {
         $testSupportDestination = Join-Path `
             -Path $outputTestSupportDirectory `
             -ChildPath $testSupportTargetFramework
-        & $buildDotnetAssembly `
+        Invoke-DevDotnetAssembly `
             -ProjectPath $testSupportProjectPath `
             -TargetFramework $testSupportTargetFramework `
             -AssemblyFileName 'PSWinUtil.TestSupport.dll' `
@@ -448,7 +448,7 @@ $invokeBuild = {
     }
 }
 
-$invokeImport = {
+function Invoke-DevImport {
     if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
         throw "Build the module before importing it: $outputManifestPath"
     }
@@ -456,14 +456,14 @@ $invokeImport = {
     Import-Module -Name $outputManifestPath -Force -Global -ErrorAction Stop
 }
 
-$assertOutput = {
+function Assert-DevOutput {
     $outputFiles = @(
         Get-ChildItem -LiteralPath $outputModuleDirectory -File -Recurse |
             Where-Object { $_.Extension -in @('.ps1', '.psd1', '.psm1', '.ps1xml') }
     )
     foreach ($outputFile in $outputFiles) {
-        & $assertAsciiFile -File $outputFile
-        & $assertPowerShellSyntax -File $outputFile
+        Assert-DevAsciiFile -File $outputFile
+        Assert-DevPowerShellSyntax -File $outputFile
     }
 
     $null = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
@@ -502,7 +502,7 @@ $assertOutput = {
     }
 }
 
-$invokeTest = {
+function Invoke-DevTest {
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('unit', 'integration', 'contract', 'all')]
@@ -512,7 +512,7 @@ $invokeTest = {
     )
 
     if (-not $SkipBuild) {
-        & $invokeBuild
+        Invoke-DevBuild
     }
 
     $testTypes = @($SelectedTestType)
@@ -541,8 +541,8 @@ $invokeTest = {
     }
 }
 
-$invokeOnlineIntegrationTest = {
-    & $invokeBuild
+function Invoke-DevOnlineIntegrationTest {
+    Invoke-DevBuild
 
     $onlineIntegrationTests = @(
         Get-ChildItem `
@@ -1457,51 +1457,51 @@ function Wait-GalleryPublication {
     throw "PowerShell Gallery did not expose PSWinUtil $Version within the expected time."
 }
 
-$invokeVerify = {
+function Invoke-DevVerify {
     Import-RequiredModule -Name 'PSScriptAnalyzer'
     Import-RequiredModule -Name 'ModuleBuilder'
     Import-RequiredModule -Name 'Pester'
-    & $assertSource
-    & $invokeFormat -Check
-    & $invokeAnalyze
-    & $invokeBuild
-    & $assertOutput
-    & $invokeTest -SelectedTestType 'all' -SkipBuild
+    Assert-DevSource
+    Invoke-DevFormat -Check
+    Invoke-DevAnalyze
+    Invoke-DevBuild
+    Assert-DevOutput
+    Invoke-DevTest -SelectedTestType 'all' -SkipBuild
 }
 
 switch ($Command) {
     'format' {
-        & $assertSource
+        Assert-DevSource
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        & $invokeFormat
+        Invoke-DevFormat
     }
     'analyze' {
-        & $assertSource
+        Assert-DevSource
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        & $invokeAnalyze
+        Invoke-DevAnalyze
     }
     'lint' {
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        & $assertSource
-        & $invokeFormat -Check
-        & $invokeAnalyze
+        Assert-DevSource
+        Invoke-DevFormat -Check
+        Invoke-DevAnalyze
     }
     'build' {
-        & $assertSource
+        Assert-DevSource
         Import-RequiredModule -Name 'ModuleBuilder'
-        & $invokeBuild
+        Invoke-DevBuild
     }
     'import' {
-        & $invokeImport
+        Invoke-DevImport
     }
     'docs' {
         if (-not [string]::IsNullOrWhiteSpace($Argument) -and $Argument -ne 'check') {
             throw "The docs command accepts only 'check' as an argument."
         }
 
-        & $assertSource
+        Assert-DevSource
         Import-RequiredModule -Name 'ModuleBuilder'
-        & $invokeBuild
+        Invoke-DevBuild
         Update-CommandReference `
             -ManifestPath $outputManifestPath `
             -Path $commandReferencePath `
@@ -1516,22 +1516,22 @@ switch ($Command) {
             throw "The test command accepts unit, integration, contract, or all: $selectedTestType"
         }
 
-        & $assertSource
+        Assert-DevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        & $invokeTest -SelectedTestType $selectedTestType
+        Invoke-DevTest -SelectedTestType $selectedTestType
     }
     'test-online-integration' {
-        & $assertSource
+        Assert-DevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        & $invokeOnlineIntegrationTest
+        Invoke-DevOnlineIntegrationTest
     }
     'verify' {
-        & $invokeVerify
+        Invoke-DevVerify
     }
     'ci' {
-        & $invokeVerify
+        Invoke-DevVerify
     }
     'bump' {
         if ([string]::IsNullOrWhiteSpace($Argument)) {
