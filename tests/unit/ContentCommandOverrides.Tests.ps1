@@ -4,13 +4,14 @@ BeforeAll {
     $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $script:UnicodeText = [string][char]0x3042
     $script:OverrideNames = @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')
-    $script:AssertSameFileBytes = {
+    function script:Assert-PSWinUtilFileByteEquality {
         param([string]$ProxyPath, [string]$OriginalPath)
 
         [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($ProxyPath)) |
             Should -Be ([Convert]::ToBase64String([System.IO.File]::ReadAllBytes($OriginalPath)))
     }
-    $script:AssertUtf8Lf = {
+
+    function script:Get-PSWinUtilUtf8LfContent {
         param([string]$Path)
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path)
@@ -83,7 +84,7 @@ Describe 'Set-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverrides
 
         Set-Content -LiteralPath $path -Value @($script:UnicodeText, 'second')
 
-        $content = & $script:AssertUtf8Lf -Path $path
+        $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "$($script:UnicodeText)`nsecond`n"
     }
 
@@ -113,7 +114,7 @@ Describe 'Add-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverrides
 
         Add-Content -LiteralPath $path -Value $script:UnicodeText
 
-        $content = & $script:AssertUtf8Lf -Path $path
+        $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "first`n$($script:UnicodeText)`n"
     }
 }
@@ -124,7 +125,7 @@ Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAva
 
         @($script:UnicodeText, 'second') | Out-File -LiteralPath $path
 
-        $content = & $script:AssertUtf8Lf -Path $path
+        $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "$($script:UnicodeText)`nsecond`n"
     }
 
@@ -134,7 +135,7 @@ Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAva
 
         $script:UnicodeText | Out-File -LiteralPath $path -Append
 
-        $content = & $script:AssertUtf8Lf -Path $path
+        $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "first`n$($script:UnicodeText)`n"
     }
 
@@ -219,7 +220,7 @@ Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable)
         $path = Join-Path -Path $TestDrive -ChildPath 'state-round-trip.txt'
         Set-Content -LiteralPath $path -Value @($script:UnicodeText, 'second')
 
-        $content = & $script:AssertUtf8Lf -Path $path
+        $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "$($script:UnicodeText)`nsecond`n"
     }
 
@@ -266,7 +267,7 @@ Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable)
             -LiteralPath $originalPath `
             -Value @($script:UnicodeText, 'second')
 
-        & $script:AssertSameFileBytes -ProxyPath $proxyPath -OriginalPath $originalPath
+        Assert-PSWinUtilFileByteEquality -ProxyPath $proxyPath -OriginalPath $originalPath
     }
 
     It 'appends like the original cmdlet while the Add-Content override is disabled' {
@@ -280,7 +281,7 @@ Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable)
         Add-Content -LiteralPath $proxyPath -Value 'second'
         Microsoft.PowerShell.Management\Add-Content -LiteralPath $originalPath -Value 'second'
 
-        & $script:AssertSameFileBytes -ProxyPath $proxyPath -OriginalPath $originalPath
+        Assert-PSWinUtilFileByteEquality -ProxyPath $proxyPath -OriginalPath $originalPath
     }
 
     It 'writes like the original cmdlet while the Out-File override is disabled' {
@@ -292,6 +293,6 @@ Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable)
         @($script:UnicodeText, 'second') |
             Microsoft.PowerShell.Utility\Out-File -LiteralPath $originalPath
 
-        & $script:AssertSameFileBytes -ProxyPath $proxyPath -OriginalPath $originalPath
+        Assert-PSWinUtilFileByteEquality -ProxyPath $proxyPath -OriginalPath $originalPath
     }
 }

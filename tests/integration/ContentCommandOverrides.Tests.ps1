@@ -2,8 +2,7 @@ BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
     Import-Module -Name $manifestPath -Force -ErrorAction Stop
-
-    $script:AssertUtf8LfFile = {
+    function script:Assert-PSWinUtilUtf8LfFile {
         param([string]$Path)
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path)
@@ -46,7 +45,7 @@ Describe 'Content command override integration' -Skip:(-not $contentCommandOverr
         @('first', 'second') | Out-File -LiteralPath $outPath
 
         foreach ($path in @($setPath, $addPath, $outPath)) {
-            & $script:AssertUtf8LfFile -Path $path
+            Assert-PSWinUtilUtf8LfFile -Path $path
         }
     }
 }

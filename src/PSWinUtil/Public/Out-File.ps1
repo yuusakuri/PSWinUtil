@@ -192,32 +192,6 @@ function Out-File {
             $formatScript = { & $outStringCommand @formatParameters }
             $formatPipeline = $formatScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
             $formatPipeline.Begin($true)
-
-            $writeLines = {
-                param([object[]]$Line)
-
-                foreach ($inputLine in $Line) {
-                    if ($NoNewline) {
-                        $streamWriter.Write([string]$inputLine)
-                    } else {
-                        $streamWriter.WriteLine([string]$inputLine)
-                    }
-                }
-            }
-            $closeOutput = {
-                if ($null -ne $formatPipeline) {
-                    $formatPipeline.Dispose()
-                    $formatPipeline = $null
-                }
-                if ($null -ne $streamWriter) {
-                    $streamWriter.Dispose()
-                    $streamWriter = $null
-                }
-                if ($null -ne $originalAttributes) {
-                    [System.IO.File]::SetAttributes($fullPath, $originalAttributes)
-                    $originalAttributes = $null
-                }
-            }
         } else {
             $null = $PSBoundParameters.Remove('WhatIf')
             $PSBoundParameters.Confirm = $false
@@ -235,13 +209,20 @@ function Out-File {
         if ($approved) {
             try {
                 if ($normalizeOutput) {
-                    & $writeLines -Line @($formatPipeline.Process($_))
+                    Write-WUOutFileLine `
+                        -StreamWriter $streamWriter `
+                        -Line @($formatPipeline.Process($_)) `
+                        -NoNewline:$NoNewline
                 } else {
                     $steppablePipeline.Process($_)
                 }
             } catch {
                 if ($normalizeOutput) {
-                    & $closeOutput
+                    Close-WUOutFile `
+                        -FormatPipeline $formatPipeline `
+                        -StreamWriter $streamWriter `
+                        -FullPath $fullPath `
+                        -OriginalAttributes $originalAttributes
                 } else {
                     $steppablePipeline.Dispose()
                 }
@@ -256,9 +237,16 @@ function Out-File {
         }
         if ($normalizeOutput) {
             try {
-                & $writeLines -Line @($formatPipeline.End())
+                Write-WUOutFileLine `
+                    -StreamWriter $streamWriter `
+                    -Line @($formatPipeline.End()) `
+                    -NoNewline:$NoNewline
             } finally {
-                & $closeOutput
+                Close-WUOutFile `
+                    -FormatPipeline $formatPipeline `
+                    -StreamWriter $streamWriter `
+                    -FullPath $fullPath `
+                    -OriginalAttributes $originalAttributes
             }
         } else {
             try {

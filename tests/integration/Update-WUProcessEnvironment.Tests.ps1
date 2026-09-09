@@ -32,7 +32,7 @@ Describe 'Process environment update integration' {
         $null = [System.IO.Directory]::CreateDirectory($script:MachineTestPath)
         $null = [System.IO.Directory]::CreateDirectory($script:UserTestPath)
 
-        $script:RestoreEnvironment = {
+        function script:Restore-PSWinUtilEnvironment {
             [System.Environment]::SetEnvironmentVariable(
                 $script:EnvironmentName,
                 $script:OriginalUserValue,
@@ -77,15 +77,15 @@ Describe 'Process environment update integration' {
     }
 
     BeforeEach {
-        & $script:RestoreEnvironment
+        Restore-PSWinUtilEnvironment
     }
 
     AfterEach {
-        & $script:RestoreEnvironment
+        Restore-PSWinUtilEnvironment
     }
 
     AfterAll {
-        & $script:RestoreEnvironment
+        Restore-PSWinUtilEnvironment
     }
 
     It 'copies a Machine variable to the current process' {
