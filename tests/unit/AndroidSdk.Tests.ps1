@@ -13,7 +13,7 @@ AfterAll {
     }
 }
 
-Describe 'Get-WUAndroidPlatformVersion' {
+Describe 'Get-WUAndroidPlatformVersion' -Tag Android {
     BeforeAll {
         $script:PackageList = @(
             '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
@@ -46,7 +46,7 @@ Describe 'Get-WUAndroidPlatformVersion' {
     }
 }
 
-Describe 'Get-WUAndroidBuildToolsVersion' {
+Describe 'Get-WUAndroidBuildToolsVersion' -Tag Android {
     BeforeAll {
         $script:PackageList = @(
             '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
@@ -75,7 +75,7 @@ Describe 'Get-WUAndroidBuildToolsVersion' {
     }
 }
 
-Describe 'Set-WUAndroidBuildToolsLatest' {
+Describe 'Set-WUAndroidBuildToolsLatest' -Tag Android {
     BeforeEach {
         $script:BuildToolsPath = Join-Path -Path $TestDrive -ChildPath 'build-tools'
         Remove-Item -LiteralPath $script:BuildToolsPath -Recurse -Force -ErrorAction Ignore
@@ -122,7 +122,7 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
     }
 }
 
-Describe 'Install-WUAndroidSdk' {
+Describe 'Install-WUAndroidSdk' -Tag Android {
     BeforeEach {
         $script:SdkPath = Join-Path -Path $TestDrive -ChildPath 'AndroidSdk'
         $script:AndroidCalls = @()

@@ -4,12 +4,14 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 }
 
-Describe 'Android SDK AVD integration and CLI contract' -Skip:(-not $runAndroidIntegration) {
+Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not $runAndroidIntegration) {
     BeforeAll {
         if ([string]::IsNullOrWhiteSpace($env:PSWINUTIL_ANDROID_TEST_SDK)) {
             throw 'Set PSWINUTIL_ANDROID_TEST_SDK to a prepared SDK with Command-Line Tools and accepted licenses.'
         }
         $script:SavedAvdHome = $env:ANDROID_AVD_HOME
+        $script:SavedPath = $env:Path
+        $env:Path = (Join-Path $env:PSWINUTIL_ANDROID_TEST_SDK 'emulator') + ';' + $env:Path
         $script:AvdHome = Join-Path $TestDrive 'isolated avds'
         $null = New-Item -Path $script:AvdHome -ItemType Directory
         $env:ANDROID_AVD_HOME = $script:AvdHome
@@ -17,6 +19,7 @@ Describe 'Android SDK AVD integration and CLI contract' -Skip:(-not $runAndroidI
 
     AfterAll {
         $env:ANDROID_AVD_HOME = $script:SavedAvdHome
+        $env:Path = $script:SavedPath
     }
 
     It 'creates a real AVD using the selected image and newest installed Pixel profile' {
@@ -29,6 +32,7 @@ Describe 'Android SDK AVD integration and CLI contract' -Skip:(-not $runAndroidI
         $config | Should -Match '(?m)^abi.type=x86_64\r?$'
         [IO.File]::ReadAllText((Join-Path $script:AvdHome 'contract_device.ini')) |
             Should -Match '(?m)^target=android-29\r?$'
+        @(Get-WUAndroidEmulator) | Should -Contain 'contract_device'
     }
 
     It 'rejects duplicate names without overwriting an existing configuration' {
@@ -46,5 +50,11 @@ Describe 'Android SDK AVD integration and CLI contract' -Skip:(-not $runAndroidI
     It 'leaves the isolated AVD home unchanged with WhatIf' {
         New-WUAndroidEmulator -SdkPath $env:PSWINUTIL_ANDROID_TEST_SDK -Name preview -WhatIf
         Test-Path -LiteralPath (Join-Path $script:AvdHome 'preview.ini') | Should -BeFalse
+    }
+
+    It 'previews startup without launching the created AVD' {
+        $null = New-WUAndroidEmulator -SdkPath $env:PSWINUTIL_ANDROID_TEST_SDK -Name startup_preview -PlatformVersion 29 -SystemImageTag default
+        @(Start-WUAndroidEmulator -Name startup_preview -WhatIf) | Should -HaveCount 0
+        @(Get-WUAndroidEmulator) | Should -Contain 'startup_preview'
     }
 }

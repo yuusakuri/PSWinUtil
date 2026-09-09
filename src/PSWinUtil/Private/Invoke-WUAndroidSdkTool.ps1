@@ -28,6 +28,10 @@ function Invoke-WUAndroidSdkTool {
 
         [Parameter(Mandatory = $true)]
         [string[]]$ArgumentList
+
+        ,
+        [Parameter()]
+        [switch]$AllowAndroidCliWindowsExitCode
     )
 
     $previousErrorActionPreference = $ErrorActionPreference
@@ -40,7 +44,7 @@ function Invoke-WUAndroidSdkTool {
     }
 
     $lines = @($output | ForEach-Object { $_.ToString() })
-    if ($exitCode -ne 0) {
+    if ($exitCode -ne 0 -and -not ($AllowAndroidCliWindowsExitCode -and $FilePath -eq 'android.exe' -and $exitCode -eq -1073740791)) {
         throw "Android SDK tool failed with exit code ${exitCode}: $FilePath$([Environment]::NewLine)$($lines -join [Environment]::NewLine)"
     }
     $lines

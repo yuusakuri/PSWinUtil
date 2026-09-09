@@ -73,6 +73,10 @@ function Install-WUAndroidSdk {
         '--no-metrics'
         "--sdk=$fullSdkPath"
     )
+    # Current Windows Android CLI releases can emit valid output and install
+    # packages before returning this signed process status. Required files are
+    # checked below before the command reports success.
+    $androidCliWindowsExitCode = -1073740791
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
         [string]$PlatformVersion
@@ -94,7 +98,7 @@ function Install-WUAndroidSdk {
             )
             $exitCode = $LASTEXITCODE
             $textOutput = @($availablePlatforms | ForEach-Object { $_.ToString() })
-            if ($exitCode -ne 0) {
+            if ($exitCode -ne 0 -and $exitCode -ne $androidCliWindowsExitCode) {
                 throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
             }
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
@@ -109,7 +113,7 @@ function Install-WUAndroidSdk {
             )
             $exitCode = $LASTEXITCODE
             $textOutput = @($availableBuildTools | ForEach-Object { $_.ToString() })
-            if ($exitCode -ne 0) {
+            if ($exitCode -ne 0 -and $exitCode -ne $androidCliWindowsExitCode) {
                 throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
             }
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
@@ -147,7 +151,7 @@ function Install-WUAndroidSdk {
         )
         $exitCode = $LASTEXITCODE
         $textOutput = @($installOutput | ForEach-Object { $_.ToString() })
-        if ($exitCode -ne 0) {
+        if ($exitCode -ne 0 -and $exitCode -ne $androidCliWindowsExitCode) {
             throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
         }
     }

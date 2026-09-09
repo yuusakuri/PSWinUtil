@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 }
 
-Describe 'Android AVD selection and errors' {
+Describe 'Android AVD selection and errors' -Tag Android {
     BeforeEach {
         $script:OriginalAndroidHome = $env:ANDROID_HOME
         $script:OriginalSdkRoot = $env:ANDROID_SDK_ROOT
@@ -11,13 +11,13 @@ Describe 'Android AVD selection and errors' {
             param($ArgumentList)
             if ($ArgumentList -contains 'device') {
                 'pixel_9', 'pixel_10', 'pixel_10_pro', 'pixel_tablet', 'pixel_8'
-            } elseif ($ArgumentList -contains '--list') {
-                'system-images;android-9;google_apis;x86_64 | 1 | older'
-                'system-images;android-35;google_apis;x86_64 | 1 | stable'
-                'system-images;android-36;google_apis;x86_64 | 1 | stable'
-                'system-images;android-Z;google_apis;x86_64 | 1 | preview'
-                'system-images;android-37;google_apis;arm64-v8a | 1 | other ABI'
-                'system-images;android-35;google_apis_playstore;arm64-v8a | 1 | Play'
+            } elseif ($ArgumentList -contains 'sdk' -and $ArgumentList -contains 'list') {
+                'system-images/android-9/google_apis/x86_64 1.0.0 older'
+                'system-images/android-35/google_apis/x86_64 1.0.0 stable'
+                'system-images/android-36/google_apis/x86_64 1.0.0 stable'
+                'system-images/android-Z/google_apis/x86_64 1.0.0 preview'
+                'system-images/android-37/google_apis/arm64-v8a 1.0.0 other ABI'
+                'system-images/android-35/google_apis_playstore/arm64-v8a 1.0.0 Play'
             }
         }
     }
@@ -56,7 +56,7 @@ Describe 'Android AVD selection and errors' {
     }
 
     It 'reports an empty stable system image catalog' {
-        Mock -CommandName Invoke-WUAndroidSdkTool -ModuleName PSWinUtil -ParameterFilter { $ArgumentList -contains '--list' }
+        Mock -CommandName Invoke-WUAndroidSdkTool -ModuleName PSWinUtil -ParameterFilter { $ArgumentList -contains 'sdk' -and $ArgumentList -contains 'list' }
         { New-WUAndroidEmulator -SdkPath $TestDrive } | Should -Throw '*No stable Android system image*'
     }
 
@@ -66,7 +66,7 @@ Describe 'Android AVD selection and errors' {
     }
 
     It 'propagates installation errors and restores SDK environment variables' {
-        Mock -CommandName Invoke-WUAndroidSdkTool -ModuleName PSWinUtil -ParameterFilter { $ArgumentList -contains '--install' } -MockWith { throw 'license not accepted' }
+        Mock -CommandName Invoke-WUAndroidSdkTool -ModuleName PSWinUtil -ParameterFilter { $ArgumentList -contains 'install' } -MockWith { throw 'license not accepted' }
         { New-WUAndroidEmulator -SdkPath $TestDrive } | Should -Throw '*license not accepted*'
     }
 

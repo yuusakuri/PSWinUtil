@@ -140,7 +140,7 @@ Describe 'ConvertTo-WUPSStringLiteral' {
     }
 }
 
-Describe 'Android virtual devices' {
+Describe 'Android virtual devices' -Tag Android {
     BeforeEach {
         InModuleScope -ModuleName PSWinUtil {
             $script:TestAndroidAvds = @('Pixel_API_35', 'Tablet_API_35')
@@ -806,7 +806,7 @@ exit /b 1
     }
 }
 
-Describe 'Wait-WUAndroidEmulator' {
+Describe 'Wait-WUAndroidEmulator' -Tag Android {
     BeforeEach {
         Mock -CommandName Start-Sleep -ModuleName PSWinUtil
         Mock -CommandName Stop-Process -ModuleName PSWinUtil

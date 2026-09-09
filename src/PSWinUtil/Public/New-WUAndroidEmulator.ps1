@@ -4,7 +4,7 @@ function New-WUAndroidEmulator {
     Creates an Android virtual device using the latest available Pixel by default.
 
     .DESCRIPTION
-    Uses Android SDK Command-Line Tools to install a system image and create an AVD. By default, selects the greatest numbered standard Pixel profile provided by the installed tools and the greatest stable API available for the requested image tag and ABI. Existing AVDs are preserved unless Force is specified. Java and Android SDK Command-Line Tools must be installed, and the selected package licenses must already be accepted with sdkmanager --licenses. Does not boot the emulator.
+    Uses Android CLI to install a system image and avdmanager to create an AVD. By default, selects the greatest numbered standard Pixel profile provided by the installed tools and the greatest stable API available for the requested image tag and ABI. Existing AVDs are preserved unless Force is specified. Android CLI must be available on PATH. Java and Android SDK Command-Line Tools must be installed. Does not boot the emulator.
 
     .PARAMETER Name
     Specifies the AVD name. Defaults to DEVICE_API_VERSION after resolving the device and API.
@@ -99,10 +99,7 @@ function New-WUAndroidEmulator {
 
     $toolsPath = Join-Path -Path $fullSdkPath -ChildPath "cmdline-tools\$CommandLineToolsVersion\bin"
     $avdManager = Join-Path -Path $toolsPath -ChildPath 'avdmanager.bat'
-    $sdkManager = Join-Path -Path $toolsPath -ChildPath 'sdkmanager.bat'
-    foreach ($toolPath in @($avdManager, $sdkManager)) {
-        Assert-WUPathProperty -LiteralPath $toolPath -Leaf
-    }
+    Assert-WUPathProperty -LiteralPath $avdManager -Leaf
 
     $savedAndroidHome = $env:ANDROID_HOME
     $savedSdkRoot = $env:ANDROID_SDK_ROOT
@@ -123,9 +120,9 @@ function New-WUAndroidEmulator {
             throw "Android device profile was not found: $Device"
         }
 
-        $listArguments = @("--sdk_root=$fullSdkPath", '--list', '--channel=0')
-        $packages = @(Invoke-WUAndroidSdkTool -FilePath $sdkManager -ArgumentList $listArguments)
-        $imagePattern = '^\s*system-images;android-([0-9]+);' + [regex]::Escape($SystemImageTag) + ';' + [regex]::Escape($Abi) + '\s+\|'
+        $listArguments = @('--no-metrics', "--sdk=$fullSdkPath", 'sdk', 'list', 'system-images/*', '--all', '--all-versions')
+        $packages = @(Invoke-WUAndroidSdkTool -FilePath 'android.exe' -ArgumentList $listArguments -AllowAndroidCliWindowsExitCode)
+        $imagePattern = '^\s*system-images/android-([0-9]+)/' + [regex]::Escape($SystemImageTag) + '/' + [regex]::Escape($Abi) + '\s+'
         $availableVersions = @(
             foreach ($line in $packages) {
                 if ($line -match $imagePattern) {
@@ -151,8 +148,10 @@ function New-WUAndroidEmulator {
         }
 
         $package = "system-images;android-$PlatformVersion;${SystemImageTag};$Abi"
-        $installArguments = @("--sdk_root=$fullSdkPath", '--install', $package, '--channel=0')
-        $null = Invoke-WUAndroidSdkTool -FilePath $sdkManager -ArgumentList $installArguments
+        $installArguments = @('--no-metrics', "--sdk=$fullSdkPath", 'sdk', 'install', $package.Replace(';', '/'))
+        $null = Invoke-WUAndroidSdkTool -FilePath 'android.exe' -ArgumentList $installArguments -AllowAndroidCliWindowsExitCode
+        $installedImagePath = Join-Path -Path $fullSdkPath -ChildPath ($package.Replace(';', '\'))
+        Assert-WUPathProperty -LiteralPath $installedImagePath -Container
         $createArguments = @('create', 'avd', '--name', $Name, '--package', $package, '--device', $Device)
         if ($Force) {
             $createArguments += '--force'
