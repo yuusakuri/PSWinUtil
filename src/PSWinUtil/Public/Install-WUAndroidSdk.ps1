@@ -73,21 +73,6 @@ function Install-WUAndroidSdk {
         '--no-metrics'
         "--sdk=$fullSdkPath"
     )
-    $invokeAndroid = {
-        param(
-            [Parameter(Mandatory = $true)]
-            [string[]]$ArgumentList
-        )
-
-        $commandArguments = $androidArguments + $ArgumentList
-        $output = @(& android.exe @commandArguments 2>&1)
-        $exitCode = $LASTEXITCODE
-        $textOutput = @($output | ForEach-Object { $_.ToString() })
-        if ($exitCode -ne 0) {
-            throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
-        }
-        $textOutput
-    }
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
         [string]$PlatformVersion
@@ -101,20 +86,32 @@ function Install-WUAndroidSdk {
     }
     if ($null -eq $resolvedPlatformVersion -or $null -eq $resolvedBuildToolsVersion) {
         if ($null -eq $resolvedPlatformVersion) {
-            $availablePlatforms = @(
-                & $invokeAndroid -ArgumentList @(
-                    'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
-                )
+            $commandArguments = $androidArguments + @(
+                'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
             )
+            $availablePlatforms = @(
+                & android.exe @commandArguments 2>&1
+            )
+            $exitCode = $LASTEXITCODE
+            $textOutput = @($availablePlatforms | ForEach-Object { $_.ToString() })
+            if ($exitCode -ne 0) {
+                throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
+            }
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
                 -InputObject $availablePlatforms
         }
         if ($null -eq $resolvedBuildToolsVersion) {
-            $availableBuildTools = @(
-                & $invokeAndroid -ArgumentList @(
-                    'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
-                )
+            $commandArguments = $androidArguments + @(
+                'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
             )
+            $availableBuildTools = @(
+                & android.exe @commandArguments 2>&1
+            )
+            $exitCode = $LASTEXITCODE
+            $textOutput = @($availableBuildTools | ForEach-Object { $_.ToString() })
+            if ($exitCode -ne 0) {
+                throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
+            }
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
                 -InputObject $availableBuildTools
         }
@@ -144,7 +141,15 @@ function Install-WUAndroidSdk {
 
     if ($packages.Count -gt 0) {
         $installArguments = @('sdk', 'install') + $packages
-        $null = & $invokeAndroid -ArgumentList $installArguments
+        $commandArguments = $androidArguments + $installArguments
+        $installOutput = @(
+            & android.exe @commandArguments 2>&1
+        )
+        $exitCode = $LASTEXITCODE
+        $textOutput = @($installOutput | ForEach-Object { $_.ToString() })
+        if ($exitCode -ne 0) {
+            throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
+        }
     }
 
     $requiredFiles = @(

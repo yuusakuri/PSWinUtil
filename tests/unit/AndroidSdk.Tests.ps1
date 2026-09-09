@@ -175,6 +175,10 @@ Describe 'Install-WUAndroidSdk' {
 
         $result | Should -BeOfType ([System.IO.DirectoryInfo])
         $script:AndroidCalls.Count | Should -Be 3
+        foreach ($androidCall in $script:AndroidCalls) {
+            $androidCall -contains '--no-metrics' | Should -BeTrue
+            $androidCall -contains "--sdk=$script:SdkPath" | Should -BeTrue
+        }
         $script:AndroidCalls[0] -contains 'platforms/android-*' | Should -BeTrue
         $script:AndroidCalls[1] -contains 'build-tools/*' | Should -BeTrue
         $script:AndroidCalls[2] -contains 'platform-tools' | Should -BeTrue
