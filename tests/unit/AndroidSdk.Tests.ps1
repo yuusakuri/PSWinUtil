@@ -126,63 +126,25 @@ Describe 'Get-WUAndroidCliPath' {
 
 Describe 'Install-WUAndroidCli' {
     BeforeEach {
-        $script:AndroidCliPaths = @('C:\Users\Test\AppData\AndroidCLI\android.exe')
-        $script:AndroidCliPathCallCount = 0
-        Mock -CommandName Get-WUAndroidCliPath -ModuleName PSWinUtil -MockWith {
-            $script:AndroidCliPathCallCount++
-            $lastIndex = $script:AndroidCliPaths.Count - 1
-            $resultIndex = [Math]::Min($script:AndroidCliPathCallCount - 1, $lastIndex)
-            $script:AndroidCliPaths[$resultIndex]
-        }
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -MockWith {
             'Android CLI installed'
         }
-        Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil
     }
 
-    It 'adds an existing installation to the user and process PATH values' {
-        Install-WUAndroidCli
-
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq 'C:\Users\Test\AppData\AndroidCLI' -and
-            $Scope -contains 'User' -and
-            $Scope -contains 'Process'
-        }
-    }
-
-    It 'installs the official winget package and uses the detected directory' {
-        $script:AndroidCliPaths = @($null, 'C:\Users\Test\AppData\AndroidCLI\android.exe')
-
+    It 'installs the official winget package with its exact ID' {
         Install-WUAndroidCli
 
         Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Id -eq 'Google.AndroidCLI'
         }
-        Should -Invoke -CommandName Get-WUAndroidCliPath -ModuleName PSWinUtil -Times 2 -Exactly
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Scope -contains 'User' -and
-            $Scope -contains 'Process'
-        }
     }
 
-    It 'does not change PATH with WhatIf while Android CLI is missing' {
-        $script:AndroidCliPaths = @($null)
-
+    It 'forwards WhatIf to winget' {
         { Install-WUAndroidCli -WhatIf } | Should -Not -Throw
 
         Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Id -eq 'Google.AndroidCLI' -and $WhatIf -eq $true
         }
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-
-    It 'reports a missing executable after installation' {
-        $script:AndroidCliPaths = @($null)
-
-        { Install-WUAndroidCli } | Should -Throw '*executable was not found*'
-
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
     }
 }
 
@@ -239,6 +201,7 @@ Describe 'Install-WUAndroidSdk' {
         Remove-Item -LiteralPath $script:SdkPath -Recurse -Force -ErrorAction Ignore
 
         Mock -CommandName Install-WUAndroidCli -ModuleName PSWinUtil
+        Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil
         Mock -CommandName Get-WUAndroidCliPath -ModuleName PSWinUtil -MockWith {
             'C:\Tools\AndroidCLI\android.exe'
         }

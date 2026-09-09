@@ -68,6 +68,7 @@ function Install-WUAndroidSdk {
     }
 
     Install-WUAndroidCli -Confirm:$false
+    Update-WUProcessEnvironment -Confirm:$false
     $androidCliPath = Get-WUAndroidCliPath
     if ([string]::IsNullOrWhiteSpace($androidCliPath)) {
         throw 'The Android CLI executable was not found after the installation.'
