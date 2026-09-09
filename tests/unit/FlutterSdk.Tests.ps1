@@ -149,20 +149,20 @@ Describe 'Invoke-WUFlutterSdkCommand' {
         } | Should -Not -Throw
     }
 
-    It 'responds to a y/N prompt with y' {
+    It 'sends up to 100 y lines to the command' {
         $informationOutput = @(
             & $script:Module {
                 param($Executable)
 
                 Invoke-WUFlutterSdkCommand `
                     -Command $Executable `
-                    -ArgumentList '-NoProfile', '-Command', '[Console]::Out.Write(''(y/N)?'');[Console]::Out.Flush();$line=[Console]::In.ReadLine();Write-Output $line;exit 0' `
-                    -RespondToYesPrompt
+                    -ArgumentList '-NoProfile', '-Command', '$lines=@($input);Write-Output $lines.Count;exit 0' `
+                    -SendYesInput
             } $script:PowerShellExecutable 6>&1
         )
 
-        (@($informationOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine) |
-            Should -Match '\(y/N\)\?y'
+        @($informationOutput | ForEach-Object { [string]$_ }) |
+            Should -Contain '100'
     }
 }
 
@@ -307,7 +307,7 @@ Describe 'Install-WUFlutterSdk' {
             $ArgumentList.Count -eq 2 -and
             $ArgumentList[0] -eq 'doctor' -and
             $ArgumentList[1] -eq '--android-licenses' -and
-            $RespondToYesPrompt
+            $SendYesInput
         }
         $script:OperationOrder | Should -Be @(
             'release'

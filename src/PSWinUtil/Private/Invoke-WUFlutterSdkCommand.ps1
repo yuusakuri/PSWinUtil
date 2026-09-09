@@ -15,8 +15,8 @@ function Invoke-WUFlutterSdkCommand {
     .PARAMETER IgnoreExitCode
     Prevents a nonzero exit code from causing an error.
 
-    .PARAMETER RespondToYesPrompt
-    Sends y to the command's standard input when a y/N prompt is displayed.
+    .PARAMETER SendYesInput
+    Sends up to 100 y lines to the command's standard input.
 
     .EXAMPLE
     Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
@@ -48,7 +48,7 @@ function Invoke-WUFlutterSdkCommand {
         [switch]$IgnoreExitCode,
 
         [Parameter()]
-        [switch]$RespondToYesPrompt
+        [switch]$SendYesInput
     )
 
     $application = Get-Command -Name $Command -CommandType Application -ErrorAction Stop |
@@ -56,86 +56,14 @@ function Invoke-WUFlutterSdkCommand {
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        if ($RespondToYesPrompt) {
-            $startInfo = [Diagnostics.ProcessStartInfo]::new()
-            $quotedArguments = @(
-                foreach ($argument in $ArgumentList) {
-                    $argumentText = [string]$argument
-                    if ($argumentText -notmatch '[\s"]') {
-                        $argumentText
-                        continue
-                    }
-                    $escapedArgument = $argumentText -replace '(\\*)"', '$1$1\"'
-                    $escapedArgument = $escapedArgument -replace '(\\+)$', '$1$1'
-                    '"' + $escapedArgument + '"'
-                }
+        if ($SendYesInput) {
+            $commandOutput = @(
+                & { 1..100 | ForEach-Object { 'y' } } | & $application.Source @ArgumentList 2>&1
             )
-            if ([IO.Path]::GetExtension($application.Source) -in @('.bat', '.cmd')) {
-                $startInfo.FileName = [Environment]::GetEnvironmentVariable('ComSpec')
-                $commandLine = ('"' + $application.Source + '" ' + ($quotedArguments -join ' ')).Trim()
-                $startInfo.Arguments = "/d /s /c `"$commandLine`""
-            } else {
-                $startInfo.FileName = $application.Source
-                $startInfo.Arguments = $quotedArguments -join ' '
-            }
-            $startInfo.UseShellExecute = $false
-            $startInfo.CreateNoWindow = $true
-            $startInfo.RedirectStandardInput = $true
-            $startInfo.RedirectStandardOutput = $true
-            $startInfo.RedirectStandardError = $true
-            $process = [Diagnostics.Process]::new()
-            $process.StartInfo = $startInfo
-            $processStarted = $false
-            try {
-                $processStarted = $process.Start()
-                if (-not $processStarted) {
-                    throw "Could not start the Flutter SDK command: $Command"
-                }
-                $standardErrorTask = $process.StandardError.ReadToEndAsync()
-                $standardOutputBuilder = [Text.StringBuilder]::new()
-                $promptBuffer = [Text.StringBuilder]::new()
-                $promptPattern = '(?i)(\(y/n\)|\[y/n\])\??'
-                while (($character = $process.StandardOutput.Read()) -ne -1) {
-                    $character = [char]$character
-                    [void]$standardOutputBuilder.Append($character)
-                    [void]$promptBuffer.Append($character)
-                    if ($promptBuffer.ToString() -match $promptPattern) {
-                        try {
-                            $process.StandardInput.WriteLine('y')
-                            $process.StandardInput.Flush()
-                        } catch [IO.IOException] {
-                            break
-                        } catch [ObjectDisposedException] {
-                            break
-                        }
-                        $promptBuffer.Clear()
-                    } elseif ($promptBuffer.Length -gt 128) {
-                        $null = $promptBuffer.Remove(0, $promptBuffer.Length - 64)
-                    }
-                }
-                $process.StandardInput.Close()
-                $process.WaitForExit()
-                $commandOutput = @()
-                foreach ($outputText in @(
-                        $standardOutputBuilder.ToString()
-                        $standardErrorTask.GetAwaiter().GetResult()
-                    )) {
-                    if (-not [string]::IsNullOrEmpty($outputText)) {
-                        $commandOutput += $outputText -split "`r?`n"
-                    }
-                }
-                $exitCode = $process.ExitCode
-            } finally {
-                if ($processStarted -and -not $process.HasExited) {
-                    $process.Kill()
-                    $process.WaitForExit()
-                }
-                $process.Dispose()
-            }
         } else {
             $commandOutput = @(& $application.Source @ArgumentList 2>&1)
-            $exitCode = $LASTEXITCODE
         }
+        $exitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
     }
