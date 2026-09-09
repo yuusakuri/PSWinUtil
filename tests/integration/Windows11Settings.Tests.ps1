@@ -1,42 +1,42 @@
 $runKeyboardLayoutIntegration = $env:PSWINUTIL_RUN_KEYBOARD_LAYOUT_INTEGRATION -eq '1'
 
-function Save-PSWinUtilRegistryProperty {
-    param([hashtable[]]$Property)
-
-    @(
-        foreach ($inputProperty in $Property) {
-            [pscustomobject]@{
-                Path = $inputProperty.Path
-                Name = $inputProperty.Name
-                Value = Get-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name
-            }
-        }
-    )
-}
-
-function Restore-PSWinUtilRegistryProperty {
-    param([object[]]$Property)
-
-    foreach ($inputProperty in $Property) {
-        if ($null -eq $inputProperty.Value) {
-            Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name -Confirm:$false
-            continue
-        }
-        $parameters = @{
-            Path = $inputProperty.Path
-            Name = $inputProperty.Name
-            Value = $inputProperty.Value.Value
-            Type = $inputProperty.Value.Type
-            Confirm = $false
-        }
-        Set-WURegistryProperty @parameters
-    }
-}
-
 BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
     Import-Module -Name $manifestPath -Force -ErrorAction Stop
+
+    function script:Save-PSWinUtilRegistryProperty {
+        param([hashtable[]]$Property)
+
+        @(
+            foreach ($inputProperty in $Property) {
+                [pscustomobject]@{
+                    Path = $inputProperty.Path
+                    Name = $inputProperty.Name
+                    Value = Get-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name
+                }
+            }
+        )
+    }
+
+    function script:Restore-PSWinUtilRegistryProperty {
+        param([object[]]$Property)
+
+        foreach ($inputProperty in $Property) {
+            if ($null -eq $inputProperty.Value) {
+                Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name -Confirm:$false
+                continue
+            }
+            $parameters = @{
+                Path = $inputProperty.Path
+                Name = $inputProperty.Name
+                Value = $inputProperty.Value.Value
+                Type = $inputProperty.Value.Type
+                Confirm = $false
+            }
+            Set-WURegistryProperty @parameters
+        }
+    }
 
     $script:Windows11RegistryProperties = @(
         @{
