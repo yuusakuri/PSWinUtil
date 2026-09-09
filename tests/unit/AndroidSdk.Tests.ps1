@@ -1,39 +1,65 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
     $script:Module = Get-Module -Name 'PSWinUtil' -ErrorAction Stop
+    $script:AndroidCommandWasPresent = $null -ne (Get-Command -Name 'android.exe' -ErrorAction SilentlyContinue)
+    if (-not $script:AndroidCommandWasPresent) {
+        Set-Item -Path Function:\global:android.exe -Value { }
+    }
 }
 
-Describe 'Resolve-WUAndroidSdkPackageVersion' {
+AfterAll {
+    if (-not $script:AndroidCommandWasPresent) {
+        Remove-Item -Path Function:\global:android.exe -ErrorAction SilentlyContinue
+    }
+}
+
+Describe 'Get-WUAndroidPlatformVersion' {
     BeforeAll {
         $script:PackageList = @(
-            '  build-tools;35.0.1 | 35.0.1 | Android SDK Build-Tools 35.0.1'
-            '  build-tools;36.0.0 | 36.0.0 | Android SDK Build-Tools 36'
-            '  build-tools;37.0.0-rc1 | 37.0.0 rc1 | Android SDK Build-Tools 37 rc1'
-            '  platforms;android-35 | 2 | Android SDK Platform 35'
-            '  platforms;android-36 | 1 | Android SDK Platform 36'
-            '  platforms;android-37-preview | 1 | Android SDK Platform Preview'
+            '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
+            '  build-tools/36.0.0  36.0.0  Android SDK Build-Tools 36'
+            '  build-tools/37.0.0-rc1  37.0.0-rc.1  Android SDK Build-Tools 37 rc1'
+            '  platforms/android-35  2.0.0  Android SDK Platform 35'
+            '  platforms/android-36  2.0.0  Android SDK Platform 36'
+            '  platforms/android-36.1  1.0.0  Android SDK Platform 36.1'
+            '  platforms/android-37-beta1  1.0.0  Android SDK Platform Preview'
         )
     }
 
-    It 'selects the greatest numeric platform API level' {
+    It 'selects the greatest integer platform API level' {
         $result = & $script:Module {
             param($PackageList)
 
-            Resolve-WUAndroidSdkPackageVersion `
-                -InputObject $PackageList `
-                -PackageType Platform
+            Get-WUAndroidPlatformVersion -InputObject $PackageList
         } $script:PackageList
 
         $result | Should -Be '36'
+    }
+
+    It 'rejects a package list without a stable candidate' {
+        {
+            & $script:Module {
+                Get-WUAndroidPlatformVersion `
+                    -InputObject 'platforms/android-37-beta1  1.0.0'
+            }
+        } | Should -Throw '*No stable*'
+    }
+}
+
+Describe 'Get-WUAndroidBuildToolsVersion' {
+    BeforeAll {
+        $script:PackageList = @(
+            '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
+            '  build-tools/36.0.0  36.0.0  Android SDK Build-Tools 36'
+            '  build-tools/37.0.0-rc1  37.0.0-rc.1  Android SDK Build-Tools 37 rc1'
+        )
     }
 
     It 'selects the greatest stable three-part Build Tools version' {
         $result = & $script:Module {
             param($PackageList)
 
-            Resolve-WUAndroidSdkPackageVersion `
-                -InputObject $PackageList `
-                -PackageType BuildTools
+            Get-WUAndroidBuildToolsVersion -InputObject $PackageList
         } $script:PackageList
 
         $result | Should -Be '36.0.0'
@@ -42,52 +68,10 @@ Describe 'Resolve-WUAndroidSdkPackageVersion' {
     It 'rejects a package list without a stable candidate' {
         {
             & $script:Module {
-                Resolve-WUAndroidSdkPackageVersion `
-                    -InputObject 'build-tools;37.0.0-rc1 | preview' `
-                    -PackageType BuildTools
+                Get-WUAndroidBuildToolsVersion `
+                    -InputObject 'build-tools/37.0.0-rc1  37.0.0-rc.1'
             }
         } | Should -Throw '*No stable*'
-    }
-}
-
-Describe 'Invoke-WUAndroidSdkManager' {
-    BeforeEach {
-        $script:SdkManagerPath = Join-Path -Path $TestDrive -ChildPath 'sdkmanager.bat'
-    }
-
-    It 'accepts native stderr with ErrorAction Stop when the command succeeds' -Skip:($env:OS -ne 'Windows_NT') {
-        [System.IO.File]::WriteAllLines(
-            $script:SdkManagerPath,
-            @('@echo off', 'echo sdk warning 1>&2', 'exit /b 0')
-        )
-
-        {
-            & $script:Module {
-                param($SdkManagerPath)
-
-                Invoke-WUAndroidSdkManager `
-                    -SdkManagerPath $SdkManagerPath `
-                    -ArgumentList '--list' `
-                    -ErrorAction Stop
-            } $script:SdkManagerPath
-        } | Should -Not -Throw
-    }
-
-    It 'reports native output with a nonzero exit code' -Skip:($env:OS -ne 'Windows_NT') {
-        [System.IO.File]::WriteAllLines(
-            $script:SdkManagerPath,
-            @('@echo off', 'echo sdk failure 1>&2', 'exit /b 7')
-        )
-
-        {
-            & $script:Module {
-                param($SdkManagerPath)
-
-                Invoke-WUAndroidSdkManager `
-                    -SdkManagerPath $SdkManagerPath `
-                    -ArgumentList '--list'
-            } $script:SdkManagerPath
-        } | Should -Throw '*exit code 7*sdk failure*'
     }
 }
 
@@ -106,18 +90,13 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
         & $script:Module {
             param($BuildToolsPath)
 
-            Set-WUAndroidBuildToolsLatest `
-                -BuildToolsPath $BuildToolsPath `
-                -Version '35.0.0'
-            Set-WUAndroidBuildToolsLatest `
-                -BuildToolsPath $BuildToolsPath `
-                -Version '36.0.0'
+            Set-WUAndroidBuildToolsLatest -BuildToolsPath $BuildToolsPath -Version '35.0.0'
+            Set-WUAndroidBuildToolsLatest -BuildToolsPath $BuildToolsPath -Version '36.0.0'
         } $script:BuildToolsPath
 
         $latestPath = Join-Path -Path $script:BuildToolsPath -ChildPath 'latest'
         $latest = Get-Item -LiteralPath $latestPath -Force
-        $latest.Attributes -band [System.IO.FileAttributes]::ReparsePoint |
-            Should -Not -Be 0
+        $latest.Attributes -band [System.IO.FileAttributes]::ReparsePoint | Should -Not -Be 0
         & $script:Module {
             param($ReferencePath, $DifferencePath)
 
@@ -135,9 +114,7 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
             & $script:Module {
                 param($BuildToolsPath)
 
-                Set-WUAndroidBuildToolsLatest `
-                    -BuildToolsPath $BuildToolsPath `
-                    -Version '36.0.0'
+                Set-WUAndroidBuildToolsLatest -BuildToolsPath $BuildToolsPath -Version '36.0.0'
             } $script:BuildToolsPath
         } | Should -Throw '*not a directory junction*'
 
@@ -148,45 +125,44 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
 Describe 'Install-WUAndroidSdk' {
     BeforeEach {
         $script:SdkPath = Join-Path -Path $TestDrive -ChildPath 'AndroidSdk'
+        $script:AndroidCalls = @()
         Remove-Item -LiteralPath $script:SdkPath -Recurse -Force -ErrorAction Ignore
 
-        Mock -CommandName Install-WUAndroidCommandLineTools -ModuleName PSWinUtil -MockWith {
-            $sdkManagerDirectory = Join-Path -Path $SdkPath -ChildPath 'cmdline-tools\latest\bin'
-            $null = New-Item -Path $sdkManagerDirectory -ItemType Directory -Force
-            [System.IO.File]::WriteAllText(
-                (Join-Path -Path $sdkManagerDirectory -ChildPath 'sdkmanager.bat'),
-                '@echo off'
-            )
-        }
-        Mock -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -MockWith {
-            if ($ArgumentList -contains '--list') {
+        Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
+        Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil
+        Mock -CommandName android.exe -ModuleName PSWinUtil -MockWith {
+            $global:LASTEXITCODE = 0
+            $androidArguments = @($args)
+            $script:AndroidCalls += , $androidArguments
+            if ($androidArguments -contains 'list') {
+                if ($androidArguments -contains 'platforms/android-*') {
+                    return @(
+                        '  platforms/android-35  2.0.0  Android SDK Platform 35'
+                        '  platforms/android-36  2.0.0  Android SDK Platform 36'
+                        '  platforms/android-37-beta1  1.0.0  Android SDK Platform Preview'
+                    )
+                }
                 return @(
-                    '  build-tools;35.0.1 | 35.0.1 | Android SDK Build-Tools 35.0.1'
-                    '  build-tools;36.0.0 | 36.0.0 | Android SDK Build-Tools 36'
-                    '  build-tools;37.0.0-rc1 | 37.0.0 rc1 | Android SDK Build-Tools 37 rc1'
-                    '  platforms;android-35 | 2 | Android SDK Platform 35'
-                    '  platforms;android-36 | 1 | Android SDK Platform 36'
+                    '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
+                    '  build-tools/36.0.0  36.0.0  Android SDK Build-Tools 36'
+                    '  build-tools/37.0.0-rc1  37.0.0-rc.1  Android SDK Build-Tools 37 rc1'
                 )
             }
 
-            foreach ($argument in $ArgumentList) {
+            foreach ($argument in $androidArguments) {
                 if ($argument -eq 'platform-tools') {
-                    $directory = Join-Path -Path $script:SdkPath -ChildPath 'platform-tools'
-                    $null = New-Item -Path $directory -ItemType Directory -Force
-                    [System.IO.File]::WriteAllText((Join-Path -Path $directory -ChildPath 'adb.exe'), '')
-                } elseif ($argument -match '^platforms;android-(\d+)$') {
-                    $directory = Join-Path -Path $script:SdkPath -ChildPath "platforms\android-$($Matches[1])"
-                    $null = New-Item -Path $directory -ItemType Directory -Force
-                    [System.IO.File]::WriteAllText((Join-Path -Path $directory -ChildPath 'android.jar'), '')
-                } elseif ($argument -match '^build-tools;([0-9]+\.[0-9]+\.[0-9]+)$') {
-                    $directory = Join-Path -Path $script:SdkPath -ChildPath "build-tools\$($Matches[1])"
-                    $null = New-Item -Path $directory -ItemType Directory -Force
-                    [System.IO.File]::WriteAllText((Join-Path -Path $directory -ChildPath 'aapt2.exe'), '')
+                    $file = Join-Path -Path $script:SdkPath -ChildPath 'platform-tools\adb.exe'
+                } elseif ($argument -match '^platforms/android-(\d+)$') {
+                    $file = Join-Path -Path $script:SdkPath -ChildPath "platforms\android-$($Matches[1])\android.jar"
+                } elseif ($argument -match '^build-tools/([0-9]+\.[0-9]+\.[0-9]+)$') {
+                    $file = Join-Path -Path $script:SdkPath -ChildPath "build-tools\$($Matches[1])\aapt2.exe"
                 } elseif ($argument -eq 'emulator') {
-                    $directory = Join-Path -Path $script:SdkPath -ChildPath 'emulator'
-                    $null = New-Item -Path $directory -ItemType Directory -Force
-                    [System.IO.File]::WriteAllText((Join-Path -Path $directory -ChildPath 'emulator.exe'), '')
+                    $file = Join-Path -Path $script:SdkPath -ChildPath 'emulator\emulator.exe'
+                } else {
+                    continue
                 }
+                $null = New-Item -Path (Split-Path -Path $file -Parent) -ItemType Directory -Force
+                [System.IO.File]::WriteAllText($file, '')
             }
         }
         Mock -CommandName Set-WUAndroidBuildToolsLatest -ModuleName PSWinUtil
@@ -198,18 +174,17 @@ Describe 'Install-WUAndroidSdk' {
         $result = Install-WUAndroidSdk -SdkPath $script:SdkPath
 
         $result | Should -BeOfType ([System.IO.DirectoryInfo])
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList -contains '--list' -and
-            $ArgumentList -contains '--channel=0' -and
-            $ArgumentList -contains "--sdk_root=$script:SdkPath"
+        $script:AndroidCalls.Count | Should -Be 3
+        foreach ($androidCall in $script:AndroidCalls) {
+            $androidCall -contains '--no-metrics' | Should -BeTrue
+            $androidCall -contains "--sdk=$script:SdkPath" | Should -BeTrue
         }
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList -contains 'platform-tools' -and
-            $ArgumentList -contains 'platforms;android-36' -and
-            $ArgumentList -contains 'build-tools;36.0.0' -and
-            $ArgumentList -contains 'emulator' -and
-            $ArgumentList -contains '--channel=0'
-        }
+        $script:AndroidCalls[0] -contains 'platforms/android-*' | Should -BeTrue
+        $script:AndroidCalls[1] -contains 'build-tools/*' | Should -BeTrue
+        $script:AndroidCalls[2] -contains 'platform-tools' | Should -BeTrue
+        $script:AndroidCalls[2] -contains 'platforms/android-36' | Should -BeTrue
+        $script:AndroidCalls[2] -contains 'build-tools/36.0.0' | Should -BeTrue
+        $script:AndroidCalls[2] -contains 'emulator' | Should -BeTrue
         Should -Invoke -CommandName Set-WUAndroidBuildToolsLatest -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Version -eq '36.0.0'
         }
@@ -221,30 +196,22 @@ Describe 'Install-WUAndroidSdk' {
             -PlatformVersion 35 `
             -BuildToolsVersion '35.0.1'
 
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 0 -Exactly -ParameterFilter {
-            $ArgumentList -contains '--list'
-        }
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList -contains 'platforms;android-35' -and
-            $ArgumentList -contains 'build-tools;35.0.1'
-        }
+        $script:AndroidCalls.Count | Should -Be 1
+        $script:AndroidCalls[0] -contains 'platforms/android-35' | Should -BeTrue
+        $script:AndroidCalls[0] -contains 'build-tools/35.0.1' | Should -BeTrue
     }
 
     It 'does not reinstall components that are already present' {
-        & {
-            $directories = @(
-                (Join-Path -Path $script:SdkPath -ChildPath 'platform-tools')
-                (Join-Path -Path $script:SdkPath -ChildPath 'platforms\android-36')
-                (Join-Path -Path $script:SdkPath -ChildPath 'build-tools\36.0.0')
-                (Join-Path -Path $script:SdkPath -ChildPath 'emulator')
-            )
-            foreach ($directory in $directories) {
-                $null = New-Item -Path $directory -ItemType Directory -Force
-            }
-            [System.IO.File]::WriteAllText((Join-Path -Path $directories[0] -ChildPath 'adb.exe'), '')
-            [System.IO.File]::WriteAllText((Join-Path -Path $directories[1] -ChildPath 'android.jar'), '')
-            [System.IO.File]::WriteAllText((Join-Path -Path $directories[2] -ChildPath 'aapt2.exe'), '')
-            [System.IO.File]::WriteAllText((Join-Path -Path $directories[3] -ChildPath 'emulator.exe'), '')
+        $requiredPaths = @(
+            'platform-tools\adb.exe'
+            'platforms\android-36\android.jar'
+            'build-tools\36.0.0\aapt2.exe'
+            'emulator\emulator.exe'
+        )
+        foreach ($requiredPath in $requiredPaths) {
+            $fullPath = Join-Path -Path $script:SdkPath -ChildPath $requiredPath
+            $null = New-Item -Path (Split-Path -Path $fullPath -Parent) -ItemType Directory -Force
+            [System.IO.File]::WriteAllText($fullPath, '')
         }
 
         Install-WUAndroidSdk `
@@ -252,26 +219,14 @@ Describe 'Install-WUAndroidSdk' {
             -PlatformVersion 36 `
             -BuildToolsVersion '36.0.0'
 
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 0 -Exactly
+        $script:AndroidCalls.Count | Should -Be 0
     }
 
     It 'installs only the missing SDK package' -TestCases @(
-        @{
-            MissingPath = 'platform-tools\adb.exe'
-            Package = 'platform-tools'
-        }
-        @{
-            MissingPath = 'platforms\android-36\android.jar'
-            Package = 'platforms;android-36'
-        }
-        @{
-            MissingPath = 'build-tools\36.0.0\aapt2.exe'
-            Package = 'build-tools;36.0.0'
-        }
-        @{
-            MissingPath = 'emulator\emulator.exe'
-            Package = 'emulator'
-        }
+        @{ MissingPath = 'platform-tools\adb.exe'; Package = 'platform-tools' }
+        @{ MissingPath = 'platforms\android-36\android.jar'; Package = 'platforms/android-36' }
+        @{ MissingPath = 'build-tools\36.0.0\aapt2.exe'; Package = 'build-tools/36.0.0' }
+        @{ MissingPath = 'emulator\emulator.exe'; Package = 'emulator' }
     ) {
         param($MissingPath, $Package)
 
@@ -296,18 +251,19 @@ Describe 'Install-WUAndroidSdk' {
             -PlatformVersion 36 `
             -BuildToolsVersion '36.0.0'
 
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            @($ArgumentList | Where-Object { $_ -notlike '--*' }) -contains $script:ExpectedPackage -and
-            @($ArgumentList | Where-Object { $_ -notlike '--*' }).Count -eq 1
-        }
+        $script:AndroidCalls.Count | Should -Be 1
+        @($script:AndroidCalls[0] | Where-Object { $_ -eq $script:ExpectedPackage }).Count | Should -Be 1
     }
 
-    It 'sets ANDROID_HOME and adds persistent and process PATH entries' {
+    It 'sets ANDROID_HOME and adds SDK directories to persistent and process PATH values' {
         Install-WUAndroidSdk `
             -SdkPath $script:SdkPath `
             -PlatformVersion 36 `
             -BuildToolsVersion '36.0.0'
 
+        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Id -eq 'Google.AndroidCLI' -and -not $WhatIf
+        }
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'ANDROID_HOME' -and
             $Value -eq $script:SdkPath -and
@@ -318,8 +274,8 @@ Describe 'Install-WUAndroidSdk' {
             $Scope -eq 'User' -and
             $Path -contains '%ANDROID_HOME%\platform-tools' -and
             $Path -contains '%ANDROID_HOME%\emulator' -and
-            $Path -contains '%ANDROID_HOME%\cmdline-tools\latest\bin' -and
-            $Path -contains '%ANDROID_HOME%\build-tools\latest'
+            $Path -contains '%ANDROID_HOME%\build-tools\latest' -and
+            $Path -notcontains '%ANDROID_HOME%\cmdline-tools\latest\bin'
         }
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Scope -eq 'Process' -and
@@ -331,8 +287,8 @@ Describe 'Install-WUAndroidSdk' {
     It 'does not start the installation with WhatIf' {
         Install-WUAndroidSdk -SdkPath $script:SdkPath -WhatIf
 
-        Should -Invoke -CommandName Install-WUAndroidCommandLineTools -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Invoke-WUAndroidSdkManager -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 0 -Exactly
+        $script:AndroidCalls.Count | Should -Be 0
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
     }

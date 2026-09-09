@@ -56,7 +56,6 @@ The following table is generated from the exported commands and their comment-ba
 | `Enable-WUWindowsMediaPlayerFirstUseDialogBoxes` | Enables Windows Media Player first-use dialog boxes. |
 | `Enable-WUWindowsSecurityAllNotifications` | Enables all Windows Security notifications. |
 | `Enable-WUWindowsSecurityNonCriticalNotifications` | Enables non-critical Windows Security notifications. |
-| `Get-WUAndroidCommandLineToolsUrl` | Gets the current Android command-line tools URL for Windows. |
 | `Get-WUAndroidEmulator` | Gets the names of local Android virtual devices. |
 | `Get-WUAndroidEmulatorPort` | Gets available Android emulator console ports. |
 | `Get-WUEnvironmentVariable` | Gets one or more environment variable values. |
@@ -67,8 +66,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WURegistrySetting` | Gets a Windows registry setting state. |
 | `Get-WUStartupEntry` | Gets Windows startup entries. |
 | `Get-WUWindowsAutoLogon` | Gets the Windows auto logon configuration. |
-| `Install-WUAndroidCommandLineTools` | Installs Android SDK Command-Line Tools when missing. |
-| `Install-WUAndroidSdk` | Installs and configures an Android SDK. |
+| `Install-WUAndroidSdk` | Installs and configures an Android SDK with Android CLI. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
 | `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
