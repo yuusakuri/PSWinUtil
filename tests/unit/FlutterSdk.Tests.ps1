@@ -170,7 +170,7 @@ Describe 'Install-WUFlutterSdk' {
         Remove-Item -LiteralPath $script:PackagePath -Force -ErrorAction Ignore
         Remove-Item -LiteralPath $packageSource -Recurse -Force -ErrorAction Ignore
         $flutterBin = Join-Path -Path $packageSource -ChildPath 'flutter\bin'
-        $null = New-Item -Path $flutterBin -ItemType Directory -Force
+New-Item -Path $flutterBin -ItemType Directory -Force | Out-Null
         [IO.File]::WriteAllText(
             (Join-Path -Path $flutterBin -ChildPath 'flutter.bat'),
             '@echo off'
@@ -237,7 +237,7 @@ Describe 'Install-WUFlutterSdk' {
     }
 
     It 'rejects an existing Flutter path that is not a directory' {
-        $null = New-Item -Path $script:DestinationPath -ItemType Directory
+New-Item -Path $script:DestinationPath -ItemType Directory | Out-Null
         [IO.File]::WriteAllText(
             (Join-Path -Path $script:DestinationPath -ChildPath 'flutter'),
             'file'
@@ -285,7 +285,7 @@ Describe 'Install-WUFlutterSdk' {
 
     It 'replaces an existing installation after the SDK commands succeed' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
-        $null = New-Item -Path $existingFlutterPath -ItemType Directory -Force
+New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         [IO.File]::WriteAllText(
             (Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'),
             'old'
@@ -303,12 +303,12 @@ Describe 'Install-WUFlutterSdk' {
 
     It 'keeps an existing installation when the extracted SDK cannot be placed' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
-        $null = New-Item -Path $existingFlutterPath -ItemType Directory -Force
+New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
         Remove-Item -LiteralPath $script:PackagePath -Force
         $invalidSource = Join-Path -Path $TestDrive -ChildPath 'InvalidPackageSource'
-        $null = New-Item -Path $invalidSource -ItemType Directory
+New-Item -Path $invalidSource -ItemType Directory | Out-Null
         [IO.File]::WriteAllText(
             (Join-Path -Path $invalidSource -ChildPath 'unexpected.txt'),
             'invalid'
@@ -350,7 +350,7 @@ Describe 'Install-WUFlutterSdk' {
 
     It 'restores an existing installation when PATH configuration fails' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
-        $null = New-Item -Path $existingFlutterPath -ItemType Directory -Force
+New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
@@ -370,7 +370,7 @@ Describe 'Install-WUFlutterSdk' {
 
     It 'restores an existing installation when flutter version fails' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
-        $null = New-Item -Path $existingFlutterPath -ItemType Directory -Force
+New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
         Mock -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -MockWith {
@@ -387,7 +387,7 @@ Describe 'Install-WUFlutterSdk' {
 
     It 'restores an existing installation when dart version fails' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
-        $null = New-Item -Path $existingFlutterPath -ItemType Directory -Force
+New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
         Mock -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -MockWith {
@@ -402,3 +402,4 @@ Describe 'Install-WUFlutterSdk' {
         Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 1 -Exactly
     }
 }
+
