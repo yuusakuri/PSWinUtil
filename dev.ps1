@@ -38,7 +38,7 @@ $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnal
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
 $commandReferencePath = Join-Path -Path $repositoryRoot -ChildPath 'docs/reference/commands.md'
 
-function Write-DevUsage {
+function Write-WUDevUsage {
     Write-Output -InputObject @'
 Usage:
   .\dev.ps1 format
@@ -63,7 +63,7 @@ Usage:
 $isDotSourced = $MyInvocation.InvocationName -eq '.'
 
 if ([string]::IsNullOrWhiteSpace($Command) -and -not $isDotSourced) {
-    Write-DevUsage
+    Write-WUDevUsage
     exit 0
 }
 
@@ -178,7 +178,7 @@ function Get-WUDevDotnetSourceFile {
     @($files | Sort-Object -Property FullName -Unique)
 }
 
-function Assert-DevAsciiFile {
+function Assert-WUDevAsciiFile {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -205,7 +205,7 @@ function Assert-DevAsciiFile {
     }
 }
 
-function Assert-DevPowerShellSyntax {
+function Assert-WUDevPowerShellSyntax {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -225,7 +225,7 @@ function Assert-DevPowerShellSyntax {
     }
 }
 
-function Assert-DevFunctionFile {
+function Assert-WUDevFunctionFile {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -258,7 +258,7 @@ function Assert-DevFunctionFile {
     }
 }
 
-function Assert-DevSource {
+function Assert-WUDevSource {
     $requiredPaths = @(
         $moduleSourceDirectory
         (Join-Path -Path $moduleSourceDirectory -ChildPath 'Public')
@@ -306,12 +306,12 @@ function Assert-DevSource {
 
     $sourceFiles = @(Get-WUDevSourceFile)
     foreach ($sourceFile in $sourceFiles) {
-        Assert-DevAsciiFile -File $sourceFile
-        Assert-DevPowerShellSyntax -File $sourceFile
+        Assert-WUDevAsciiFile -File $sourceFile
+        Assert-WUDevPowerShellSyntax -File $sourceFile
     }
 
     foreach ($dotnetSourceFile in @(Get-WUDevDotnetSourceFile)) {
-        Assert-DevAsciiFile -File $dotnetSourceFile
+        Assert-WUDevAsciiFile -File $dotnetSourceFile
     }
 
     $functionDirectories = @(
@@ -323,12 +323,12 @@ function Assert-DevSource {
             Get-ChildItem -LiteralPath $functionDirectory -Filter '*.ps1' -File
         )
         foreach ($functionFile in $functionFiles) {
-            Assert-DevFunctionFile -File $functionFile
+            Assert-WUDevFunctionFile -File $functionFile
         }
     }
 }
 
-function Invoke-DevFormat {
+function Invoke-WUDevFormat {
     param(
         [switch]$Check
     )
@@ -357,7 +357,7 @@ function Invoke-DevFormat {
     }
 }
 
-function Invoke-DevAnalyze {
+function Invoke-WUDevAnalyze {
     $analysisResults = @()
     foreach ($sourceFile in @(Get-WUDevSourceFile)) {
         $analysisResults += @(
@@ -376,7 +376,7 @@ function Invoke-DevAnalyze {
     }
 }
 
-function Publish-DevDotnetAssembly {
+function Publish-WUDevDotnetAssembly {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectPath,
@@ -428,7 +428,7 @@ function Publish-DevDotnetAssembly {
     Copy-Item -LiteralPath $builtAssemblyPath -Destination $DestinationDirectory -Force
 }
 
-function Invoke-DevBuild {
+function Invoke-WUDevBuild {
     foreach ($staleDirectory in @($outputModuleDirectory, $outputTestSupportDirectory)) {
         if (Test-Path -LiteralPath $staleDirectory) {
             Remove-Item -LiteralPath $staleDirectory -Recurse -Force
@@ -445,7 +445,7 @@ function Invoke-DevBuild {
         }
     }
 
-    Publish-DevDotnetAssembly `
+    Publish-WUDevDotnetAssembly `
         -ProjectPath $nativeProjectPath `
         -TargetFramework 'netstandard2.0' `
         -AssemblyFileName 'PSWinUtil.Native.dll' `
@@ -455,7 +455,7 @@ function Invoke-DevBuild {
         $testSupportDestination = Join-Path `
             -Path $outputTestSupportDirectory `
             -ChildPath $testSupportTargetFramework
-        Publish-DevDotnetAssembly `
+        Publish-WUDevDotnetAssembly `
             -ProjectPath $testSupportProjectPath `
             -TargetFramework $testSupportTargetFramework `
             -AssemblyFileName 'PSWinUtil.TestSupport.dll' `
@@ -478,7 +478,7 @@ function Invoke-DevBuild {
     }
 }
 
-function Invoke-DevImport {
+function Invoke-WUDevImport {
     if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
         throw "Build the module before importing it: $outputManifestPath"
     }
@@ -486,14 +486,14 @@ function Invoke-DevImport {
     Import-Module -Name $outputManifestPath -Force -Global -ErrorAction Stop
 }
 
-function Assert-DevOutput {
+function Assert-WUDevOutput {
     $outputFiles = @(
         Get-ChildItem -LiteralPath $outputModuleDirectory -File -Recurse |
             Where-Object { $_.Extension -in @('.ps1', '.psd1', '.psm1', '.ps1xml') }
     )
     foreach ($outputFile in $outputFiles) {
-        Assert-DevAsciiFile -File $outputFile
-        Assert-DevPowerShellSyntax -File $outputFile
+        Assert-WUDevAsciiFile -File $outputFile
+        Assert-WUDevPowerShellSyntax -File $outputFile
     }
 
     Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop | Out-Null
@@ -531,7 +531,7 @@ function Assert-DevOutput {
     }
 }
 
-function Invoke-DevTest {
+function Invoke-WUDevTest {
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('unit', 'integration', 'contract', 'all')]
@@ -541,7 +541,7 @@ function Invoke-DevTest {
     )
 
     if (-not $SkipBuild) {
-        Invoke-DevBuild
+        Invoke-WUDevBuild
     }
 
     $testTypes = @($SelectedTestType)
@@ -570,8 +570,8 @@ function Invoke-DevTest {
     }
 }
 
-function Invoke-DevOnlineIntegrationTest {
-    Invoke-DevBuild
+function Invoke-WUDevOnlineIntegrationTest {
+    Invoke-WUDevBuild
 
     $onlineIntegrationTests = @(
         Get-ChildItem `
@@ -1480,51 +1480,51 @@ function Wait-GalleryPublication {
     throw "PowerShell Gallery did not expose PSWinUtil $Version within the expected time."
 }
 
-function Invoke-DevVerify {
+function Invoke-WUDevVerify {
     Import-RequiredModule -Name 'PSScriptAnalyzer'
     Import-RequiredModule -Name 'ModuleBuilder'
     Import-RequiredModule -Name 'Pester'
-    Assert-DevSource
-    Invoke-DevFormat -Check
-    Invoke-DevAnalyze
-    Invoke-DevBuild
-    Assert-DevOutput
-    Invoke-DevTest -SelectedTestType 'all' -SkipBuild
+    Assert-WUDevSource
+    Invoke-WUDevFormat -Check
+    Invoke-WUDevAnalyze
+    Invoke-WUDevBuild
+    Assert-WUDevOutput
+    Invoke-WUDevTest -SelectedTestType 'all' -SkipBuild
 }
 
 switch ($Command) {
     'format' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        Invoke-DevFormat
+        Invoke-WUDevFormat
     }
     'analyze' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        Invoke-DevAnalyze
+        Invoke-WUDevAnalyze
     }
     'lint' {
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        Assert-DevSource
-        Invoke-DevFormat -Check
-        Invoke-DevAnalyze
+        Assert-WUDevSource
+        Invoke-WUDevFormat -Check
+        Invoke-WUDevAnalyze
     }
     'build' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
-        Invoke-DevBuild
+        Invoke-WUDevBuild
     }
     'import' {
-        Invoke-DevImport
+        Invoke-WUDevImport
     }
     'docs' {
         if (-not [string]::IsNullOrWhiteSpace($Argument) -and $Argument -ne 'check') {
             throw "The docs command accepts only 'check' as an argument."
         }
 
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
-        Invoke-DevBuild
+        Invoke-WUDevBuild
         Update-CommandReference `
             -ManifestPath $outputManifestPath `
             -Path $commandReferencePath `
@@ -1539,22 +1539,22 @@ switch ($Command) {
             throw "The test command accepts unit, integration, contract, or all: $selectedTestType"
         }
 
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        Invoke-DevTest -SelectedTestType $selectedTestType
+        Invoke-WUDevTest -SelectedTestType $selectedTestType
     }
     'test-online-integration' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        Invoke-DevOnlineIntegrationTest
+        Invoke-WUDevOnlineIntegrationTest
     }
     'verify' {
-        Invoke-DevVerify
+        Invoke-WUDevVerify
     }
     'ci' {
-        Invoke-DevVerify
+        Invoke-WUDevVerify
     }
     'bump' {
         if ([string]::IsNullOrWhiteSpace($Argument)) {

@@ -178,7 +178,7 @@ function Install-WUAndroidSdk {
     Set-WUEnvironmentVariable `
         -Name 'ANDROID_HOME' `
         -Value $fullSdkPath `
-        -Scope 'User', 'Process'
+        -Scope 'User'
     $userPaths = @(
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
