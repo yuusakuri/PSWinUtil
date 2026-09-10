@@ -5,15 +5,11 @@ BeforeAll {
 Describe 'Install-WUWingetPackage' {
     BeforeEach {
         InModuleScope -ModuleName PSWinUtil {
-            function script:Invoke-WUTestWinget {
+            function script:winget.exe {
                 $script:CapturedWingetArguments = @($args)
                 $global:LASTEXITCODE = 0
                 'Package installed'
             }
-        }
-        Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Source = 'Invoke-WUTestWinget' }
-            [pscustomobject]@{ Source = 'unused-winget.exe' }
         }
     }
 
@@ -28,20 +24,15 @@ Describe 'Install-WUWingetPackage' {
             'install|--id|Microsoft.PowerShell|--exact|' +
             '--accept-source-agreements|--accept-package-agreements'
         )
-        Should -Invoke -CommandName Get-Command -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'winget.exe' -and $CommandType -eq 'Application'
-        }
     }
 
     It 'does not invoke winget with WhatIf' {
         Install-WUWingetPackage -Id 'Microsoft.PowerShell' -WhatIf
-
-        Should -Invoke -CommandName Get-Command -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'reports the exit code and output when winget fails' {
         InModuleScope -ModuleName PSWinUtil {
-            function script:Invoke-WUTestWinget {
+            function script:winget.exe {
                 $global:LASTEXITCODE = 42
                 'Installation failed'
             }

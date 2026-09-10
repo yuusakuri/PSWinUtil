@@ -21,11 +21,7 @@ function Get-WUAndroidEmulator {
     [OutputType([string])]
     param()
 
-    $emulator = Get-Command -Name 'emulator.exe' -CommandType Application -ErrorAction Ignore |
-        Select-Object -First 1
-    if ($null -eq $emulator) {
-        throw 'Android emulator.exe was not found on PATH.'
-    }
+    Assert-WUCommand -Name 'emulator.exe'
 
     $arguments = @('-list-avds')
     $commandOutput = @(& 'emulator.exe' @arguments 2>&1)

@@ -35,7 +35,6 @@ function Set-WUAndroidBuildToolsLatest {
     )
 
     $versionPath = Join-Path -Path $BuildToolsPath -ChildPath $Version
-    Assert-WUPathProperty -LiteralPath $versionPath -Container
     $latestPath = Join-Path -Path $BuildToolsPath -ChildPath 'latest'
 
     if (Test-Path -LiteralPath $latestPath) {

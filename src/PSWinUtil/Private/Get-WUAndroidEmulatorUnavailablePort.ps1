@@ -18,11 +18,7 @@ function Get-WUAndroidEmulatorUnavailablePort {
     [OutputType([int])]
     param()
 
-    $adb = Get-Command -Name 'adb.exe' -CommandType Application -ErrorAction Ignore |
-        Select-Object -First 1
-    if ($null -eq $adb) {
-        throw 'Android adb.exe was not found on PATH.'
-    }
+    Assert-WUCommand -Name 'adb.exe'
 
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
