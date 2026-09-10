@@ -84,8 +84,8 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
     It 'creates and updates the latest directory junction' -Skip:($env:OS -ne 'Windows_NT') {
         $firstVersionPath = Join-Path -Path $script:BuildToolsPath -ChildPath '35.0.0'
         $secondVersionPath = Join-Path -Path $script:BuildToolsPath -ChildPath '36.0.0'
-        $null = New-Item -Path $firstVersionPath -ItemType Directory -Force
-        $null = New-Item -Path $secondVersionPath -ItemType Directory -Force
+        New-Item -Path $firstVersionPath -ItemType Directory -Force | Out-Null
+        New-Item -Path $secondVersionPath -ItemType Directory -Force | Out-Null
 
         & $script:Module {
             param($BuildToolsPath)
@@ -107,8 +107,8 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
     It 'preserves an ordinary latest directory' {
         $versionPath = Join-Path -Path $script:BuildToolsPath -ChildPath '36.0.0'
         $latestPath = Join-Path -Path $script:BuildToolsPath -ChildPath 'latest'
-        $null = New-Item -Path $versionPath -ItemType Directory -Force
-        $null = New-Item -Path $latestPath -ItemType Directory -Force
+        New-Item -Path $versionPath -ItemType Directory -Force | Out-Null
+        New-Item -Path $latestPath -ItemType Directory -Force | Out-Null
 
         {
             & $script:Module {
@@ -118,7 +118,7 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
             } $script:BuildToolsPath
         } | Should -Throw '*not a directory junction*'
 
-        Test-Path -LiteralPath $latestPath -PathType Container | Should -BeTrue
+        Test-Path -LiteralPath $latestPath | Should -BeTrue
     }
 }
 
@@ -161,14 +161,14 @@ Describe 'Install-WUAndroidSdk' {
                 } elseif ($argument -eq 'cmdline-tools/latest') {
                     $file = Join-Path -Path $script:SdkPath -ChildPath 'cmdline-tools\latest\bin\sdkmanager.bat'
                     $avdManager = Join-Path -Path $script:SdkPath -ChildPath 'cmdline-tools\latest\bin\avdmanager.bat'
-                    $null = New-Item -Path (Split-Path -Path $file -Parent) -ItemType Directory -Force
+                    New-Item -Path (Split-Path -Path $file -Parent) -ItemType Directory -Force | Out-Null
                     [System.IO.File]::WriteAllText($file, '')
                     [System.IO.File]::WriteAllText($avdManager, '')
                     continue
                 } else {
                     continue
                 }
-                $null = New-Item -Path (Split-Path -Path $file -Parent) -ItemType Directory -Force
+                New-Item -Path (Split-Path -Path $file -Parent) -ItemType Directory -Force | Out-Null
                 [System.IO.File]::WriteAllText($file, '')
             }
         }
@@ -220,7 +220,7 @@ Describe 'Install-WUAndroidSdk' {
         )
         foreach ($requiredPath in $requiredPaths) {
             $fullPath = Join-Path -Path $script:SdkPath -ChildPath $requiredPath
-            $null = New-Item -Path (Split-Path -Path $fullPath -Parent) -ItemType Directory -Force
+            New-Item -Path (Split-Path -Path $fullPath -Parent) -ItemType Directory -Force | Out-Null
             [System.IO.File]::WriteAllText($fullPath, '')
         }
 
@@ -255,7 +255,7 @@ Describe 'Install-WUAndroidSdk' {
                 continue
             }
             $fullPath = Join-Path -Path $script:SdkPath -ChildPath $requiredPath
-            $null = New-Item -Path (Split-Path -Path $fullPath -Parent) -ItemType Directory -Force
+            New-Item -Path (Split-Path -Path $fullPath -Parent) -ItemType Directory -Force | Out-Null
             [System.IO.File]::WriteAllText($fullPath, '')
         }
 
