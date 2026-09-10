@@ -11,7 +11,9 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
         }
         $script:SavedAvdHome = $env:ANDROID_AVD_HOME
         $script:SavedPath = $env:Path
-        $env:Path = (Join-Path $env:PSWINUTIL_ANDROID_TEST_SDK 'emulator') + ';' + $env:Path
+        $emulatorPath = Join-Path $env:PSWINUTIL_ANDROID_TEST_SDK 'emulator'
+        $platformToolsPath = Join-Path $env:PSWINUTIL_ANDROID_TEST_SDK 'platform-tools'
+        $env:Path = $emulatorPath + ';' + $platformToolsPath + ';' + $env:Path
         $script:AvdHome = Join-Path $TestDrive 'isolated avds'
         $null = New-Item -Path $script:AvdHome -ItemType Directory
         $env:ANDROID_AVD_HOME = $script:AvdHome
