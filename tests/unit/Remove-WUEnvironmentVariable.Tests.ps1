@@ -48,7 +48,7 @@ Describe 'Remove-WUEnvironmentVariable' {
     }
 
     It 'forwards Confirm to Set-WUEnvironmentVariable' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME' -Confirm:$false
+        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME'
 
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             -not $Confirm

@@ -24,7 +24,7 @@ BeforeAll {
 
         foreach ($inputProperty in $Property) {
             if ($null -eq $inputProperty.Value) {
-                Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name -Confirm:$false
+                Remove-WURegistryProperty -Path $inputProperty.Path -Name $inputProperty.Name
                 continue
             }
             $parameters = @{
