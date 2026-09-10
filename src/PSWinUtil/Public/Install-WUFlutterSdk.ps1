@@ -151,9 +151,7 @@ function Install-WUFlutterSdk {
             Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend
             Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'Process' -Prepend
 
-            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand -Command 'dart' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList 'doctor' -IgnoreExitCode
+            Assert-WUFlutterSdkInstallation
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
                 Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
