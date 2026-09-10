@@ -29,7 +29,7 @@ function Assert-WUFlutterSdkInstallation {
         $flutterVersionOutput = @(& flutter --version 2>&1)
         $flutterVersionExitCode = $LASTEXITCODE
         foreach ($outputItem in $flutterVersionOutput) {
-            Write-Information -MessageData ([string]$outputItem) -InformationAction Continue
+            Write-Information -MessageData ([string]$outputItem)
         }
         if ($flutterVersionExitCode -ne 0) {
             throw "The Flutter SDK version command failed with exit code $flutterVersionExitCode."
@@ -38,7 +38,7 @@ function Assert-WUFlutterSdkInstallation {
         $dartVersionOutput = @(& dart --version 2>&1)
         $dartVersionExitCode = $LASTEXITCODE
         foreach ($outputItem in $dartVersionOutput) {
-            Write-Information -MessageData ([string]$outputItem) -InformationAction Continue
+            Write-Information -MessageData ([string]$outputItem)
         }
         if ($dartVersionExitCode -ne 0) {
             throw "The Dart SDK version command failed with exit code $dartVersionExitCode."
@@ -46,7 +46,7 @@ function Assert-WUFlutterSdkInstallation {
 
         $flutterDoctorOutput = @(& flutter doctor 2>&1)
         foreach ($outputItem in $flutterDoctorOutput) {
-            Write-Information -MessageData ([string]$outputItem) -InformationAction Continue
+            Write-Information -MessageData ([string]$outputItem)
         }
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference

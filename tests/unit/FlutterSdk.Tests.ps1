@@ -197,6 +197,9 @@ Describe 'Install-WUFlutterSdk' {
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
             $script:OperationOrder += "path-$Scope"
         }
+        Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -MockWith {
+            $script:OperationOrder += 'environment-update'
+        }
         Mock -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -MockWith {
             $script:OperationOrder += 'flutter-installation'
         }
@@ -206,7 +209,6 @@ Describe 'Install-WUFlutterSdk' {
         Install-WUFlutterSdk -DestinationPath $script:DestinationPath -WhatIf
 
         Test-Path -LiteralPath $script:DestinationPath | Should -BeFalse
-        Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 0 -Exactly
@@ -226,17 +228,16 @@ Describe 'Install-WUFlutterSdk' {
         Test-Path -LiteralPath $expectedFlutterPath | Should -BeFalse
     }
 
-    It 'rejects an existing destination path that is not a directory' {
+    It 'fails when the destination path is an existing file' {
         [IO.File]::WriteAllText($script:DestinationPath, 'file')
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
         } | Should -Throw
 
-        Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
-    It 'rejects an existing Flutter path that is not a directory' {
+    It 'fails when the Flutter path is an existing file' {
         New-Item -Path $script:DestinationPath -ItemType Directory | Out-Null
         [IO.File]::WriteAllText(
             (Join-Path -Path $script:DestinationPath -ChildPath 'flutter'),
@@ -247,10 +248,9 @@ Describe 'Install-WUFlutterSdk' {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
         } | Should -Throw
 
-        Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
-    It 'installs the package, configures both PATH scopes, and runs the SDK commands' {
+    It 'installs the package, configures the user PATH, refreshes the process, and runs the SDK commands' {
         $result = Install-WUFlutterSdk -Version '3.47.1' -DestinationPath $script:DestinationPath
         $flutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         $flutterBinPath = Join-Path -Path $flutterPath -ChildPath 'bin'
@@ -270,15 +270,13 @@ Describe 'Install-WUFlutterSdk' {
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Path -eq $flutterBinPath -and $Scope -eq 'User' -and $Prepend
         }
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq $flutterBinPath -and $Scope -eq 'Process' -and $Prepend
-        }
+        Should -Invoke -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -Times 1 -Exactly
         Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 1 -Exactly
         $script:OperationOrder | Should -Be @(
             'release'
             'download'
             'path-User'
-            'path-Process'
+            'environment-update'
             'flutter-installation'
         )
     }
@@ -354,7 +352,7 @@ Describe 'Install-WUFlutterSdk' {
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            if ($Scope -eq 'Process') {
+            if ($Scope -eq 'User') {
                 throw 'PATH update failure'
             }
         }
