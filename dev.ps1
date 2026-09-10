@@ -92,7 +92,7 @@ function Import-RequiredModule {
     }
 }
 
-function Test-DevCommand {
+function Test-WUCommand {
     [CmdletBinding()]
     [OutputType([bool])]
     param(
@@ -104,7 +104,7 @@ function Test-DevCommand {
     [bool](Get-Command -Name $Name -ErrorAction Ignore)
 }
 
-function Assert-DevCommand {
+function Assert-WUCommand {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -116,7 +116,7 @@ function Assert-DevCommand {
         [string]$Purpose
     )
 
-    if (-not (Test-DevCommand -Name $Name)) {
+    if (-not (Test-WUCommand -Name $Name)) {
         throw "$Name was not found on PATH. $Purpose"
     }
 }
@@ -389,7 +389,7 @@ function Publish-DevDotnetAssembly {
         [string]$DestinationDirectory
     )
 
-    Assert-DevCommand `
+    Assert-WUCommand `
         -Name 'dotnet' `
         -Purpose 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
 
@@ -738,7 +738,7 @@ function Get-RequiredApplication {
         [string]$Purpose
     )
 
-    Assert-DevCommand -Name $Name -Purpose $Purpose
+    Assert-WUCommand -Name $Name -Purpose $Purpose
 
     $Name
 }
