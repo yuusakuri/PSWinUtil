@@ -221,7 +221,7 @@ Describe 'Android virtual devices' -Tag Android {
     It 'requires emulator.exe on PATH when listing devices' {
         Mock -CommandName Get-Command -ModuleName PSWinUtil
 
-        { Get-WUAndroidEmulator } | Should -Throw '*not found on PATH*'
+        { Get-WUAndroidEmulator } | Should -Throw '*Command*not available*'
     }
 
     It 'reports a list command failure without returning device names' {
@@ -238,7 +238,7 @@ Describe 'Android virtual devices' -Tag Android {
     It 'requires emulator.exe on PATH' {
         Mock -CommandName Get-Command -ModuleName PSWinUtil
 
-        { Start-WUAndroidEmulator } | Should -Throw '*not found on PATH*'
+        { Start-WUAndroidEmulator } | Should -Throw '*Command*not available*'
     }
 
     It 'reports a list command failure' {
@@ -430,8 +430,8 @@ Describe 'Android virtual devices' -Tag Android {
     It 'requires adb.exe for port selection and startup even with NoWait' {
         Mock -CommandName Get-Command -ModuleName PSWinUtil -ParameterFilter { $Name -eq 'adb.exe' }
 
-        { Get-WUAndroidEmulatorPort } | Should -Throw '*adb.exe was not found on PATH*'
-        { Start-WUAndroidEmulator -NoWait } | Should -Throw '*adb.exe was not found on PATH*'
+        { Get-WUAndroidEmulatorPort } | Should -Throw '*Command*not available*'
+        { Start-WUAndroidEmulator -NoWait } | Should -Throw '*Command*not available*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
