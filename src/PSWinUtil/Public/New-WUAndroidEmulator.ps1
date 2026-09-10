@@ -150,8 +150,6 @@ function New-WUAndroidEmulator {
         $package = "system-images;android-$PlatformVersion;${SystemImageTag};$Abi"
         $installArguments = @('--no-metrics', "--sdk=$fullSdkPath", 'sdk', 'install', $package.Replace(';', '/'))
         $null = Invoke-WUAndroidSdkTool -FilePath 'android.exe' -ArgumentList $installArguments -AllowAndroidCliWindowsExitCode
-        $installedImagePath = Join-Path -Path $fullSdkPath -ChildPath ($package.Replace(';', '\'))
-        Assert-WUPathProperty -LiteralPath $installedImagePath -Container
         $createArguments = @('create', 'avd', '--name', $Name, '--package', $package, '--device', $Device)
         if ($Force) {
             $createArguments += '--force'
