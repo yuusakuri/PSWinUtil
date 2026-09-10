@@ -49,7 +49,7 @@ function New-WURandomString {
             }
 
             $characterIndex = [int]($randomByte[0] % $characterCount)
-            $null = $builder.Append($characters[$characterIndex])
+            $builder.Append($characters[$characterIndex]) | Out-Null
         }
     } finally {
         $randomNumberGenerator.Dispose()

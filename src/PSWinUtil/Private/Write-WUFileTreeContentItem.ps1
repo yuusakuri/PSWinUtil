@@ -34,7 +34,7 @@ function Write-WUFileTreeContentItem {
         return
     }
 
-    $null = [System.Xml.XmlConvert]::VerifyXmlChars($Item.FullName)
+    [System.Xml.XmlConvert]::VerifyXmlChars($Item.FullName) | Out-Null
     $escapedPath = [System.Security.SecurityElement]::Escape($Item.FullName)
     if ($isDirectory) {
         '<document path="{0}" type="directory" />' -f $escapedPath
@@ -45,7 +45,7 @@ function Write-WUFileTreeContentItem {
         return
     }
 
-    $null = [System.Xml.XmlConvert]::VerifyXmlChars($content)
+    [System.Xml.XmlConvert]::VerifyXmlChars($content) | Out-Null
     $escapedContent = [System.Security.SecurityElement]::Escape($content)
     '<document path="{0}" type="file">{1}</document>' -f $escapedPath, $escapedContent
 }
