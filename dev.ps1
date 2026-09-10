@@ -93,34 +93,34 @@ function Import-RequiredModule {
 }
 
 if (-not $isDotSourced) {
-function script:Test-WUCommand {
-    [CmdletBinding()]
-    [OutputType([bool])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Name
-    )
+    function script:Test-WUCommand {
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name
+        )
 
-    [bool](Get-Command -Name $Name -ErrorAction Ignore)
-}
-
-function script:Assert-WUCommand {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Name,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Purpose
-    )
-
-    if (-not (Test-WUCommand -Name $Name)) {
-        throw "$Name was not found on PATH. $Purpose"
+        [bool](Get-Command -Name $Name -ErrorAction Ignore)
     }
-}
+
+    function script:Assert-WUCommand {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Purpose
+        )
+
+        if (-not (Test-WUCommand -Name $Name)) {
+            throw "$Name was not found on PATH. $Purpose"
+        }
+    }
 }
 
 function Get-DevSourceFile {
