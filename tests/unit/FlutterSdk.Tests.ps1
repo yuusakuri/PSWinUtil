@@ -234,7 +234,6 @@ Describe 'Install-WUFlutterSdk' {
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
         } | Should -Throw
-
     }
 
     It 'fails when the Flutter path is an existing file' {
@@ -247,7 +246,6 @@ Describe 'Install-WUFlutterSdk' {
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
         } | Should -Throw
-
     }
 
     It 'installs the package, configures the user PATH, refreshes the process, and runs the SDK commands' {
