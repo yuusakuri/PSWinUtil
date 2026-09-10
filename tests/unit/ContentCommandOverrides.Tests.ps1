@@ -4,14 +4,14 @@ BeforeAll {
     $script:Utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $script:UnicodeText = [string][char]0x3042
     $script:OverrideNames = @('Get-Content', 'Set-Content', 'Add-Content', 'Out-File')
-    function script:Assert-PSWinUtilFileByteEquality {
+    function Assert-PSWinUtilFileByteEquality {
         param([string]$ProxyPath, [string]$OriginalPath)
 
         [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($ProxyPath)) |
             Should -Be ([Convert]::ToBase64String([System.IO.File]::ReadAllBytes($OriginalPath)))
     }
 
-    function script:Get-PSWinUtilUtf8LfContent {
+    function Get-PSWinUtilUtf8LfContent {
         param([string]$Path)
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path)

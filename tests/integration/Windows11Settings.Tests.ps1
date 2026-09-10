@@ -5,7 +5,7 @@ BeforeAll {
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
     Import-Module -Name $manifestPath -Force -ErrorAction Stop
 
-    function script:Save-PSWinUtilRegistryProperty {
+    function Save-PSWinUtilRegistryProperty {
         param([hashtable[]]$Property)
 
         @(
@@ -19,7 +19,7 @@ BeforeAll {
         )
     }
 
-    function script:Restore-PSWinUtilRegistryProperty {
+    function Restore-PSWinUtilRegistryProperty {
         param([object[]]$Property)
 
         foreach ($inputProperty in $Property) {

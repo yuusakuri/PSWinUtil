@@ -345,7 +345,7 @@ function Invoke-DevAnalyze {
     }
 }
 
-function Invoke-DevDotnetAssembly {
+function Publish-DevDotnetAssembly {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectPath,
@@ -415,7 +415,7 @@ function Invoke-DevBuild {
         }
     }
 
-    Invoke-DevDotnetAssembly `
+    Publish-DevDotnetAssembly `
         -ProjectPath $nativeProjectPath `
         -TargetFramework 'netstandard2.0' `
         -AssemblyFileName 'PSWinUtil.Native.dll' `
@@ -425,7 +425,7 @@ function Invoke-DevBuild {
         $testSupportDestination = Join-Path `
             -Path $outputTestSupportDirectory `
             -ChildPath $testSupportTargetFramework
-        Invoke-DevDotnetAssembly `
+        Publish-DevDotnetAssembly `
             -ProjectPath $testSupportProjectPath `
             -TargetFramework $testSupportTargetFramework `
             -AssemblyFileName 'PSWinUtil.TestSupport.dll' `

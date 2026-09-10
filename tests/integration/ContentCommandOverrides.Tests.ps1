@@ -2,7 +2,7 @@ BeforeAll {
     $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'
     Import-Module -Name $manifestPath -Force -ErrorAction Stop
-    function script:Assert-PSWinUtilUtf8LfFile {
+    function Assert-PSWinUtilUtf8LfFile {
         param([string]$Path)
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path)
