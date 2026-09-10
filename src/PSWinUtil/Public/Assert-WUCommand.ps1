@@ -8,6 +8,11 @@ function Assert-WUCommand {
 
     .PARAMETER Name
     Specifies the command name to find.
+
+    .EXAMPLE
+    Assert-WUCommand -Name 'git'
+
+    Throws when git is unavailable on PATH.
     #>
     [CmdletBinding()]
     param(
