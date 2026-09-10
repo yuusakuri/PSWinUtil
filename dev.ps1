@@ -92,6 +92,35 @@ function Import-RequiredModule {
     }
 }
 
+function Test-DevCommand {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name
+    )
+
+    [bool](Get-Command -Name $Name -ErrorAction Ignore)
+}
+
+function Assert-DevCommand {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Purpose
+    )
+
+    if (-not (Test-DevCommand -Name $Name)) {
+        throw "$Name was not found on PATH. $Purpose"
+    }
+}
+
 function Get-DevSourceFile {
     $rootFileNames = @(
         'install.ps1'
@@ -360,9 +389,9 @@ function Publish-DevDotnetAssembly {
         [string]$DestinationDirectory
     )
 
-    if ($null -eq (Get-Command -Name 'dotnet' -ErrorAction Ignore)) {
-        throw 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
-    }
+    Assert-DevCommand `
+        -Name 'dotnet' `
+        -Purpose 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
 
     $projectName = [System.IO.Path]::GetFileNameWithoutExtension($ProjectPath)
     $intermediateDirectory = Join-Path `
@@ -491,7 +520,6 @@ function Assert-DevOutput {
         }
     }
 
-    $null = Get-Command -Name 'powershell.exe' -ErrorAction Stop
     $escapedManifestPath = $outputManifestPath.Replace("'", "''")
     $importCommand = "Import-Module -Name '$escapedManifestPath' -Force -ErrorAction Stop"
     $cleanProcessOutput = & 'powershell.exe' -NoProfile -NonInteractive -Command $importCommand 2>&1
@@ -710,9 +738,7 @@ function Get-RequiredApplication {
         [string]$Purpose
     )
 
-    if ($null -eq (Get-Command -Name $Name -ErrorAction Ignore)) {
-        throw "$Name was not found on PATH. $Purpose"
-    }
+    Assert-DevCommand -Name $Name -Purpose $Purpose
 
     $Name
 }
