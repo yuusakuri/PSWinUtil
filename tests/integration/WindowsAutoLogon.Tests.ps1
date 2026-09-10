@@ -64,7 +64,6 @@ Describe 'Windows auto logon commands' {
                     Name = $propertyName
                     Value = $savedProperty.Value
                     Type = $savedProperty.Type
-                    Confirm = $false
                 }
                 Set-WURegistryProperty @restoreParameters
             }

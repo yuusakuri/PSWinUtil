@@ -35,7 +35,6 @@ Describe 'Keyboard remapping commands' {
             Name = 'Scancode Map'
             Value = $script:SavedProperty.Value
             Type = $script:SavedProperty.Type
-            Confirm = $false
         }
         Set-WURegistryProperty @restoreParameters
     }
