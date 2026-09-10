@@ -3,6 +3,9 @@ function Assert-WUCommand {
     .SYNOPSIS
     Requires a command to be available.
 
+    .DESCRIPTION
+    Throws an error when PowerShell cannot resolve the specified command name.
+
     .PARAMETER Name
     Specifies the command name to find.
     #>

@@ -3,6 +3,9 @@ function Test-WUCommand {
     .SYNOPSIS
     Tests whether a command is available.
 
+    .DESCRIPTION
+    Returns whether PowerShell can resolve the specified command name.
+
     .PARAMETER Name
     Specifies the command name to find.
     #>
