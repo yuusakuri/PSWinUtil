@@ -92,7 +92,7 @@ function Import-RequiredModule {
     }
 }
 
-function Test-WUCommand {
+function script:Test-WUCommand {
     [CmdletBinding()]
     [OutputType([bool])]
     param(
@@ -104,7 +104,7 @@ function Test-WUCommand {
     [bool](Get-Command -Name $Name -ErrorAction Ignore)
 }
 
-function Assert-WUCommand {
+function script:Assert-WUCommand {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]

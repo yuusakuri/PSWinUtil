@@ -9,16 +9,14 @@ Describe 'Development command checks' {
     It 'returns false and throws a useful error when a command is unavailable' {
         Mock Get-Command {}
 
-        Test-WUCommand -Name 'missing-tool' | Should -BeFalse
-        {
-            Assert-WUCommand -Name 'missing-tool' -Purpose 'Install the development tool.'
-        } | Should -Throw '*missing-tool was not found on PATH*'
+        { Get-RequiredApplication -Name 'missing-tool' -Purpose 'Install the development tool.' } |
+            Should -Throw '*missing-tool was not found on PATH*'
     }
 
     It 'accepts a command resolved by PowerShell' {
         Mock Get-Command { [pscustomobject]@{ Name = $Name } }
 
-        { Assert-WUCommand -Name 'available-tool' -Purpose 'Install the development tool.' } |
+        { Get-RequiredApplication -Name 'available-tool' -Purpose 'Install the development tool.' } |
             Should -Not -Throw
     }
 }
