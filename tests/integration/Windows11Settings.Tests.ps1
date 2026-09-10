@@ -32,7 +32,6 @@ BeforeAll {
                 Name = $inputProperty.Name
                 Value = $inputProperty.Value.Value
                 Type = $inputProperty.Value.Type
-                Confirm = $false
             }
             Set-WURegistryProperty @parameters
         }

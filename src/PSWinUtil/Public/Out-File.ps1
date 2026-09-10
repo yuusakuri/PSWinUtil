@@ -194,7 +194,6 @@ function Out-File {
             $formatPipeline.Begin($true)
         } else {
             $null = $PSBoundParameters.Remove('WhatIf')
-            $PSBoundParameters.Confirm = $false
             $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
                 'Microsoft.PowerShell.Utility\Out-File',
                 [System.Management.Automation.CommandTypes]::Cmdlet
