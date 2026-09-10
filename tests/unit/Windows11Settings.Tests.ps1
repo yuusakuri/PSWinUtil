@@ -87,7 +87,7 @@ Describe 'Set-WUJapaneseKeyboardLayout' {
     It 'requires the Windows language commands' {
         Mock -CommandName Get-Command -ModuleName PSWinUtil
 
-        { Set-WUJapaneseKeyboardLayout -Layout US } | Should -Throw '*required Windows command*'
+        { Set-WUJapaneseKeyboardLayout -Layout US } | Should -Throw '*Command*not available*'
         Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
     }
 }

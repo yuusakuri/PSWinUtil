@@ -17,7 +17,7 @@ Describe 'Runtime certificate environment integration' {
     }
 
     It 'sets the literal certificate path without interpreting brackets' {
-        Set-WUNodeExtraCaCertificate -LiteralPath $script:CertificatePath -Scope Process -Confirm:$false
+        Set-WUNodeExtraCaCertificate -LiteralPath $script:CertificatePath -Scope Process
         $env:NODE_EXTRA_CA_CERTS | Should -Be $script:CertificatePath
     }
 
@@ -57,7 +57,7 @@ Describe 'Runtime certificate environment integration' {
     ) {
         param($Existing, $Expected)
         $env:JAVA_TOOL_OPTIONS = $Existing
-        Set-WUJavaWindowsRootTrustStore -Scope Process -Confirm:$false
+        Set-WUJavaWindowsRootTrustStore -Scope Process
         $env:JAVA_TOOL_OPTIONS | Should -Be $Expected
         Set-WUJavaWindowsRootTrustStore -Scope Process
         $env:JAVA_TOOL_OPTIONS | Should -Be $Expected
