@@ -46,5 +46,4 @@ Describe 'Remove-WUEnvironmentVariable' {
             $WhatIf
         }
     }
-
 }
