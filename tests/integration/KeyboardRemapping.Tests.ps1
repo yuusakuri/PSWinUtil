@@ -27,7 +27,7 @@ Describe 'Keyboard remapping commands' {
             return
         }
         if ($null -eq $script:SavedProperty) {
-            Remove-WURegistryProperty -Path $script:KeyboardLayoutPath -Name 'Scancode Map' -Confirm:$false
+            Remove-WURegistryProperty -Path $script:KeyboardLayoutPath -Name 'Scancode Map'
             return
         }
         $restoreParameters = @{

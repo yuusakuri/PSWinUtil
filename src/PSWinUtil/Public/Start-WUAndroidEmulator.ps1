@@ -87,11 +87,7 @@ function Start-WUAndroidEmulator {
         throw 'Port requires exactly one Name.'
     }
 
-    $emulator = Get-Command -Name 'emulator.exe' -CommandType Application -ErrorAction Ignore |
-        Select-Object -First 1
-    if ($null -eq $emulator) {
-        throw 'Android emulator.exe was not found on PATH.'
-    }
+    Assert-WUCommand -Name 'emulator.exe'
 
     $avdNames = @(Get-WUAndroidEmulator -ErrorAction Stop)
     if ($avdNames.Count -eq 0) {
@@ -114,11 +110,7 @@ function Start-WUAndroidEmulator {
         }
     }
 
-    $adb = Get-Command -Name 'adb.exe' -CommandType Application -ErrorAction Ignore |
-        Select-Object -First 1
-    if ($null -eq $adb) {
-        throw 'Android adb.exe was not found on PATH.'
-    }
+    Assert-WUCommand -Name 'adb.exe'
 
     $approvedNames = @(
         foreach ($selectedName in $selectedNames) {

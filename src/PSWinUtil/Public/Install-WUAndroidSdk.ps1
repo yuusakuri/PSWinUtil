@@ -62,13 +62,12 @@ function Install-WUAndroidSdk {
         throw 'SdkPath is required. Specify it or set LOCALAPPDATA.'
     }
     $fullSdkPath = ConvertTo-WUFullPath -Path $SdkPath
-    Assert-WUPathProperty -LiteralPath $fullSdkPath -Container -AllowNonExisting
     if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
         return
     }
 
-    $null = Install-WUWingetPackage -Id 'Google.AndroidCLI' -Confirm:$false
-    Update-WUProcessEnvironment -Confirm:$false
+    $null = Install-WUWingetPackage -Id 'Google.AndroidCLI'
+    Update-WUProcessEnvironment
     $androidArguments = @(
         '--no-metrics'
         "--sdk=$fullSdkPath"
@@ -166,13 +165,11 @@ function Install-WUAndroidSdk {
 
     Set-WUAndroidBuildToolsLatest `
         -BuildToolsPath $buildToolsRoot `
-        -Version $resolvedBuildToolsVersion `
-        -Confirm:$false
+        -Version $resolvedBuildToolsVersion
     Set-WUEnvironmentVariable `
         -Name 'ANDROID_HOME' `
         -Value $fullSdkPath `
-        -Scope 'User', 'Process' `
-        -Confirm:$false
+        -Scope 'User', 'Process'
     $userPaths = @(
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
@@ -180,8 +177,7 @@ function Install-WUAndroidSdk {
     )
     Add-WUPathEnvironmentVariable `
         -Path $userPaths `
-        -Scope 'User' `
-        -Confirm:$false
+        -Scope 'User'
     $processPaths = @(
         $platformToolsPath
         $emulatorPath
@@ -189,8 +185,7 @@ function Install-WUAndroidSdk {
     )
     Add-WUPathEnvironmentVariable `
         -Path $processPaths `
-        -Scope 'Process' `
-        -Confirm:$false
+        -Scope 'Process'
 
     Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
 }

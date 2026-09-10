@@ -32,8 +32,7 @@ function Install-WUWingetPackage {
         return
     }
 
-    $winget = Get-Command -Name 'winget.exe' -CommandType Application -ErrorAction Stop |
-        Select-Object -First 1
+    Assert-WUCommand -Name 'winget.exe'
     $arguments = @(
         'install'
         '--id'
@@ -43,7 +42,7 @@ function Install-WUWingetPackage {
         '--accept-package-agreements'
     )
 
-    $commandOutput = @(& $winget.Source @arguments 2>&1)
+    $commandOutput = @(& 'winget.exe' @arguments 2>&1)
     $exitCode = $LASTEXITCODE
     $textOutput = @($commandOutput | ForEach-Object { $_.ToString() })
     if ($exitCode -ne 0) {

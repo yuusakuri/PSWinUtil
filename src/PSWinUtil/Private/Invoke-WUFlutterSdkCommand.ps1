@@ -45,12 +45,11 @@ function Invoke-WUFlutterSdkCommand {
         [switch]$IgnoreExitCode
     )
 
-    $application = Get-Command -Name $Command -CommandType Application -ErrorAction Stop |
-        Select-Object -First 1
+    Assert-WUCommand -Name $Command
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $commandOutput = @(& $application.Source @ArgumentList 2>&1)
+        $commandOutput = @(& $Command @ArgumentList 2>&1)
         $exitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference

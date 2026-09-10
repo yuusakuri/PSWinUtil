@@ -52,11 +52,11 @@ Describe 'Windows auto logon commands' {
             $disabledState.UserName | Should -BeNullOrEmpty
             $disabledState.Domain | Should -BeNullOrEmpty
         } finally {
-            Set-WUAutoLogonPassword -Password $null -Confirm:$false
+            Set-WUAutoLogonPassword -Password $null
             foreach ($propertyName in $propertyNames) {
                 $savedProperty = $savedProperties[$propertyName]
                 if ($null -eq $savedProperty) {
-                    Remove-WURegistryProperty -Path $script:WinlogonPath -Name $propertyName -Confirm:$false
+                    Remove-WURegistryProperty -Path $script:WinlogonPath -Name $propertyName
                     continue
                 }
                 $restoreParameters = @{
