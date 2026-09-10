@@ -8,6 +8,11 @@ function Test-WUCommand {
 
     .PARAMETER Name
     Specifies the command name to find.
+
+    .EXAMPLE
+    Test-WUCommand -Name 'git'
+
+    Returns True when git is available on PATH.
     #>
     [CmdletBinding()]
     [OutputType([bool])]
