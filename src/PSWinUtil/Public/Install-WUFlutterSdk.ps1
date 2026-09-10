@@ -51,16 +51,7 @@ function Install-WUFlutterSdk {
 
         [Parameter()]
         [ValidateSet('x64', 'arm64')]
-        [string]$Architecture = $(
-            if (
-                $env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or
-                $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64'
-            ) {
-                'arm64'
-            } else {
-                'x64'
-            }
-        ),
+        [string]$Architecture = $(Format-FlutterSystemArchitectureString -Architecture (Get-SystemArchitecture)),
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
@@ -153,9 +144,7 @@ function Install-WUFlutterSdk {
             Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend
             Update-WUProcessEnvironment
 
-            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand -Command 'dart' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList 'doctor' -IgnoreExitCode
+            Assert-WUFlutterSdkInstallation
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
                 Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
