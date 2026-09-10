@@ -4,7 +4,7 @@ function Install-WUAndroidSdk {
     Installs and configures an Android SDK with Android CLI.
 
     .DESCRIPTION
-    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing platform-tools, SDK Platform, Build Tools, and emulator packages. Omitted versions select the latest stable package reported by android sdk list. The command sets ANDROID_HOME for the current user and process, adds SDK command directories to both PATH values, and points build-tools\latest to the selected Build Tools version.
+    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing cmdline-tools/latest, platform-tools, SDK Platform, Build Tools, and emulator packages. The cmdline-tools/latest/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Omitted versions select the latest stable package reported by android sdk list. The command sets ANDROID_HOME for the current user and process, adds SDK command directories to both PATH values, and points build-tools\latest to the selected Build Tools version.
 
     .PARAMETER SdkPath
     Specifies the Android SDK directory. The default value is LOCALAPPDATA\Android\Sdk.
@@ -124,6 +124,7 @@ function Install-WUAndroidSdk {
     $buildToolsRoot = Join-Path -Path $fullSdkPath -ChildPath 'build-tools'
     $buildToolsPath = Join-Path -Path $buildToolsRoot -ChildPath $resolvedBuildToolsVersion
     $emulatorPath = Join-Path -Path $fullSdkPath -ChildPath 'emulator'
+    $cmdlineToolsPath = Join-Path -Path $fullSdkPath -ChildPath 'cmdline-tools\latest\bin'
 
     $packages = @()
     if (-not (Test-Path -LiteralPath (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe') -PathType Leaf)) {
@@ -137,6 +138,12 @@ function Install-WUAndroidSdk {
     }
     if (-not (Test-Path -LiteralPath (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe') -PathType Leaf)) {
         $packages += 'emulator'
+    }
+    if (
+        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat') -PathType Leaf) -or
+        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat') -PathType Leaf)
+    ) {
+        $packages += 'cmdline-tools/latest'
     }
 
     if ($packages.Count -gt 0) {
@@ -157,6 +164,8 @@ function Install-WUAndroidSdk {
         (Join-Path -Path $platformPath -ChildPath 'android.jar')
         (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe')
         (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe')
+        (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat')
+        (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat')
     )
     foreach ($requiredFile in $requiredFiles) {
         if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
@@ -177,6 +186,7 @@ function Install-WUAndroidSdk {
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
         '%ANDROID_HOME%\build-tools\latest'
+        '%ANDROID_HOME%\cmdline-tools\latest\bin'
     )
     Add-WUPathEnvironmentVariable `
         -Path $userPaths `
@@ -186,6 +196,7 @@ function Install-WUAndroidSdk {
         $platformToolsPath
         $emulatorPath
         (Join-Path -Path $buildToolsRoot -ChildPath 'latest')
+        $cmdlineToolsPath
     )
     Add-WUPathEnvironmentVariable `
         -Path $processPaths `
