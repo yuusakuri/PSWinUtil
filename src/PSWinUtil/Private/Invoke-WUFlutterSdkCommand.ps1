@@ -57,7 +57,7 @@ function Invoke-WUFlutterSdkCommand {
     }
 
     foreach ($outputItem in $commandOutput) {
-        Write-Information -MessageData ([string]$outputItem) -InformationAction Continue
+        Write-Information -MessageData ([string]$outputItem)
     }
 
     if ($exitCode -ne 0 -and -not $IgnoreExitCode) {

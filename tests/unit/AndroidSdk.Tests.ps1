@@ -268,7 +268,7 @@ Describe 'Install-WUAndroidSdk' {
         @($script:AndroidCalls[0] | Where-Object { $_ -eq $script:ExpectedPackage }).Count | Should -Be 1
     }
 
-    It 'sets ANDROID_HOME and adds SDK directories to persistent and process PATH values' {
+    It 'persists ANDROID_HOME and SDK directories, then refreshes the process environment' {
         Install-WUAndroidSdk `
             -SdkPath $script:SdkPath `
             -PlatformVersion 36 `
@@ -280,8 +280,7 @@ Describe 'Install-WUAndroidSdk' {
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'ANDROID_HOME' -and
             $Value -eq $script:SdkPath -and
-            $Scope -contains 'User' -and
-            $Scope -contains 'Process'
+            $Scope -eq 'User'
         }
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Scope -eq 'User' -and
@@ -290,11 +289,12 @@ Describe 'Install-WUAndroidSdk' {
             $Path -contains '%ANDROID_HOME%\build-tools\latest' -and
             $Path -contains '%ANDROID_HOME%\cmdline-tools\latest\bin'
         }
+        Should -Invoke -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -Times 2 -Exactly
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Scope -eq 'Process' -and
-            $Path -contains (Join-Path -Path $script:SdkPath -ChildPath 'platform-tools') -and
-            $Path -contains (Join-Path -Path $script:SdkPath -ChildPath 'emulator') -and
-            $Path -contains (Join-Path -Path $script:SdkPath -ChildPath 'cmdline-tools\latest\bin')
+            $Scope -eq 'User'
+        }
+        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly -ParameterFilter {
+            $Scope -eq 'Process'
         }
     }
 

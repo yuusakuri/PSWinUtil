@@ -4,7 +4,7 @@ function Install-WUAndroidSdk {
     Installs and configures an Android SDK with Android CLI.
 
     .DESCRIPTION
-    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing cmdline-tools/latest, platform-tools, SDK Platform, Build Tools, and emulator packages. The cmdline-tools/latest/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Omitted versions select the latest stable package reported by android sdk list. The command sets ANDROID_HOME for the current user and process, adds SDK command directories to both PATH values, and points build-tools\latest to the selected Build Tools version.
+    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing cmdline-tools/latest, platform-tools, SDK Platform, Build Tools, and emulator packages. The cmdline-tools/latest/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Omitted versions select the latest stable package reported by android sdk list. The command persists ANDROID_HOME and SDK command directories for the current user, refreshes the current process from the persistent environment, and points build-tools\latest to the selected Build Tools version.
 
     .PARAMETER SdkPath
     Specifies the Android SDK directory. The default value is LOCALAPPDATA\Android\Sdk.
@@ -62,7 +62,6 @@ function Install-WUAndroidSdk {
         throw 'SdkPath is required. Specify it or set LOCALAPPDATA.'
     }
     $fullSdkPath = ConvertTo-WUFullPath -Path $SdkPath
-    Assert-WUPathProperty -LiteralPath $fullSdkPath -Container -AllowNonExisting
     if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
         return
     }
@@ -189,15 +188,7 @@ function Install-WUAndroidSdk {
     Add-WUPathEnvironmentVariable `
         -Path $userPaths `
         -Scope 'User'
-    $processPaths = @(
-        $platformToolsPath
-        $emulatorPath
-        (Join-Path -Path $buildToolsRoot -ChildPath 'latest')
-        $cmdlineToolsPath
-    )
-    Add-WUPathEnvironmentVariable `
-        -Path $processPaths `
-        -Scope 'Process'
+    Update-WUProcessEnvironment
 
     Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
 }

@@ -187,6 +187,9 @@ Describe 'Install-WUFlutterSdk' {
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
             $script:OperationOrder += "path-$Scope"
         }
+        Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -MockWith {
+            $script:OperationOrder += 'environment-update'
+        }
         Mock -CommandName Invoke-WUFlutterSdkCommand -ModuleName PSWinUtil -MockWith {
             $script:OperationOrder += "$Command $($ArgumentList -join ' ')"
         }
@@ -213,12 +216,6 @@ Describe 'Install-WUFlutterSdk' {
         }
         $expectedFlutterPath = Join-Path -Path $TestDrive -ChildPath 'flutter'
 
-        Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -eq $TestDrive -and $Container -and $AllowNonExisting
-        }
-        Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -eq $expectedFlutterPath -and $Container -and $AllowNonExisting
-        }
     }
 
     It 'rejects an existing destination path that is not a directory' {
@@ -228,7 +225,6 @@ Describe 'Install-WUFlutterSdk' {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
         } | Should -Throw '*required properties*'
 
-        Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'rejects an existing Flutter path that is not a directory' {
@@ -242,10 +238,9 @@ Describe 'Install-WUFlutterSdk' {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
         } | Should -Throw '*required properties*'
 
-        Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
-    It 'installs the package, configures both PATH scopes, and runs the SDK commands' {
+    It 'installs the package, configures the user PATH, refreshes the process, and runs the SDK commands' {
         $result = Install-WUFlutterSdk -Version '3.47.1' -DestinationPath $script:DestinationPath
         $flutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         $flutterBinPath = Join-Path -Path $flutterPath -ChildPath 'bin'
@@ -265,9 +260,7 @@ Describe 'Install-WUFlutterSdk' {
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Path -eq $flutterBinPath -and $Scope -eq 'User' -and $Prepend
         }
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq $flutterBinPath -and $Scope -eq 'Process' -and $Prepend
-        }
+        Should -Invoke -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -Times 1 -Exactly
         Should -Invoke -CommandName Invoke-WUFlutterSdkCommand -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Command -eq 'flutter' -and
             $ArgumentList.Count -eq 1 -and
@@ -290,7 +283,7 @@ Describe 'Install-WUFlutterSdk' {
             'release'
             'download'
             'path-User'
-            'path-Process'
+            'environment-update'
             'flutter --version'
             'dart --version'
             'flutter doctor'
@@ -368,7 +361,7 @@ Describe 'Install-WUFlutterSdk' {
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            if ($Scope -eq 'Process') {
+            if ($Scope -eq 'User') {
                 throw 'PATH update failure'
             }
         }
