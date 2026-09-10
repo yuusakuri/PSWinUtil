@@ -89,7 +89,7 @@ function New-WUSshKey {
 
     $parentPath = Split-Path -Path $keyPath -Parent
     if (-not (Test-Path -LiteralPath $parentPath -PathType Container)) {
-        $null = New-Item -Path $parentPath -ItemType Directory -Force
+        New-Item -Path $parentPath -ItemType Directory -Force | Out-Null
     }
     if ($keyExists) {
         Remove-Item -LiteralPath $keyPath -Force

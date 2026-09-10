@@ -73,7 +73,6 @@ Describe 'Set-WUNodeExtraCaCertificate' {
         }
     }
 
-
     It 'sets the certificate in every selected scope' {
         Set-WUNodeExtraCaCertificate -Path '.\AdditionalRootCA.pem' -Scope Process, User
 
@@ -109,7 +108,6 @@ Describe 'Set-WUJavaWindowsRootTrustStore' {
             $WhatIf -eq $true
         }
     }
-
 
     It 'preserves unrelated Java tool options' {
         Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {

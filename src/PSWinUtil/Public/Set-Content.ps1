@@ -152,7 +152,7 @@ function Set-Content {
         $PSBoundParameters.Encoding.ToString() -ieq 'UTF8' -and
         -not $PSBoundParameters.ContainsKey('Stream')
 
-        $null = $PSBoundParameters.Remove('WhatIf')
+        $PSBoundParameters.Remove('WhatIf') | Out-Null
         $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
             'Microsoft.PowerShell.Management\Set-Content',
             [System.Management.Automation.CommandTypes]::Cmdlet

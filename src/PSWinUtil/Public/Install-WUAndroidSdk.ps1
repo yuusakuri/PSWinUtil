@@ -66,7 +66,7 @@ function Install-WUAndroidSdk {
         return
     }
 
-    $null = Install-WUWingetPackage -Id 'Google.AndroidCLI'
+    Install-WUWingetPackage -Id 'Google.AndroidCLI' | Out-Null
     Update-WUProcessEnvironment
     $androidArguments = @(
         '--no-metrics'

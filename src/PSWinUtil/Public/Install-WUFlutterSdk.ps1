@@ -186,7 +186,7 @@ function Install-WUFlutterSdk {
             }
             if (
                 $destinationCreated -and
-                (Test-Path -LiteralPath $fullDestinationPath -PathType Container) -and
+                (Test-Path -LiteralPath $fullDestinationPath) -and
                 @(Get-ChildItem -LiteralPath $fullDestinationPath -Force).Count -eq 0
             ) {
                 Remove-Item -LiteralPath $fullDestinationPath -Force -ErrorAction SilentlyContinue
