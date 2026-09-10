@@ -92,6 +92,37 @@ function Import-RequiredModule {
     }
 }
 
+if (-not $isDotSourced) {
+    function script:Test-WUCommand {
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name
+        )
+
+        [bool](Get-Command -Name $Name -ErrorAction Ignore)
+    }
+
+    function script:Assert-WUCommand {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Purpose
+        )
+
+        if (-not (Test-WUCommand -Name $Name)) {
+            throw "$Name was not found on PATH. $Purpose"
+        }
+    }
+}
+
 function Get-WUDevSourceFile {
     $rootFileNames = @(
         'install.ps1'
@@ -182,11 +213,11 @@ function Assert-DevPowerShellSyntax {
 
     $tokens = $null
     $parseErrors = $null
-    $null = [System.Management.Automation.Language.Parser]::ParseFile(
+    [System.Management.Automation.Language.Parser]::ParseFile(
         $File.FullName,
         [ref]$tokens,
         [ref]$parseErrors
-    )
+    ) | Out-Null
 
     if (@($parseErrors).Count -gt 0) {
         $messages = @($parseErrors | ForEach-Object { $_.Message }) -join [Environment]::NewLine
@@ -360,10 +391,9 @@ function Publish-DevDotnetAssembly {
         [string]$DestinationDirectory
     )
 
-    $dotnet = Get-Command -Name 'dotnet' -CommandType Application -ErrorAction Ignore
-    if ($null -eq $dotnet) {
-        throw 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
-    }
+    Assert-WUCommand `
+        -Name 'dotnet' `
+        -Purpose 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
 
     $projectName = [System.IO.Path]::GetFileNameWithoutExtension($ProjectPath)
     $intermediateDirectory = Join-Path `
@@ -372,7 +402,7 @@ function Publish-DevDotnetAssembly {
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $buildOutput = & $dotnet.Source build $ProjectPath `
+        $buildOutput = & 'dotnet' build $ProjectPath `
             --configuration 'Release' `
             --framework $TargetFramework `
             --output $intermediateDirectory `
@@ -392,7 +422,7 @@ function Publish-DevDotnetAssembly {
     }
 
     if (-not (Test-Path -LiteralPath $DestinationDirectory -PathType Container)) {
-        $null = New-Item -Path $DestinationDirectory -ItemType 'Directory' -Force
+        New-Item -Path $DestinationDirectory -ItemType 'Directory' -Force | Out-Null
     }
 
     Copy-Item -LiteralPath $builtAssemblyPath -Destination $DestinationDirectory -Force
@@ -466,7 +496,7 @@ function Assert-DevOutput {
         Assert-DevPowerShellSyntax -File $outputFile
     }
 
-    $null = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
+    Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop | Out-Null
     $manifest = Import-PowerShellDataFile -Path $outputManifestPath
     $referenceKeys = @(
         'RootModule'
@@ -492,10 +522,9 @@ function Assert-DevOutput {
         }
     }
 
-    $windowsPowerShell = Get-Command -Name 'powershell.exe' -CommandType Application -ErrorAction Stop
     $escapedManifestPath = $outputManifestPath.Replace("'", "''")
     $importCommand = "Import-Module -Name '$escapedManifestPath' -Force -ErrorAction Stop"
-    $cleanProcessOutput = & $windowsPowerShell.Source -NoProfile -NonInteractive -Command $importCommand 2>&1
+    $cleanProcessOutput = & 'powershell.exe' -NoProfile -NonInteractive -Command $importCommand 2>&1
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
         throw "A clean Windows PowerShell process could not import the module. Exit code: $exitCode$([Environment]::NewLine)$($cleanProcessOutput -join [Environment]::NewLine)"
@@ -663,7 +692,7 @@ function Update-CommandReference {
     }
 
     if ($PSCmdlet.ShouldProcess($Path, 'Write the generated command reference')) {
-        $null = [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($Path))
+        [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($Path)) | Out-Null
         [System.IO.File]::WriteAllBytes($Path, $expectedBytes)
     }
 }
@@ -711,13 +740,9 @@ function Get-RequiredApplication {
         [string]$Purpose
     )
 
-    $application = Get-Command -Name $Name -CommandType Application -ErrorAction Ignore |
-        Select-Object -First 1
-    if ($null -eq $application) {
-        throw "$Name was not found on PATH. $Purpose"
-    }
+    Assert-WUCommand -Name $Name -Purpose $Purpose
 
-    $application.Source
+    $Name
 }
 
 function ConvertTo-ReleaseVersion {
@@ -1020,7 +1045,7 @@ function Invoke-Bump {
         [string]$Version
     )
 
-    $null = ConvertTo-ReleaseVersion -Version $Version
+    ConvertTo-ReleaseVersion -Version $Version | Out-Null
     $tagName = "v$Version"
     $branchName = "release/$Version"
     $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
@@ -1060,13 +1085,13 @@ function Invoke-Bump {
         return
     }
 
-    $result = Set-ReleaseVersion -Version $Version -Confirm:$false
+    $result = Set-ReleaseVersion -Version $Version
     Write-Output -InputObject "Release version $($result.PreviousVersion) -> $($result.Version)"
 
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version")
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName)
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName) | Out-Null
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath) | Out-Null
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version") | Out-Null
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName) | Out-Null
 
     $pullRequestBody = @(
         '## Release'
@@ -1109,11 +1134,11 @@ function Invoke-Release {
     )
 
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git inspects the release commit and tags.'
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @(
         'fetch', 'origin', '+refs/heads/master:refs/remotes/origin/master', '--tags'
-    )
+    ) | Out-Null
 
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}")
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}") | Out-Null
     $headOutput = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
     $headCommit = ($headOutput -join '').Trim()
     if ($headCommit -ne $ReleaseCommit) {
@@ -1128,9 +1153,9 @@ function Invoke-Release {
         throw 'The release checkout contains uncommitted changes. Build and publish the committed source.'
     }
 
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @(
         'merge-base', '--is-ancestor', $ReleaseCommit, 'origin/master'
-    )
+    ) | Out-Null
 
     $manifest = Get-ReleaseManifest -GitPath $git -ReleaseCommit $ReleaseCommit
     $manifestVersion = Get-ReleaseManifestVersion -Manifest $manifest
@@ -1319,14 +1344,13 @@ function Invoke-ReleasePack {
     )
 
     if (Test-Path -LiteralPath $ArtifactPath) {
-        Remove-Item -LiteralPath $ArtifactPath -Force -Confirm:$false
+        Remove-Item -LiteralPath $ArtifactPath -Force
     }
 
     Compress-Archive `
         -LiteralPath $ModuleDirectory `
         -DestinationPath $ArtifactPath `
-        -CompressionLevel Optimal `
-        -Confirm:$false
+        -CompressionLevel Optimal
 }
 
 function Invoke-ReleasePublish {
@@ -1393,21 +1417,20 @@ function Invoke-ReleasePublish {
 
     if (-not $State.TagExists) {
         if ($localTagNames.Count -eq 0) {
-            $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+            Invoke-ExternalCommand -FilePath $git -ArgumentList @(
                 'tag', '--annotate', $tagName, '--message', "PSWinUtil $Version", $ReleaseCommit
-            )
+            ) | Out-Null
         }
-        $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName")
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName") | Out-Null
     }
 
     if (-not $State.GalleryExists) {
         Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
-        $null = Publish-PSResource `
+        Publish-PSResource `
             -Path $ModuleDirectory `
             -Repository 'PSGallery' `
             -ApiKey $env:PSGALLERY_API_KEY `
-            -Confirm:$false `
-            -ErrorAction Stop
+            -ErrorAction Stop | Out-Null
 
         Wait-GalleryPublication -Version $Version
     }
@@ -1419,7 +1442,7 @@ function Invoke-ReleasePublish {
     if (-not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)) {
         $releaseArguments += '--prerelease'
     }
-    $null = Invoke-ExternalCommand -FilePath $gh -ArgumentList $releaseArguments
+    Invoke-ExternalCommand -FilePath $gh -ArgumentList $releaseArguments | Out-Null
 
     [pscustomobject]@{
         Version = $Version

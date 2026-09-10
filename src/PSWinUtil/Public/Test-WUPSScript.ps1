@@ -97,17 +97,17 @@ function Test-WUPSScript {
             $tokens = $null
             $parseErrors = $null
             if ($isFileInput) {
-                $null = [System.Management.Automation.Language.Parser]::ParseFile(
+                [System.Management.Automation.Language.Parser]::ParseFile(
                     $inputValue,
                     [ref]$tokens,
                     [ref]$parseErrors
-                )
+                ) | Out-Null
             } else {
-                $null = [System.Management.Automation.Language.Parser]::ParseInput(
+                [System.Management.Automation.Language.Parser]::ParseInput(
                     $inputValue,
                     [ref]$tokens,
                     [ref]$parseErrors
-                )
+                ) | Out-Null
             }
 
             $isValid = @($parseErrors).Count -eq 0

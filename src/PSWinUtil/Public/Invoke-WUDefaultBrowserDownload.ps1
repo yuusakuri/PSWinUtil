@@ -81,7 +81,6 @@ function Invoke-WUDefaultBrowserDownload {
 
     $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
-    Assert-WUPathProperty -LiteralPath $fullDownloadDirectory -Container
     $targetPath = Join-Path -Path $fullDownloadDirectory -ChildPath $resolvedFileName
     if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and -not $Force) {
         throw "The target file already exists. Use Force to replace it: $targetPath"

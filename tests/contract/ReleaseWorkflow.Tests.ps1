@@ -242,12 +242,12 @@ Describe 'Invoke-ReleasePublish' {
     It 'checks the credential before creating the archive or tag' {
         $env:PSGALLERY_API_KEY = ''
 
-        { Invoke-ReleasePublish @script:PublishArguments -Confirm:$false } | Should -Throw '*PSGALLERY_API_KEY*'
+        { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*PSGALLERY_API_KEY*'
         $script:PublicationEvents.Count | Should -Be 0
     }
 
     It 'publishes in order and returns exactly one structured result' {
-        $results = @(Invoke-ReleasePublish @script:PublishArguments -Confirm:$false)
+        $results = @(Invoke-ReleasePublish @script:PublishArguments)
 
         ($script:PublicationEvents -join ',') | Should -BeExactly 'pack,tag,push,gallery,wait,release'
         $results.Count | Should -Be 1
@@ -269,7 +269,7 @@ Describe 'Invoke-ReleasePublish' {
             -Version '2.0.0-preview1' `
             -ReleaseCommit $script:ReleaseCommit
 
-        $result = Invoke-ReleasePublish @script:PublishArguments -Confirm:$false
+        $result = Invoke-ReleasePublish @script:PublishArguments
 
         $result.Version | Should -Be '2.0.0-preview1'
         Should -Invoke Wait-GalleryPublication -Times 1 -Exactly -ParameterFilter {
@@ -286,7 +286,7 @@ Describe 'Invoke-ReleasePublish' {
         Mock Invoke-ExternalCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
         Mock Invoke-ExternalCommand { $script:ReleaseCommit } -ParameterFilter { $ArgumentList[0] -eq 'rev-parse' }
 
-        $null = Invoke-ReleasePublish @script:PublishArguments -Confirm:$false
+        $null = Invoke-ReleasePublish @script:PublishArguments
 
         ($script:PublicationEvents -join ',') | Should -BeExactly 'pack,push,gallery,wait,release'
     }
@@ -304,14 +304,14 @@ Describe 'Invoke-ReleasePublish' {
     It 'does not publish to Gallery after a tag push failure' {
         Mock Invoke-ExternalCommand { throw 'Push failed.' } -ParameterFilter { $ArgumentList[0] -eq 'push' }
 
-        { Invoke-ReleasePublish @script:PublishArguments -Confirm:$false } | Should -Throw '*Push failed*'
+        { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*Push failed*'
         Should -Invoke Publish-PSResource -Times 0 -Exactly
     }
 
     It 'does not create a GitHub Release before Gallery confirmation' {
         Mock Wait-GalleryPublication { throw 'Gallery unavailable.' }
 
-        { Invoke-ReleasePublish @script:PublishArguments -Confirm:$false } | Should -Throw '*Gallery unavailable*'
+        { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*Gallery unavailable*'
         Should -Invoke Invoke-ExternalCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList[0] -eq 'release' }
     }
 
@@ -321,7 +321,7 @@ Describe 'Invoke-ReleasePublish' {
             -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit `
             -TagCommit $script:ReleaseCommit -GalleryExists
 
-        $null = Invoke-ReleasePublish @script:PublishArguments -Confirm:$false
+        $null = Invoke-ReleasePublish @script:PublishArguments
 
         ($script:PublicationEvents -join ',') | Should -BeExactly 'pack,release'
     }
@@ -331,7 +331,7 @@ Describe 'Invoke-ReleasePublish' {
             -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit `
             -TagCommit $script:ReleaseCommit -GalleryExists -GitHubReleaseExists
 
-        $results = @(Invoke-ReleasePublish @script:PublishArguments -Confirm:$false)
+        $results = @(Invoke-ReleasePublish @script:PublishArguments)
 
         $results.Count | Should -Be 1
         $results[0].ArtifactPath | Should -Be ''

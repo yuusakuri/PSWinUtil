@@ -67,7 +67,6 @@ function Invoke-WUDefaultBrowserDownloadInternal {
 
     $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
-    Assert-WUPathProperty -LiteralPath $fullDownloadDirectory -Container
     $targetPath = Join-Path -Path $fullDownloadDirectory -ChildPath $FileName
     if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and -not $Force) {
         throw "The target file already exists. Use Force to replace it: $targetPath"
@@ -83,7 +82,7 @@ function Invoke-WUDefaultBrowserDownloadInternal {
         }
     }
 
-    $null = Start-Process -FilePath $Uri.AbsoluteUri -ErrorAction Stop
+    Start-Process -FilePath $Uri.AbsoluteUri -ErrorAction Stop | Out-Null
     $stopwatch = [Diagnostics.Stopwatch]::StartNew()
     try {
         while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
@@ -102,9 +101,9 @@ function Invoke-WUDefaultBrowserDownloadInternal {
                     [IO.Path]::GetFullPath($targetPath)
                     return
                 } catch [IO.IOException] {
-                    $null = $_
+                    $_ | Out-Null
                 } catch [UnauthorizedAccessException] {
-                    $null = $_
+                    $_ | Out-Null
                 } finally {
                     if ($null -ne $stream) {
                         $stream.Dispose()
