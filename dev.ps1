@@ -92,6 +92,7 @@ function Import-RequiredModule {
     }
 }
 
+if (-not $isDotSourced) {
 function script:Test-WUCommand {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -119,6 +120,7 @@ function script:Assert-WUCommand {
     if (-not (Test-WUCommand -Name $Name)) {
         throw "$Name was not found on PATH. $Purpose"
     }
+}
 }
 
 function Get-DevSourceFile {
