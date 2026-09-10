@@ -6,7 +6,7 @@ function Set-WUJavaWindowsRootTrustStore {
     .DESCRIPTION
     In corporate or otherwise restricted network environments, JAVA_TOOL_OPTIONS is often used to force Java SSL verification through the Windows system certificate store (WINDOWS-ROOT). Bundled JDKs installed with Android Studio or IntelliJ may omit, customize, or contain defects in support for this Windows-specific store, causing HTTPS downloads to fail.
 
-    The robust solution is to point build tools at a standard JDK installed on the computer, such as Amazon Corretto or Oracle JDK, instead of modifying a bundled JDK. Configure that JDK through JAVA_HOME or the tool-specific JDK setting; this approach also applies to Flutter, Android development, and general Java development. This command configures the Windows ROOT trust store option for Java processes started after the environment variable is updated, while preserving unrelated Java options.
+    The robust solution is to point build tools at a standard JDK installed on the computer, such as Amazon Corretto or Oracle JDK, instead of modifying a bundled JDK. Configure that JDK through JAVA_HOME or the tool-specific JDK setting; this approach also applies to Flutter, Android development, and general Java development. This command configures the Windows ROOT trust store option for Java processes started after the environment variable is updated, .
 
     .PARAMETER Scope
     Specifies one or more of Process, User, and Machine. The default value is User. Machine changes do not start an elevated process.

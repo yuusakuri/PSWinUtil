@@ -148,21 +148,6 @@ Describe 'Invoke-WUFlutterSdkCommand' {
             } $script:PowerShellExecutable
         } | Should -Not -Throw
     }
-
-    It 'sends up to 100 y lines to the command' {
-        $informationOutput = @(
-            & $script:Module {
-                param($Executable)
-
-                Invoke-WUFlutterSdkCommand `
-                    -Command $Executable `
-                    -ArgumentList '-NoProfile', '-Command', '$lines=@($input);Write-Output $lines.Count;#', '--android-licenses'
-            } $script:PowerShellExecutable 6>&1
-        )
-
-        @($informationOutput | ForEach-Object { [string]$_ }) |
-            Should -Contain '100'
-    }
 }
 
 Describe 'Install-WUFlutterSdk' {
@@ -296,13 +281,6 @@ Describe 'Install-WUFlutterSdk' {
             $ArgumentList[0] -eq 'doctor' -and
             $IgnoreExitCode
         }
-        Should -Invoke -CommandName Invoke-WUFlutterSdkCommand -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Command -eq 'flutter' -and
-            $ArgumentList.Count -eq 2 -and
-            $ArgumentList[0] -eq 'doctor' -and
-            $ArgumentList[1] -eq '--android-licenses' -and
-            $ArgumentList -contains '--android-licenses'
-        }
         $script:OperationOrder | Should -Be @(
             'release'
             'download'
@@ -310,7 +288,6 @@ Describe 'Install-WUFlutterSdk' {
             'path-Process'
             'flutter --version'
             'dart --version'
-            'flutter doctor --android-licenses'
             'flutter doctor'
         )
     }

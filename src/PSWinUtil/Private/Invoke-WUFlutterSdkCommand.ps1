@@ -48,13 +48,7 @@ function Invoke-WUFlutterSdkCommand {
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        if ($ArgumentList -contains '--android-licenses') {
-            $commandOutput = @(
-                & { 1..100 | ForEach-Object { 'y' } } | & $Command @ArgumentList 2>&1
-            )
-        } else {
-            $commandOutput = @(& $Command @ArgumentList 2>&1)
-        }
+        $commandOutput = @(& $Command @ArgumentList 2>&1)
         $exitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
