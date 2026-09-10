@@ -123,7 +123,7 @@ if (-not $isDotSourced) {
     }
 }
 
-function Get-DevSourceFile {
+function Get-WUDevSourceFile {
     $rootFileNames = @(
         'install.ps1'
         'dev.ps1'
@@ -156,7 +156,7 @@ function Get-DevSourceFile {
     @($files | Sort-Object -Property FullName -Unique)
 }
 
-function Get-DevDotnetSourceFile {
+function Get-WUDevDotnetSourceFile {
     $projectDirectories = @(
         (Split-Path -Path $nativeProjectPath -Parent)
         (Split-Path -Path $testSupportProjectPath -Parent)
@@ -304,13 +304,13 @@ function Assert-DevSource {
         }
     }
 
-    $sourceFiles = @(Get-DevSourceFile)
+    $sourceFiles = @(Get-WUDevSourceFile)
     foreach ($sourceFile in $sourceFiles) {
         Assert-DevAsciiFile -File $sourceFile
         Assert-DevPowerShellSyntax -File $sourceFile
     }
 
-    foreach ($dotnetSourceFile in @(Get-DevDotnetSourceFile)) {
+    foreach ($dotnetSourceFile in @(Get-WUDevDotnetSourceFile)) {
         Assert-DevAsciiFile -File $dotnetSourceFile
     }
 
@@ -334,7 +334,7 @@ function Invoke-DevFormat {
     )
 
     $differentFiles = @()
-    foreach ($sourceFile in @(Get-DevSourceFile)) {
+    foreach ($sourceFile in @(Get-WUDevSourceFile)) {
         $sourceText = [System.IO.File]::ReadAllText($sourceFile.FullName)
         $formattedText = Invoke-Formatter -ScriptDefinition $sourceText -Settings $formatterSettingsPath
 
@@ -359,7 +359,7 @@ function Invoke-DevFormat {
 
 function Invoke-DevAnalyze {
     $analysisResults = @()
-    foreach ($sourceFile in @(Get-DevSourceFile)) {
+    foreach ($sourceFile in @(Get-WUDevSourceFile)) {
         $analysisResults += @(
             Invoke-ScriptAnalyzer -Path $sourceFile.FullName -Settings $analyzerSettingsPath
         )
