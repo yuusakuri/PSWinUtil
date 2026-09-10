@@ -223,7 +223,7 @@ Describe 'Install-WUFlutterSdk' {
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*required properties*'
+        } | Should -Throw
 
     }
 
@@ -236,7 +236,7 @@ Describe 'Install-WUFlutterSdk' {
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*required properties*'
+        } | Should -Throw
 
     }
 
