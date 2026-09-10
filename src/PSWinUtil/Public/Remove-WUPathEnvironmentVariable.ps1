@@ -1,7 +1,7 @@
 function Remove-WUPathEnvironmentVariable {
     <#
     .SYNOPSIS
-    Removes paths from the PATH environment variable.
+    Removes selected entries from Process, User, or Machine PATH values.
 
     .DESCRIPTION
     Removes matching paths from one or more Process, User, or Machine PATH values. Matching ignores leading and trailing spaces, a trailing backslash, and character case. Existing nonmatching item text and order are preserved.

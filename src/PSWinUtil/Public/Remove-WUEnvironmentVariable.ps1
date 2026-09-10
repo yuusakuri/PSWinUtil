@@ -1,7 +1,7 @@
 function Remove-WUEnvironmentVariable {
     <#
     .SYNOPSIS
-    Removes an environment variable.
+    Removes an environment variable from selected Process, User, or Machine scopes.
 
     .DESCRIPTION
     Removes an environment variable from one or more Process, User, or Machine scopes. If the variable does not exist, the command makes no change. Machine changes do not start an elevated process.

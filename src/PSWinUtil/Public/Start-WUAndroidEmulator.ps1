@@ -1,7 +1,7 @@
 function Start-WUAndroidEmulator {
     <#
     .SYNOPSIS
-    Starts local Android virtual devices.
+    Starts one or more local Android virtual devices.
 
     .DESCRIPTION
     Requires emulator.exe and adb.exe on PATH. Allocates distinct available ports and starts the selected virtual devices. When Name is omitted, starts all local virtual devices. By default, waits up to five minutes for all selected devices to become available to adb, then returns their processes.
