@@ -44,17 +44,16 @@ function Invoke-WUFlutterSdkCommand {
         [switch]$IgnoreExitCode
     )
 
-    $application = Get-Command -Name $Command -CommandType Application -ErrorAction Stop |
-        Select-Object -First 1
+    Assert-WUCommand -Name $Command
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
         if ($ArgumentList -contains '--android-licenses') {
             $commandOutput = @(
-                & { 1..100 | ForEach-Object { 'y' } } | & $application.Source @ArgumentList 2>&1
+                & { 1..100 | ForEach-Object { 'y' } } | & $Command @ArgumentList 2>&1
             )
         } else {
-            $commandOutput = @(& $application.Source @ArgumentList 2>&1)
+            $commandOutput = @(& $Command @ArgumentList 2>&1)
         }
         $exitCode = $LASTEXITCODE
     } finally {

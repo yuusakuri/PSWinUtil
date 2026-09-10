@@ -60,10 +60,14 @@ function Install-WUFlutterSdk {
 
     process {
         $fullDestinationPath = ConvertTo-WUFullPath -Path $DestinationPath
-        Assert-WUPathProperty -LiteralPath $fullDestinationPath -Container -AllowNonExisting
+        if (Test-Path -LiteralPath $fullDestinationPath -PathType Leaf) {
+            throw "The destination path must be a directory: $fullDestinationPath"
+        }
 
         $flutterPath = Join-Path -Path $fullDestinationPath -ChildPath 'flutter'
-        Assert-WUPathProperty -LiteralPath $flutterPath -Container -AllowNonExisting
+        if (Test-Path -LiteralPath $flutterPath -PathType Leaf) {
+            throw "The Flutter path must be a directory: $flutterPath"
+        }
 
         $versionDescription = if ([string]::IsNullOrWhiteSpace($Version)) { "current $Channel" } else { $Version }
         $actionDescription = "Install Flutter SDK $versionDescription for $Architecture"
@@ -94,8 +98,7 @@ function Install-WUFlutterSdk {
             $downloadedPath = Join-Path -Path $temporaryDirectory -ChildPath $packageFileName
             $downloadedPath = Invoke-WUHttpFileDownload `
                 -Uri $release.Uri `
-                -Path $downloadedPath `
-                -Confirm:$false
+                -Path $downloadedPath
 
             $stagingDirectory = Join-Path -Path $fullDestinationPath -ChildPath ".flutter-install-$([guid]::NewGuid().ToString('N'))"
             $null = New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop
@@ -145,8 +148,8 @@ function Install-WUFlutterSdk {
                 [EnvironmentVariableTarget]::Process
             )
             $environmentUpdateStarted = $true
-            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend -Confirm:$false
-            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'Process' -Prepend -Confirm:$false
+            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend
+            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'Process' -Prepend
 
             Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
             Invoke-WUFlutterSdkCommand -Command 'dart' -ArgumentList '--version'

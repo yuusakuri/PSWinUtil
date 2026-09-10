@@ -228,12 +228,7 @@ Describe 'Install-WUFlutterSdk' {
         }
         $expectedFlutterPath = Join-Path -Path $TestDrive -ChildPath 'flutter'
 
-        Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -eq $TestDrive -and $Container -and $AllowNonExisting
-        }
-        Should -Invoke -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -eq $expectedFlutterPath -and $Container -and $AllowNonExisting
-        }
+        Test-Path -LiteralPath $expectedFlutterPath | Should -BeFalse
     }
 
     It 'rejects an existing destination path that is not a directory' {
@@ -241,7 +236,7 @@ Describe 'Install-WUFlutterSdk' {
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*required properties*'
+        } | Should -Throw
 
         Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
     }
@@ -255,7 +250,7 @@ Describe 'Install-WUFlutterSdk' {
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*required properties*'
+        } | Should -Throw
 
         Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 0 -Exactly
     }

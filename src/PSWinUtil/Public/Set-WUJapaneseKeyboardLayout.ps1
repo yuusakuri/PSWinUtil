@@ -34,9 +34,7 @@ function Set-WUJapaneseKeyboardLayout {
     )
 
     foreach ($commandName in @('New-WinUserLanguageList', 'Set-WinUserLanguageList')) {
-        if ($null -eq (Get-Command -Name $commandName -CommandType Cmdlet -ErrorAction Ignore)) {
-            throw "The required Windows command was not found: $commandName"
-        }
+        Assert-WUCommand -Name $commandName
     }
 
     $languageList = New-WinUserLanguageList -Language 'ja-JP'

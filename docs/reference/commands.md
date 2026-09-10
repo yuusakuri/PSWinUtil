@@ -5,6 +5,7 @@ The following table is generated from the exported commands and their comment-ba
 | Command | Synopsis |
 | --- | --- |
 | `Add-WUPathEnvironmentVariable` | Adds paths to the PATH environment variable. |
+| `Assert-WUCommand` | Requires a command to be available. |
 | `Assert-WUPSScript` | Requires valid PowerShell script syntax. |
 | `Assert-WUPathProperty` | Requires PowerShell paths to match selected properties. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
@@ -101,6 +102,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Start-WUAndroidEmulator` | Starts local Android virtual devices. |
 | `Start-WUPSScriptAsAdmin` | Starts a PowerShell script as an administrator. |
 | `Test-WUAndroidEmulatorPort` | Tests whether Android emulator console ports are available. |
+| `Test-WUCommand` | Tests whether a command is available. |
 | `Test-WUPSScript` | Tests PowerShell script syntax. |
 | `Test-WUPathProperty` | Tests PowerShell path properties. |
 | `Unregister-WUStartupEntry` | Unregisters a Windows startup entry. |

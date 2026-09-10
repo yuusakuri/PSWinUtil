@@ -1060,7 +1060,7 @@ function Invoke-Bump {
         return
     }
 
-    $result = Set-ReleaseVersion -Version $Version -Confirm:$false
+    $result = Set-ReleaseVersion -Version $Version
     Write-Output -InputObject "Release version $($result.PreviousVersion) -> $($result.Version)"
 
     $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
@@ -1319,14 +1319,13 @@ function Invoke-ReleasePack {
     )
 
     if (Test-Path -LiteralPath $ArtifactPath) {
-        Remove-Item -LiteralPath $ArtifactPath -Force -Confirm:$false
+        Remove-Item -LiteralPath $ArtifactPath -Force
     }
 
     Compress-Archive `
         -LiteralPath $ModuleDirectory `
         -DestinationPath $ArtifactPath `
-        -CompressionLevel Optimal `
-        -Confirm:$false
+        -CompressionLevel Optimal
 }
 
 function Invoke-ReleasePublish {
@@ -1406,7 +1405,6 @@ function Invoke-ReleasePublish {
             -Path $ModuleDirectory `
             -Repository 'PSGallery' `
             -ApiKey $env:PSGALLERY_API_KEY `
-            -Confirm:$false `
             -ErrorAction Stop
 
         Wait-GalleryPublication -Version $Version
