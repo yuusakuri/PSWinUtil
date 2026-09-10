@@ -214,7 +214,6 @@ Describe 'Install-WUFlutterSdk' {
         } finally {
             $env:USERPROFILE = $originalUserProfile
         }
-        $expectedFlutterPath = Join-Path -Path $TestDrive -ChildPath 'flutter'
     }
 
     It 'rejects an existing destination path that is not a directory' {
