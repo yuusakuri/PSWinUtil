@@ -360,8 +360,7 @@ function Invoke-DevDotnetAssembly {
         [string]$DestinationDirectory
     )
 
-    $dotnet = Get-Command -Name 'dotnet' -CommandType Application -ErrorAction Ignore
-    if ($null -eq $dotnet) {
+    if ($null -eq (Get-Command -Name 'dotnet' -ErrorAction Ignore)) {
         throw 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
     }
 
@@ -372,7 +371,7 @@ function Invoke-DevDotnetAssembly {
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $buildOutput = & $dotnet.Source build $ProjectPath `
+        $buildOutput = & 'dotnet' build $ProjectPath `
             --configuration 'Release' `
             --framework $TargetFramework `
             --output $intermediateDirectory `
@@ -492,10 +491,10 @@ function Assert-DevOutput {
         }
     }
 
-    $windowsPowerShell = Get-Command -Name 'powershell.exe' -CommandType Application -ErrorAction Stop
+    $null = Get-Command -Name 'powershell.exe' -ErrorAction Stop
     $escapedManifestPath = $outputManifestPath.Replace("'", "''")
     $importCommand = "Import-Module -Name '$escapedManifestPath' -Force -ErrorAction Stop"
-    $cleanProcessOutput = & $windowsPowerShell.Source -NoProfile -NonInteractive -Command $importCommand 2>&1
+    $cleanProcessOutput = & 'powershell.exe' -NoProfile -NonInteractive -Command $importCommand 2>&1
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
         throw "A clean Windows PowerShell process could not import the module. Exit code: $exitCode$([Environment]::NewLine)$($cleanProcessOutput -join [Environment]::NewLine)"
@@ -711,13 +710,11 @@ function Get-RequiredApplication {
         [string]$Purpose
     )
 
-    $application = Get-Command -Name $Name -CommandType Application -ErrorAction Ignore |
-        Select-Object -First 1
-    if ($null -eq $application) {
+    if ($null -eq (Get-Command -Name $Name -ErrorAction Ignore)) {
         throw "$Name was not found on PATH. $Purpose"
     }
 
-    $application.Source
+    $Name
 }
 
 function ConvertTo-ReleaseVersion {
