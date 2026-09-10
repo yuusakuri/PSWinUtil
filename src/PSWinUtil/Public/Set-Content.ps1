@@ -153,7 +153,6 @@ function Set-Content {
         -not $PSBoundParameters.ContainsKey('Stream')
 
         $null = $PSBoundParameters.Remove('WhatIf')
-        $PSBoundParameters.Confirm = $false
         $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
             'Microsoft.PowerShell.Management\Set-Content',
             [System.Management.Automation.CommandTypes]::Cmdlet

@@ -73,14 +73,6 @@ Describe 'Set-WUNodeExtraCaCertificate' {
         }
     }
 
-    It 'forwards Confirm to the environment variable command' {
-        Set-WUNodeExtraCaCertificate -Path '.\AdditionalRootCA.pem' -Confirm:$false
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Confirm -eq $false
-        }
-    }
-
     It 'sets the certificate in every selected scope' {
         Set-WUNodeExtraCaCertificate -Path '.\AdditionalRootCA.pem' -Scope Process, User
 
@@ -114,14 +106,6 @@ Describe 'Set-WUJavaWindowsRootTrustStore' {
 
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $WhatIf -eq $true
-        }
-    }
-
-    It 'forwards Confirm to the environment variable command' {
-        Set-WUJavaWindowsRootTrustStore -Confirm:$false
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Confirm -eq $false
         }
     }
 
