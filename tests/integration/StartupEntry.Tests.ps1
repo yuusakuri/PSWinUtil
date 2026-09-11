@@ -12,6 +12,21 @@ BeforeAll {
 }
 
 Describe 'Startup entry commands' {
+    It 'accepts 260 command-line characters and rejects 261 without replacing the entry' {
+        $argument = 'x' * (260 - $script:ExecutablePath.Length - 3)
+        $entry = Register-WUStartupEntry -Name $script:EntryName -FilePath $script:ExecutablePath -ArgumentList $argument -PassThru
+        $entry.CommandLine.Length | Should -Be 260
+        { Register-WUStartupEntry -Name $script:EntryName -FilePath $script:ExecutablePath -ArgumentList ($argument + 'x') } | Should -Throw '*260*'
+        (Get-WUStartupEntry -Name $script:EntryName -Scope User).CommandLine | Should -Be $entry.CommandLine
+    }
+
+    It 'preserves argument quoting and respects WhatIf when unregistering' {
+        $entry = Register-WUStartupEntry -Name $script:EntryName -FilePath $script:ExecutablePath -ArgumentList '', 'two words', 'say"hello', 'C:\two words\' -PassThru
+        $entry.CommandLine | Should -Be ('"' + $script:ExecutablePath + '" "" "two words" "say\"hello" "C:\two words\\"')
+        Unregister-WUStartupEntry -Name $script:EntryName -WhatIf
+        (Get-WUStartupEntry -Name $script:EntryName -Scope User).CommandLine | Should -Be $entry.CommandLine
+    }
+
     BeforeEach {
         $script:EntryName = 'PSWinUtilTest_' + [guid]::NewGuid().ToString('N')
         $script:ExecutablePath = Join-Path -Path $env:WINDIR -ChildPath 'System32\notepad.exe'

@@ -22,10 +22,10 @@ Each public command's help describes its inputs, outputs, and behavior.
 
 ## Tests against the built distribution
 
-Tests import the generated manifest from `output/PSWinUtil`:
+Follow the [testing guidelines](https://github.com/yuusakuri/dev-rules/blob/main/guidelines/software/testing-guidelines.md).
 
-- Unit tests isolate command behavior and internal logic with mocks or test doubles.
-- Integration tests exercise Windows APIs, files, processes, and external components. The `Online` tag identifies integration tests that access an internet service.
-- Contract tests validate the distribution, manifest, assembly loading, public parameter conventions, and public command help.
+Tests import the generated manifest from `output/PSWinUtil`. The suites are located in `tests/unit/`, `tests/integration/`, and `tests/contract/`. Contract tests also validate the distribution, manifest, assembly loading, public parameter conventions, and public command help.
 
-`dev.ps1 verify` runs the repository checks, builds the distribution, checks the generated command reference, and runs tests without the `Online` tag. GitHub Actions uses the same command. `dev.ps1 test-online-integration` explicitly runs integration tests tagged `Online`.
+`dev.ps1 verify` checks the source, formatting, analysis, build output, import, command reference, and tests that do not require external network access. Integration tests requiring external services carry the `Network` tag and run with `dev.ps1 test-network-integration`; loopback HTTP and TCP tests run in normal verification.
+
+Machine environment and PATH tests require administrator privileges. Autologon and keyboard layout tests retain their explicit opt-in environment variables. Skipped tests are reported separately from passed tests.

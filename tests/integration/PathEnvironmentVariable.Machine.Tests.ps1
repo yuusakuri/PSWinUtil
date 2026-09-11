@@ -1,4 +1,8 @@
-Describe 'Machine PATH integration' {
+$runMachineIntegration = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+
+Describe 'Machine PATH integration' -Skip:(-not $runMachineIntegration) {
     BeforeAll {
         $repositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
         $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWinUtil/PSWinUtil.psd1'

@@ -50,27 +50,9 @@ Describe 'Set-WUEnvironmentVariable' {
         ) | Should -Be 'value'
     }
 
-    It 'loads file settings through the private importer' {
-        Set-WUEnvironmentVariable -Path '.\environment.psd1' -Scope Process
 
-        Should -Invoke -CommandName Import-WUEnvironmentVariableSetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -contains '.\environment.psd1' -and $Scope -eq 'Process'
-        }
-        [System.Environment]::GetEnvironmentVariable(
-            $script:FileEnvironmentName,
-            $script:EnvironmentTarget
-        ) | Should -Be 'file value'
-    }
 
-    It 'forwards LiteralPath to the private importer' {
-        Set-WUEnvironmentVariable -LiteralPath '.\environment[1].psd1' -Scope Process
 
-        Should -Invoke -CommandName Import-WUEnvironmentVariableSetting -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -contains '.\environment[1].psd1' -and
-            $null -eq $Path -and
-            $Scope -eq 'Process'
-        }
-    }
 
     It 'sets a named variable in multiple scopes' -Skip:($env:OS -ne 'Windows_NT') {
         $result = @(

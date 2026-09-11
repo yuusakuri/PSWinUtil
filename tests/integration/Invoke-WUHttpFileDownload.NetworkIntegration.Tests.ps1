@@ -60,7 +60,7 @@ BeforeAll {
     }
 }
 
-Describe 'Invoke-WUHttpFileDownload with the Google Android CLI server' -Tag 'Integration', 'Online' {
+Describe 'Invoke-WUHttpFileDownload with the Google Android CLI server' -Tag 'Integration', 'Network' {
     It 'reconstructs Android CLI after one Range resume' {
         $downloadPath = Join-Path -Path $TestDrive -ChildPath 'android-one-resume.exe'
 
