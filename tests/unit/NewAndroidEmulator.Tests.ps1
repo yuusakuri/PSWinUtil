@@ -8,8 +8,8 @@ Describe 'Android AVD selection and errors' -Tag Android {
         $script:OriginalSdkRoot = $env:ANDROID_SDK_ROOT
         $script:OriginalPath = $env:Path
         $script:ToolDirectory = Join-Path -Path $TestDrive -ChildPath 'android-tools'
-        $script:SdkPath = Join-Path -Path $TestDrive -ChildPath 'sdk'
-        $script:AvdManagerDirectory = Join-Path -Path $script:SdkPath -ChildPath 'cmdline-tools/latest/bin'
+        $script:ToolRoot = Join-Path -Path $TestDrive -ChildPath 'sdk'
+        $script:AvdManagerDirectory = Join-Path -Path $script:ToolRoot -ChildPath 'cmdline-tools/latest/bin'
         New-Item -Path $script:AvdManagerDirectory -ItemType Directory -Force | Out-Null
         New-Item -Path $script:ToolDirectory -ItemType Directory -Force | Out-Null
         $script:DeviceCatalog = @('pixel_9', 'pixel_10', 'pixel_10_pro', 'pixel_tablet', 'pixel_8')
@@ -23,18 +23,20 @@ Describe 'Android AVD selection and errors' -Tag Android {
         )
         $script:ExistingAvds = @()
         $script:InstallExitCode = 0
-        Mock -CommandName Assert-WUPathProperty -ModuleName PSWinUtil
         function Write-TestAndroidTool {
             $deviceLines = $script:DeviceCatalog -join "`r`necho "
             $packageLines = $script:PackageCatalog -join "`r`necho "
             $avdLines = $script:ExistingAvds -join "`r`necho "
             $avdScript = "@echo off`r`nif `"%1`"==`"list`" if `"%2`"==`"device`" (`r`necho $deviceLines`r`nexit /b 0`r`n)`r`nif `"%1`"==`"list`" if `"%2`"==`"avd`" (`r`necho $avdLines`r`nexit /b 0`r`n)`r`nexit /b 0`r`n"
             [IO.File]::WriteAllText((Join-Path $script:AvdManagerDirectory 'avdmanager.bat'), $avdScript)
-            $androidScript = "@echo off`r`nif `"%4`"==`"install`" exit /b $($script:InstallExitCode)`r`necho $packageLines`r`nexit /b 0`r`n"
+            $androidScript = "@echo off`r`nif `"%3`"==`"install`" exit /b $($script:InstallExitCode)`r`necho $packageLines`r`nexit /b 0`r`n"
             [IO.File]::WriteAllText((Join-Path $script:ToolDirectory 'android.cmd'), $androidScript)
         }
+        Mock -CommandName Get-WUAndroidEmulator -ModuleName PSWinUtil -MockWith {
+            $script:ExistingAvds
+        }
         Write-TestAndroidTool
-        $env:Path = "$($script:ToolDirectory);$($script:OriginalPath)"
+        $env:Path = "$($script:AvdManagerDirectory);$($script:ToolDirectory);$($script:OriginalPath)"
     }
 
     AfterEach {
@@ -44,7 +46,7 @@ Describe 'Android AVD selection and errors' -Tag Android {
     }
 
     It 'selects the newest standard Pixel and matching stable API numerically' {
-        $result = New-WUAndroidEmulator -SdkPath $script:SdkPath
+        $result = New-WUAndroidEmulator
         $result.Name | Should -Be 'pixel_10_API_36'
         $result.Device | Should -Be 'pixel_10'
         $result.PlatformVersion | Should -Be 36
@@ -52,48 +54,48 @@ Describe 'Android AVD selection and errors' -Tag Android {
     }
 
     It 'honors explicit device, API, tag, ABI and name' {
-        $result = New-WUAndroidEmulator -SdkPath $script:SdkPath -Name custom -Device pixel_8 -PlatformVersion 35 -SystemImageTag google_apis_playstore -Abi arm64-v8a
+        $result = New-WUAndroidEmulator -Name custom -Device pixel_8 -PlatformVersion 35 -SystemImageTag google_apis_playstore -Abi arm64-v8a
         $result.Name | Should -Be 'custom'
         $result.Device | Should -Be 'pixel_8'
         $result.SystemImage | Should -Be 'system-images;android-35;google_apis_playstore;arm64-v8a'
     }
 
     It 'rejects an unavailable API for the selected image variant' {
-        { New-WUAndroidEmulator -SdkPath $script:SdkPath -PlatformVersion 37 } | Should -Throw '*API 37*'
+        { New-WUAndroidEmulator -PlatformVersion 37 } | Should -Throw '*API 37*'
     }
 
     It 'rejects an unknown device' {
-        { New-WUAndroidEmulator -SdkPath $script:SdkPath -Device missing } | Should -Throw '*profile was not found*'
+        { New-WUAndroidEmulator -Device missing } | Should -Throw '*profile was not found*'
     }
 
     It 'reports an empty device catalog without inventing a profile' {
         $script:DeviceCatalog = @()
         Write-TestAndroidTool
-        { New-WUAndroidEmulator -SdkPath $script:SdkPath } | Should -Throw '*No standard Pixel*'
+        { New-WUAndroidEmulator } | Should -Throw '*No standard Pixel*'
     }
 
     It 'reports an empty stable system image catalog' {
         $script:PackageCatalog = @()
         Write-TestAndroidTool
-        { New-WUAndroidEmulator -SdkPath $script:SdkPath } | Should -Throw '*No stable Android system image*'
+        { New-WUAndroidEmulator } | Should -Throw '*No stable Android system image*'
     }
 
     It 'preserves an existing AVD by default' {
         $script:ExistingAvds = @('custom')
         Write-TestAndroidTool
-        { New-WUAndroidEmulator -SdkPath $script:SdkPath -Name custom } | Should -Throw '*already exists*'
+        { New-WUAndroidEmulator -Name custom } | Should -Throw '*already exists*'
     }
 
-    It 'restores SDK environment variables after creation' {
+    It 'preserves Android SDK environment variables after creation' {
         $beforeAndroidHome = $env:ANDROID_HOME
         $beforeSdkRoot = $env:ANDROID_SDK_ROOT
-        New-WUAndroidEmulator -SdkPath $script:SdkPath -Name restored
+        New-WUAndroidEmulator -Name restored
         $env:ANDROID_HOME | Should -Be $beforeAndroidHome
         $env:ANDROID_SDK_ROOT | Should -Be $beforeSdkRoot
     }
 
     It 'does not require installed SDK tools with WhatIf' {
         Remove-Item -LiteralPath $script:AvdManagerDirectory -Recurse -Force
-        @(New-WUAndroidEmulator -SdkPath $script:SdkPath -WhatIf) | Should -HaveCount 0
+        @(New-WUAndroidEmulator -WhatIf) | Should -HaveCount 0
     }
 }
