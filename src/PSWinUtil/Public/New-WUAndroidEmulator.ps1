@@ -103,7 +103,9 @@ function New-WUAndroidEmulator {
 
     $savedAndroidHome = $env:ANDROID_HOME
     $savedSdkRoot = $env:ANDROID_SDK_ROOT
+    $savedErrorActionPreference = $ErrorActionPreference
     try {
+        $ErrorActionPreference = 'Continue'
         $env:ANDROID_HOME = $fullSdkPath
         $env:ANDROID_SDK_ROOT = $fullSdkPath
         $deviceOutput = @(& $avdManager list device -c 2>&1)
@@ -194,5 +196,6 @@ function New-WUAndroidEmulator {
     } finally {
         $env:ANDROID_HOME = $savedAndroidHome
         $env:ANDROID_SDK_ROOT = $savedSdkRoot
+        $ErrorActionPreference = $savedErrorActionPreference
     }
 }
