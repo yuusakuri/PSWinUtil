@@ -76,7 +76,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
 | `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
-| `New-WURandomString` | Creates a cryptographically random string. |
+| `New-WURandomString` | Creates a cryptographically random string. |`n| `New-WUAndroidEmulator` | Creates an Android virtual device with a selected Pixel profile and API level. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |
 | `Remove-WUEnvironmentVariable` | Removes an environment variable from selected Process, User, or Machine scopes. |
