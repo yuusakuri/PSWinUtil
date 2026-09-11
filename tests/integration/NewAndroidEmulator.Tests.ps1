@@ -15,7 +15,7 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
         $platformToolsPath = Join-Path $env:PSWINUTIL_ANDROID_TEST_SDK 'platform-tools'
         $env:Path = $emulatorPath + ';' + $platformToolsPath + ';' + $env:Path
         $script:AvdHome = Join-Path $TestDrive 'isolated avds'
-        $null = New-Item -Path $script:AvdHome -ItemType Directory
+        New-Item -Path $script:AvdHome -ItemType Directory | Out-Null
         $env:ANDROID_AVD_HOME = $script:AvdHome
     }
 
@@ -39,13 +39,13 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
 
     It 'rejects duplicate names without overwriting an existing configuration' {
         $parameters = @{ SdkPath = $env:PSWINUTIL_ANDROID_TEST_SDK; Name = 'duplicate'; Device = 'pixel_8'; PlatformVersion = 29; SystemImageTag = 'default' }
-        $null = New-WUAndroidEmulator @parameters
+        New-WUAndroidEmulator @parameters | Out-Null
         $configPath = Join-Path $script:AvdHome 'duplicate.avd/config.ini'
         $before = [IO.File]::ReadAllText($configPath)
         { New-WUAndroidEmulator @parameters } | Should -Throw '*already exists*'
         [IO.File]::ReadAllText($configPath) | Should -Be $before
         $parameters.Device = 'pixel_9'
-        $null = New-WUAndroidEmulator @parameters -Force
+        New-WUAndroidEmulator @parameters -Force | Out-Null
         [IO.File]::ReadAllText($configPath) | Should -Match '(?m)^hw.device.name=pixel_9\r?$'
     }
 
@@ -55,7 +55,7 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
     }
 
     It 'previews startup without launching the created AVD' {
-        $null = New-WUAndroidEmulator -SdkPath $env:PSWINUTIL_ANDROID_TEST_SDK -Name startup_preview -PlatformVersion 29 -SystemImageTag default
+        New-WUAndroidEmulator -SdkPath $env:PSWINUTIL_ANDROID_TEST_SDK -Name startup_preview -PlatformVersion 29 -SystemImageTag default | Out-Null
         @(Start-WUAndroidEmulator -Name startup_preview -WhatIf) | Should -HaveCount 0
         @(Get-WUAndroidEmulator) | Should -Contain 'startup_preview'
     }
