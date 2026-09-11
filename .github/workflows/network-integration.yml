@@ -28,4 +28,4 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - run: .\install.ps1
-      - run: .\dev.ps1 test-network-integration
+      - run: .\dev.ps1 test-online-integration
