@@ -84,133 +84,82 @@ Describe 'Set-WUNodeExtraCaCertificate' {
     }
 }
 
-Describe 'Set-WUJavaWindowsRootTrustStore' {
+Describe 'Set-WUJavaExtraCaCertificate' {
     BeforeEach {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil
+        Mock -CommandName ConvertTo-WUFullPath -ModuleName PSWinUtil -MockWith {
+            'C:\Certificates\extra-ca-certs.crt'
+        }
+        Mock -CommandName Assert-WUPathProperty -ModuleName PSWinUtil
+        Mock -CommandName Assert-WUCommand -ModuleName PSWinUtil
+        Mock -CommandName New-Item -ModuleName PSWinUtil
+        Mock -CommandName Copy-Item -ModuleName PSWinUtil
         Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil
+        Mock -CommandName keytool -ModuleName PSWinUtil -MockWith { $global:LASTEXITCODE = 0 }
     }
 
-    It 'sets only the Windows ROOT trust store type for the current user' {
-        Set-WUJavaWindowsRootTrustStore
+    It 'copies cacerts, imports the CRT, and sets the user trust store option' {
+        Set-WUJavaExtraCaCertificate -LiteralPath 'C:\Certificates\extra-ca-certs.crt' -JavaHome 'C:\Java\jdk-21'
 
+        Should -Invoke -CommandName Assert-WUCommand -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Name -eq 'keytool'
+        }
+        Should -Invoke -CommandName New-Item -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Path -eq "$env:USERPROFILE\.certs\java" -and $ItemType -eq 'Directory' -and $Force
+        }
+        Should -Invoke -CommandName Copy-Item -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $LiteralPath -eq 'C:\Java\jdk-21\lib\security\cacerts' -and
+            $Destination -eq "$env:USERPROFILE\.certs\java\cacerts" -and
+            $Force
+        }
+        Should -Invoke -CommandName keytool -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $args -contains '-import' -and
+            $args -contains '-trustcacerts' -and
+            $args -contains '-alias' -and
+            $args -contains 'extra_cert' -and
+            $args -contains 'C:\Certificates\extra-ca-certs.crt'
+        }
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'JAVA_TOOL_OPTIONS' -and
-            $Value -eq '-Djavax.net.ssl.trustStoreType=Windows-ROOT' -and
-            $Value -notmatch 'trustStore=NONE' -and
+            $Value -eq "-Djavax.net.ssl.trustStore=$env:USERPROFILE\.certs\java\cacerts" -and
             $Scope -eq 'User'
         }
     }
 
-    It 'forwards WhatIf to the environment variable command' {
-        Set-WUJavaWindowsRootTrustStore -WhatIf
+    It 'uses JAVA_HOME by default' {
+        $oldJavaHome = $env:JAVA_HOME
+        try {
+            $env:JAVA_HOME = 'C:\Java\jdk-21'
+            Set-WUJavaExtraCaCertificate -LiteralPath 'C:\Certificates\extra-ca-certs.crt'
 
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf -eq $true
-        }
-    }
-
-    It 'preserves unrelated Java tool options' {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            '-Xmx2g -Dfile.encoding=UTF-8'
-        }
-
-        Set-WUJavaWindowsRootTrustStore
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Value -eq '-Xmx2g -Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-    }
-
-    It 'removes an existing trust store path and replaces the trust store type' {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            '-Xmx2g -Djavax.net.ssl.trustStore=custom.jks -Djavax.net.ssl.trustStoreType=JKS'
-        }
-
-        Set-WUJavaWindowsRootTrustStore
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Value -eq '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-    }
-
-    It 'removes a quoted trust store path that contains spaces' {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            '-Xmx2g -Djavax.net.ssl.trustStore="C:\Program Files\Java\custom.jks" -Dfile.encoding=UTF-8'
-        }
-
-        Set-WUJavaWindowsRootTrustStore
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Value -eq '-Xmx2g -Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-    }
-
-    It 'removes a trust store option without case differences' {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            '-Djavax.net.ssl.truststore=NONE -Xmx2g'
-        }
-
-        Set-WUJavaWindowsRootTrustStore
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Value -eq '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-    }
-
-    It 'replaces trust store type option casing consistently' -TestCases @(
-        @{ ExistingOption = '-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT' }
-        @{ ExistingOption = '-Djavax.net.ssl.truststoretype=Windows-ROOT' }
-    ) {
-        param($ExistingOption)
-
-        $script:ExistingTrustStoreTypeOption = $ExistingOption
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            $script:ExistingTrustStoreTypeOption
-        }
-
-        Set-WUJavaWindowsRootTrustStore
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Value -eq '-Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-    }
-
-    It 'collapses multiple trust store type options to one Windows ROOT option' {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            '-Djavax.net.ssl.trustStoreType=JKS -Xmx2g -Djavax.net.ssl.trustStoreType=PKCS12'
-        }
-
-        Set-WUJavaWindowsRootTrustStore
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Value -eq '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-    }
-
-    It 'reads and sets Java tool options independently in every selected scope' {
-        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            if ($Scope -eq 'Process') {
-                '-Xms512m'
-            } else {
-                '-Djavax.net.ssl.trustStoreType=JKS'
+            Should -Invoke -CommandName Copy-Item -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+                $LiteralPath -eq 'C:\Java\jdk-21\lib\security\cacerts'
             }
+        } finally {
+            $env:JAVA_HOME = $oldJavaHome
         }
+    }
 
-        Set-WUJavaWindowsRootTrustStore -Scope Process, User
+    It 'does not change files or environment when WhatIf is used' {
+        Set-WUJavaExtraCaCertificate -LiteralPath 'C:\Certificates\extra-ca-certs.crt' -JavaHome 'C:\Java\jdk-21' -WhatIf
 
-        Should -Invoke -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'JAVA_TOOL_OPTIONS' -and $Scope -eq 'Process'
-        }
-        Should -Invoke -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'JAVA_TOOL_OPTIONS' -and $Scope -eq 'User'
-        }
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Scope -eq 'Process' -and
-            $Value -eq '-Xms512m -Djavax.net.ssl.trustStoreType=Windows-ROOT'
-        }
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Scope -eq 'User' -and
-            $Value -eq '-Djavax.net.ssl.trustStoreType=Windows-ROOT'
+        Should -Invoke -CommandName New-Item -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Copy-Item -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName keytool -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'requires JavaHome when JAVA_HOME is not set' {
+        $oldJavaHome = $env:JAVA_HOME
+        try {
+            Remove-Item Env:JAVA_HOME -ErrorAction SilentlyContinue
+            { Set-WUJavaExtraCaCertificate -LiteralPath 'C:\Certificates\extra-ca-certs.crt' } |
+                Should -Throw '*JAVA_HOME*'
+        } finally {
+            if ($null -eq $oldJavaHome) {
+                Remove-Item Env:JAVA_HOME -ErrorAction SilentlyContinue
+            } else {
+                $env:JAVA_HOME = $oldJavaHome
+            }
         }
     }
 }
