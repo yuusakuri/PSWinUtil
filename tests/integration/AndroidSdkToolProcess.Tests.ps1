@@ -10,7 +10,7 @@ Describe 'Android SDK process error integration' -Tag Android {
     It 'preserves native stderr diagnostics and the exit code under ErrorAction Stop' {
         $sdk = Join-Path $TestDrive 'sdk with spaces'
         $bin = Join-Path $sdk 'cmdline-tools/latest/bin'
-        $null = New-Item -Path $bin -ItemType Directory -Force
+        New-Item -Path $bin -ItemType Directory -Force | Out-Null
         # A controlled failing native dependency exercises Windows process I/O.
         # The real SDK contract is checked separately by NewAndroidEmulator.Tests.ps1.
         [IO.File]::WriteAllText((Join-Path $bin 'avdmanager.bat'), "@echo off`r`necho SDK diagnostic 1>&2`r`nexit /b 23`r`n")

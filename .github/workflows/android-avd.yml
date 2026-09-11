@@ -32,7 +32,7 @@ jobs:
       - name: Prepare Android SDK image
         run: |
           $cliDirectory = Join-Path $env:RUNNER_TEMP 'android-cli'
-          $null = New-Item -Path $cliDirectory -ItemType Directory -Force
+          New-Item -Path $cliDirectory -ItemType Directory -Force | Out-Null
           $android = Join-Path $cliDirectory 'android.exe'
           Invoke-WebRequest -UseBasicParsing -Uri 'https://dl.google.com/android/cli/latest/windows_x86_64/android.exe' -OutFile $android
           $cliDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append

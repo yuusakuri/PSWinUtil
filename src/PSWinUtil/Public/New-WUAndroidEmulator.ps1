@@ -99,14 +99,20 @@ function New-WUAndroidEmulator {
 
     $toolsPath = Join-Path -Path $fullSdkPath -ChildPath "cmdline-tools\$CommandLineToolsVersion\bin"
     $avdManager = Join-Path -Path $toolsPath -ChildPath 'avdmanager.bat'
-    Assert-WUPathProperty -LiteralPath $avdManager -Leaf
+    Assert-WUPathProperty -LiteralPath $avdManager
 
     $savedAndroidHome = $env:ANDROID_HOME
     $savedSdkRoot = $env:ANDROID_SDK_ROOT
     try {
         $env:ANDROID_HOME = $fullSdkPath
         $env:ANDROID_SDK_ROOT = $fullSdkPath
-        $devices = @(Invoke-WUAndroidSdkTool -FilePath $avdManager -ArgumentList 'list', 'device', '-c')
+        $deviceOutput = @(& $avdManager list device -c 2>&1)
+        $deviceExitCode = $LASTEXITCODE
+        $deviceLines = @($deviceOutput | ForEach-Object { $_.ToString() })
+        if ($deviceExitCode -ne 0) {
+            throw "avdmanager failed with exit code $deviceExitCode.$([Environment]::NewLine)$($deviceLines -join [Environment]::NewLine)"
+        }
+        $devices = $deviceLines
         $devices = @($devices | ForEach-Object { $_.Trim() } | Where-Object { $_ })
         if (-not $PSBoundParameters.ContainsKey('Device')) {
             $latestDevice = $devices | Where-Object { $_ -match '^pixel_[0-9]+$' } |
@@ -121,7 +127,13 @@ function New-WUAndroidEmulator {
         }
 
         $listArguments = @('--no-metrics', "--sdk=$fullSdkPath", 'sdk', 'list', 'system-images/*', '--all', '--all-versions')
-        $packages = @(Invoke-WUAndroidSdkTool -FilePath 'android.exe' -ArgumentList $listArguments -AllowAndroidCliWindowsExitCode)
+        $packageOutput = @(& 'android' @listArguments 2>&1)
+        $packageExitCode = $LASTEXITCODE
+        $packageLines = @($packageOutput | ForEach-Object { $_.ToString() })
+        if ($packageExitCode -ne 0 -and $packageExitCode -ne -1073740791) {
+            throw "android failed with exit code $packageExitCode.$([Environment]::NewLine)$($packageLines -join [Environment]::NewLine)"
+        }
+        $packages = $packageLines
         $imagePattern = '^\s*system-images/android-([0-9]+)/' + [regex]::Escape($SystemImageTag) + '/' + [regex]::Escape($Abi) + '\s+'
         $availableVersions = @(
             foreach ($line in $packages) {
@@ -142,19 +154,35 @@ function New-WUAndroidEmulator {
             $Name = ($Device -replace ' ', '_') + "_API_$PlatformVersion"
         }
 
-        $existingNames = @(Invoke-WUAndroidSdkTool -FilePath $avdManager -ArgumentList 'list', 'avd', '-c')
+        $existingOutput = @(& $avdManager list avd -c 2>&1)
+        $existingExitCode = $LASTEXITCODE
+        $existingLines = @($existingOutput | ForEach-Object { $_.ToString() })
+        if ($existingExitCode -ne 0) {
+            throw "avdmanager failed with exit code $existingExitCode.$([Environment]::NewLine)$($existingLines -join [Environment]::NewLine)"
+        }
+        $existingNames = $existingLines
         if ($Name -in $existingNames -and -not $Force) {
             throw "Android AVD already exists: $Name. Choose another name or specify Force to replace it."
         }
 
         $package = "system-images;android-$PlatformVersion;${SystemImageTag};$Abi"
         $installArguments = @('--no-metrics', "--sdk=$fullSdkPath", 'sdk', 'install', $package.Replace(';', '/'))
-        $null = Invoke-WUAndroidSdkTool -FilePath 'android.exe' -ArgumentList $installArguments -AllowAndroidCliWindowsExitCode
+        $installOutput = @(& 'android' @installArguments 2>&1)
+        $installExitCode = $LASTEXITCODE
+        if ($installExitCode -ne 0 -and $installExitCode -ne 1 -and $installExitCode -ne -1073740791) {
+            $installLines = @($installOutput | ForEach-Object { $_.ToString() })
+            throw "android failed with exit code $installExitCode.$([Environment]::NewLine)$($installLines -join [Environment]::NewLine)"
+        }
         $createArguments = @('create', 'avd', '--name', $Name, '--package', $package, '--device', $Device)
         if ($Force) {
             $createArguments += '--force'
         }
-        $null = Invoke-WUAndroidSdkTool -FilePath $avdManager -ArgumentList $createArguments
+        $createOutput = @(& $avdManager @createArguments 2>&1)
+        $createExitCode = $LASTEXITCODE
+        if ($createExitCode -ne 0) {
+            $createLines = @($createOutput | ForEach-Object { $_.ToString() })
+            throw "avdmanager failed with exit code $createExitCode.$([Environment]::NewLine)$($createLines -join [Environment]::NewLine)"
+        }
 
         [pscustomobject]@{
             Name = $Name
