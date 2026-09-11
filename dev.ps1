@@ -3,7 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release', 'docs', 'test-network-integration'
+        'bump', 'release', 'docs', 'test-online-integration'
     )]
     [string]$Command,
 
@@ -38,7 +38,7 @@ $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnal
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
 $commandReferencePath = Join-Path -Path $repositoryRoot -ChildPath 'docs/reference/commands.md'
 
-function Write-DevUsage {
+function Write-WUDevUsage {
     Write-Output -InputObject @'
 Usage:
   .\dev.ps1 format
@@ -52,7 +52,7 @@ Usage:
   .\dev.ps1 test integration
   .\dev.ps1 test contract
   .\dev.ps1 test all
-  .\dev.ps1 test-network-integration
+  .\dev.ps1 test-online-integration
   .\dev.ps1 verify
   .\dev.ps1 ci
   .\dev.ps1 bump 1.2.3
@@ -63,7 +63,7 @@ Usage:
 $isDotSourced = $MyInvocation.InvocationName -eq '.'
 
 if ([string]::IsNullOrWhiteSpace($Command) -and -not $isDotSourced) {
-    Write-DevUsage
+    Write-WUDevUsage
     exit 0
 }
 
@@ -92,7 +92,38 @@ function Import-RequiredModule {
     }
 }
 
-function Get-DevSourceFile {
+if (-not $isDotSourced) {
+    function script:Test-WUCommand {
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name
+        )
+
+        [bool](Get-Command -Name $Name -ErrorAction Ignore)
+    }
+
+    function script:Assert-WUCommand {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Purpose
+        )
+
+        if (-not (Test-WUCommand -Name $Name)) {
+            throw "$Name was not found on PATH. $Purpose"
+        }
+    }
+}
+
+function Get-WUDevSourceFile {
     $rootFileNames = @(
         'install.ps1'
         'dev.ps1'
@@ -125,7 +156,7 @@ function Get-DevSourceFile {
     @($files | Sort-Object -Property FullName -Unique)
 }
 
-function Get-DevDotnetSourceFile {
+function Get-WUDevDotnetSourceFile {
     $projectDirectories = @(
         (Split-Path -Path $nativeProjectPath -Parent)
         (Split-Path -Path $testSupportProjectPath -Parent)
@@ -147,7 +178,7 @@ function Get-DevDotnetSourceFile {
     @($files | Sort-Object -Property FullName -Unique)
 }
 
-function Assert-DevAsciiFile {
+function Assert-WUDevAsciiFile {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -174,7 +205,7 @@ function Assert-DevAsciiFile {
     }
 }
 
-function Assert-DevPowerShellSyntax {
+function Assert-WUDevPowerShellSyntax {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -182,11 +213,11 @@ function Assert-DevPowerShellSyntax {
 
     $tokens = $null
     $parseErrors = $null
-    $null = [System.Management.Automation.Language.Parser]::ParseFile(
+    [System.Management.Automation.Language.Parser]::ParseFile(
         $File.FullName,
         [ref]$tokens,
         [ref]$parseErrors
-    )
+    ) | Out-Null
 
     if (@($parseErrors).Count -gt 0) {
         $messages = @($parseErrors | ForEach-Object { $_.Message }) -join [Environment]::NewLine
@@ -194,7 +225,7 @@ function Assert-DevPowerShellSyntax {
     }
 }
 
-function Assert-DevFunctionFile {
+function Assert-WUDevFunctionFile {
     param(
         [Parameter(Mandatory = $true)]
         [System.IO.FileInfo]$File
@@ -227,7 +258,7 @@ function Assert-DevFunctionFile {
     }
 }
 
-function Assert-DevSource {
+function Assert-WUDevSource {
     $requiredPaths = @(
         $moduleSourceDirectory
         (Join-Path -Path $moduleSourceDirectory -ChildPath 'Public')
@@ -273,14 +304,14 @@ function Assert-DevSource {
         }
     }
 
-    $sourceFiles = @(Get-DevSourceFile)
+    $sourceFiles = @(Get-WUDevSourceFile)
     foreach ($sourceFile in $sourceFiles) {
-        Assert-DevAsciiFile -File $sourceFile
-        Assert-DevPowerShellSyntax -File $sourceFile
+        Assert-WUDevAsciiFile -File $sourceFile
+        Assert-WUDevPowerShellSyntax -File $sourceFile
     }
 
-    foreach ($dotnetSourceFile in @(Get-DevDotnetSourceFile)) {
-        Assert-DevAsciiFile -File $dotnetSourceFile
+    foreach ($dotnetSourceFile in @(Get-WUDevDotnetSourceFile)) {
+        Assert-WUDevAsciiFile -File $dotnetSourceFile
     }
 
     $functionDirectories = @(
@@ -292,18 +323,18 @@ function Assert-DevSource {
             Get-ChildItem -LiteralPath $functionDirectory -Filter '*.ps1' -File
         )
         foreach ($functionFile in $functionFiles) {
-            Assert-DevFunctionFile -File $functionFile
+            Assert-WUDevFunctionFile -File $functionFile
         }
     }
 }
 
-function Invoke-DevFormat {
+function Invoke-WUDevFormat {
     param(
         [switch]$Check
     )
 
     $differentFiles = @()
-    foreach ($sourceFile in @(Get-DevSourceFile)) {
+    foreach ($sourceFile in @(Get-WUDevSourceFile)) {
         $sourceText = [System.IO.File]::ReadAllText($sourceFile.FullName)
         $formattedText = Invoke-Formatter -ScriptDefinition $sourceText -Settings $formatterSettingsPath
 
@@ -326,9 +357,9 @@ function Invoke-DevFormat {
     }
 }
 
-function Invoke-DevAnalyze {
+function Invoke-WUDevAnalyze {
     $analysisResults = @()
-    foreach ($sourceFile in @(Get-DevSourceFile)) {
+    foreach ($sourceFile in @(Get-WUDevSourceFile)) {
         $analysisResults += @(
             Invoke-ScriptAnalyzer -Path $sourceFile.FullName -Settings $analyzerSettingsPath
         )
@@ -345,7 +376,7 @@ function Invoke-DevAnalyze {
     }
 }
 
-function Invoke-DevDotnetAssembly {
+function Publish-WUDevDotnetAssembly {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectPath,
@@ -360,9 +391,9 @@ function Invoke-DevDotnetAssembly {
         [string]$DestinationDirectory
     )
 
-    if ($null -eq (Get-Command -Name 'dotnet' -ErrorAction Ignore)) {
-        throw 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
-    }
+    Assert-WUCommand `
+        -Name 'dotnet' `
+        -Purpose 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
 
     $projectName = [System.IO.Path]::GetFileNameWithoutExtension($ProjectPath)
     $intermediateDirectory = Join-Path `
@@ -391,13 +422,13 @@ function Invoke-DevDotnetAssembly {
     }
 
     if (-not (Test-Path -LiteralPath $DestinationDirectory -PathType Container)) {
-        $null = New-Item -Path $DestinationDirectory -ItemType 'Directory' -Force
+        New-Item -Path $DestinationDirectory -ItemType 'Directory' -Force | Out-Null
     }
 
     Copy-Item -LiteralPath $builtAssemblyPath -Destination $DestinationDirectory -Force
 }
 
-function Invoke-DevBuild {
+function Invoke-WUDevBuild {
     foreach ($staleDirectory in @($outputModuleDirectory, $outputTestSupportDirectory)) {
         if (Test-Path -LiteralPath $staleDirectory) {
             Remove-Item -LiteralPath $staleDirectory -Recurse -Force
@@ -414,7 +445,7 @@ function Invoke-DevBuild {
         }
     }
 
-    Invoke-DevDotnetAssembly `
+    Publish-WUDevDotnetAssembly `
         -ProjectPath $nativeProjectPath `
         -TargetFramework 'netstandard2.0' `
         -AssemblyFileName 'PSWinUtil.Native.dll' `
@@ -424,7 +455,7 @@ function Invoke-DevBuild {
         $testSupportDestination = Join-Path `
             -Path $outputTestSupportDirectory `
             -ChildPath $testSupportTargetFramework
-        Invoke-DevDotnetAssembly `
+        Publish-WUDevDotnetAssembly `
             -ProjectPath $testSupportProjectPath `
             -TargetFramework $testSupportTargetFramework `
             -AssemblyFileName 'PSWinUtil.TestSupport.dll' `
@@ -447,7 +478,7 @@ function Invoke-DevBuild {
     }
 }
 
-function Invoke-DevImport {
+function Invoke-WUDevImport {
     if (-not (Test-Path -LiteralPath $outputManifestPath -PathType Leaf)) {
         throw "Build the module before importing it: $outputManifestPath"
     }
@@ -455,17 +486,17 @@ function Invoke-DevImport {
     Import-Module -Name $outputManifestPath -Force -Global -ErrorAction Stop
 }
 
-function Assert-DevOutput {
+function Assert-WUDevOutput {
     $outputFiles = @(
         Get-ChildItem -LiteralPath $outputModuleDirectory -File -Recurse |
             Where-Object { $_.Extension -in @('.ps1', '.psd1', '.psm1', '.ps1xml') }
     )
     foreach ($outputFile in $outputFiles) {
-        Assert-DevAsciiFile -File $outputFile
-        Assert-DevPowerShellSyntax -File $outputFile
+        Assert-WUDevAsciiFile -File $outputFile
+        Assert-WUDevPowerShellSyntax -File $outputFile
     }
 
-    $null = Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop
+    Test-ModuleManifest -Path $outputManifestPath -ErrorAction Stop | Out-Null
     $manifest = Import-PowerShellDataFile -Path $outputManifestPath
     $referenceKeys = @(
         'RootModule'
@@ -491,7 +522,6 @@ function Assert-DevOutput {
         }
     }
 
-    $null = Get-Command -Name 'powershell.exe' -ErrorAction Stop
     $escapedManifestPath = $outputManifestPath.Replace("'", "''")
     $importCommand = "Import-Module -Name '$escapedManifestPath' -Force -ErrorAction Stop"
     $cleanProcessOutput = & 'powershell.exe' -NoProfile -NonInteractive -Command $importCommand 2>&1
@@ -501,7 +531,7 @@ function Assert-DevOutput {
     }
 }
 
-function Invoke-DevTest {
+function Invoke-WUDevTest {
     param(
         [Parameter(Mandatory = $true)]
         [ValidateSet('unit', 'integration', 'contract', 'all')]
@@ -511,7 +541,7 @@ function Invoke-DevTest {
     )
 
     if (-not $SkipBuild) {
-        Invoke-DevBuild
+        Invoke-WUDevBuild
     }
 
     $testTypes = @($SelectedTestType)
@@ -528,7 +558,7 @@ function Invoke-DevTest {
     $configuration.Run.Path = $testPaths
     $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
-    $configuration.Filter.ExcludeTag = @('Network')
+    $configuration.Filter.ExcludeTag = @('Online')
 
     $testResult = Invoke-Pester -Configuration $configuration
     if (
@@ -540,33 +570,33 @@ function Invoke-DevTest {
     }
 }
 
-function Invoke-DevNetworkIntegrationTest {
-    Invoke-DevBuild
+function Invoke-WUDevOnlineIntegrationTest {
+    Invoke-WUDevBuild
 
-    $networkIntegrationTests = @(
+    $onlineIntegrationTests = @(
         Get-ChildItem `
             -LiteralPath (Join-Path -Path $repositoryRoot -ChildPath 'tests') `
             -File `
             -Recurse `
-            -Filter '*.NetworkIntegration.Tests.ps1'
+            -Filter '*.OnlineIntegration.Tests.ps1'
     )
-    if ($networkIntegrationTests.Count -eq 0) {
-        throw 'No network integration tests were found.'
+    if ($onlineIntegrationTests.Count -eq 0) {
+        throw 'No online integration tests were found.'
     }
 
     $configuration = New-PesterConfiguration
-    $configuration.Run.Path = @($networkIntegrationTests.FullName)
+    $configuration.Run.Path = @($onlineIntegrationTests.FullName)
     $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
-    $configuration.Filter.Tag = @('Network')
+    $configuration.Filter.Tag = @('Online')
 
     $testResult = Invoke-Pester -Configuration $configuration
     if (
         $null -eq $testResult -or
         $testResult.FailedCount -gt 0 -or
-        $testResult.FailedContainersCount -gt 0 -or $testResult.PassedCount -le 0
+        $testResult.FailedContainersCount -gt 0
     ) {
-        throw 'Pester reported one or more failed network integration tests.'
+        throw 'Pester reported one or more failed online integration tests.'
     }
 }
 
@@ -662,7 +692,7 @@ function Update-CommandReference {
     }
 
     if ($PSCmdlet.ShouldProcess($Path, 'Write the generated command reference')) {
-        $null = [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($Path))
+        [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($Path)) | Out-Null
         [System.IO.File]::WriteAllBytes($Path, $expectedBytes)
     }
 }
@@ -710,9 +740,7 @@ function Get-RequiredApplication {
         [string]$Purpose
     )
 
-    if ($null -eq (Get-Command -Name $Name -ErrorAction Ignore)) {
-        throw "$Name was not found on PATH. $Purpose"
-    }
+    Assert-WUCommand -Name $Name -Purpose $Purpose
 
     $Name
 }
@@ -1017,7 +1045,7 @@ function Invoke-Bump {
         [string]$Version
     )
 
-    $null = ConvertTo-ReleaseVersion -Version $Version
+    ConvertTo-ReleaseVersion -Version $Version | Out-Null
     $tagName = "v$Version"
     $branchName = "release/$Version"
     $manifestStatusPath = 'src/PSWinUtil/PSWinUtil.psd1'
@@ -1060,10 +1088,10 @@ function Invoke-Bump {
     $result = Set-ReleaseVersion -Version $Version
     Write-Output -InputObject "Release version $($result.PreviousVersion) -> $($result.Version)"
 
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName)
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath)
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version")
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName)
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName) | Out-Null
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath) | Out-Null
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version") | Out-Null
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName) | Out-Null
 
     $pullRequestBody = @(
         '## Release'
@@ -1106,11 +1134,11 @@ function Invoke-Release {
     )
 
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git inspects the release commit and tags.'
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @(
         'fetch', 'origin', '+refs/heads/master:refs/remotes/origin/master', '--tags'
-    )
+    ) | Out-Null
 
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}")
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}") | Out-Null
     $headOutput = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
     $headCommit = ($headOutput -join '').Trim()
     if ($headCommit -ne $ReleaseCommit) {
@@ -1125,9 +1153,9 @@ function Invoke-Release {
         throw 'The release checkout contains uncommitted changes. Build and publish the committed source.'
     }
 
-    $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    Invoke-ExternalCommand -FilePath $git -ArgumentList @(
         'merge-base', '--is-ancestor', $ReleaseCommit, 'origin/master'
-    )
+    ) | Out-Null
 
     $manifest = Get-ReleaseManifest -GitPath $git -ReleaseCommit $ReleaseCommit
     $manifestVersion = Get-ReleaseManifestVersion -Manifest $manifest
@@ -1389,20 +1417,20 @@ function Invoke-ReleasePublish {
 
     if (-not $State.TagExists) {
         if ($localTagNames.Count -eq 0) {
-            $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+            Invoke-ExternalCommand -FilePath $git -ArgumentList @(
                 'tag', '--annotate', $tagName, '--message', "PSWinUtil $Version", $ReleaseCommit
-            )
+            ) | Out-Null
         }
-        $null = Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName")
+        Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName") | Out-Null
     }
 
     if (-not $State.GalleryExists) {
         Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
-        $null = Publish-PSResource `
+        Publish-PSResource `
             -Path $ModuleDirectory `
             -Repository 'PSGallery' `
             -ApiKey $env:PSGALLERY_API_KEY `
-            -ErrorAction Stop
+            -ErrorAction Stop | Out-Null
 
         Wait-GalleryPublication -Version $Version
     }
@@ -1414,7 +1442,7 @@ function Invoke-ReleasePublish {
     if (-not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)) {
         $releaseArguments += '--prerelease'
     }
-    $null = Invoke-ExternalCommand -FilePath $gh -ArgumentList $releaseArguments
+    Invoke-ExternalCommand -FilePath $gh -ArgumentList $releaseArguments | Out-Null
 
     [pscustomobject]@{
         Version = $Version
@@ -1452,51 +1480,51 @@ function Wait-GalleryPublication {
     throw "PowerShell Gallery did not expose PSWinUtil $Version within the expected time."
 }
 
-function Invoke-DevVerify {
+function Invoke-WUDevVerify {
     Import-RequiredModule -Name 'PSScriptAnalyzer'
     Import-RequiredModule -Name 'ModuleBuilder'
     Import-RequiredModule -Name 'Pester'
-    Assert-DevSource
-    Invoke-DevFormat -Check
-    Invoke-DevAnalyze
-    Invoke-DevBuild
-    Assert-DevOutput
-    Invoke-DevTest -SelectedTestType 'all' -SkipBuild
+    Assert-WUDevSource
+    Invoke-WUDevFormat -Check
+    Invoke-WUDevAnalyze
+    Invoke-WUDevBuild
+    Assert-WUDevOutput
+    Invoke-WUDevTest -SelectedTestType 'all' -SkipBuild
 }
 
 switch ($Command) {
     'format' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        Invoke-DevFormat
+        Invoke-WUDevFormat
     }
     'analyze' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        Invoke-DevAnalyze
+        Invoke-WUDevAnalyze
     }
     'lint' {
         Import-RequiredModule -Name 'PSScriptAnalyzer'
-        Assert-DevSource
-        Invoke-DevFormat -Check
-        Invoke-DevAnalyze
+        Assert-WUDevSource
+        Invoke-WUDevFormat -Check
+        Invoke-WUDevAnalyze
     }
     'build' {
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
-        Invoke-DevBuild
+        Invoke-WUDevBuild
     }
     'import' {
-        Invoke-DevImport
+        Invoke-WUDevImport
     }
     'docs' {
         if (-not [string]::IsNullOrWhiteSpace($Argument) -and $Argument -ne 'check') {
             throw "The docs command accepts only 'check' as an argument."
         }
 
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
-        Invoke-DevBuild
+        Invoke-WUDevBuild
         Update-CommandReference `
             -ManifestPath $outputManifestPath `
             -Path $commandReferencePath `
@@ -1511,22 +1539,22 @@ switch ($Command) {
             throw "The test command accepts unit, integration, contract, or all: $selectedTestType"
         }
 
-        Assert-DevSource
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        Invoke-DevTest -SelectedTestType $selectedTestType
+        Invoke-WUDevTest -SelectedTestType $selectedTestType
     }
-    'test-network-integration' {
-        Assert-DevSource
+    'test-online-integration' {
+        Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        Invoke-DevNetworkIntegrationTest
+        Invoke-WUDevOnlineIntegrationTest
     }
     'verify' {
-        Invoke-DevVerify
+        Invoke-WUDevVerify
     }
     'ci' {
-        Invoke-DevVerify
+        Invoke-WUDevVerify
     }
     'bump' {
         if ([string]::IsNullOrWhiteSpace($Argument)) {

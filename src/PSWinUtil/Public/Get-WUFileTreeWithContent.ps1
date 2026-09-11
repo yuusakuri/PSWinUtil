@@ -1,7 +1,7 @@
 function Get-WUFileTreeWithContent {
     <#
     .SYNOPSIS
-    Gets a file tree with text file contents.
+    Lists a file tree and reads UTF-8 text content for each file.
 
     .DESCRIPTION
     Gets files and directories from one or more paths. Path permits wildcards, while LiteralPath uses exact paths. Directory children are read recursively. By default, each item is returned as a PSWinUtil.FileTreeContent object. Text files are read with strict UTF-8 decoding. A file that is not valid UTF-8 or contains a null character is returned with a null Content value.

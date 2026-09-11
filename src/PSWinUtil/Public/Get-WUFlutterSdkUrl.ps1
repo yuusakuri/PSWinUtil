@@ -48,16 +48,7 @@ function Get-WUFlutterSdkUrl {
 
         [Parameter()]
         [ValidateSet('x64', 'arm64')]
-        [string]$Architecture = $(
-            if (
-                $env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or
-                $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64'
-            ) {
-                'arm64'
-            } else {
-                'x64'
-            }
-        )
+        [string]$Architecture = $(Format-FlutterSystemArchitectureString -Architecture (Get-SystemArchitecture))
     )
 
     process {

@@ -1,7 +1,7 @@
 function Set-WUEnvironmentVariable {
     <#
     .SYNOPSIS
-    Sets one or more environment variables.
+    Sets environment variables in selected Process, User, or Machine scopes.
 
     .DESCRIPTION
     Sets an environment variable from a name and value, or reads variables from a PowerShell data file. A null value removes a named variable. The data file root must be a Hashtable. Each key is an environment variable name, and each value must be a string. Process changes affect only the current PowerShell process. User and Machine changes are persistent. Machine changes do not start an elevated process.

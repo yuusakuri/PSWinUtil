@@ -84,7 +84,7 @@ function Invoke-WUHttpFileDownload {
                 $request,
                 [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead
             ).GetAwaiter().GetResult()
-            $null = $response.EnsureSuccessStatusCode()
+            $response.EnsureSuccessStatusCode() | Out-Null
 
             $fileMode = [System.IO.FileMode]::Create
             $expectedLength = $response.Content.Headers.ContentLength

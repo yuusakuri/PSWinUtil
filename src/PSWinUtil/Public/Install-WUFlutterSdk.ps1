@@ -4,7 +4,7 @@ function Install-WUFlutterSdk {
     Installs the Flutter SDK on Windows.
 
     .DESCRIPTION
-    Downloads an official Windows Flutter SDK archive, installs it under the destination directory, and adds flutter\bin to the current user and process PATH values. The command verifies the installed Flutter and Dart commands, then displays the Flutter doctor report without using that report as a success condition. An existing Flutter installation is restored if installation fails. Temporary files are removed after the operation.
+    Downloads an official Windows Flutter SDK archive, installs it under the destination directory, and adds flutter\bin to the current user PATH before refreshing the current process environment. The command verifies the installed Flutter and Dart commands, then displays the Flutter doctor report without using that report as a success condition. An existing Flutter installation is restored if installation fails. Temporary files are removed after the operation.
 
     .PARAMETER Version
     Specifies the Flutter SDK version. An omitted or empty value selects the current release for the requested channel.
@@ -51,16 +51,7 @@ function Install-WUFlutterSdk {
 
         [Parameter()]
         [ValidateSet('x64', 'arm64')]
-        [string]$Architecture = $(
-            if (
-                $env:PROCESSOR_ARCHITECTURE -eq 'ARM64' -or
-                $env:PROCESSOR_ARCHITEW6432 -eq 'ARM64'
-            ) {
-                'arm64'
-            } else {
-                'x64'
-            }
-        ),
+        [string]$Architecture = $(Format-FlutterSystemArchitectureString -Architecture (Get-SystemArchitecture)),
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
@@ -69,14 +60,7 @@ function Install-WUFlutterSdk {
 
     process {
         $fullDestinationPath = ConvertTo-WUFullPath -Path $DestinationPath
-        if (Test-Path -LiteralPath $fullDestinationPath -PathType Leaf) {
-            throw "The destination path must be a directory: $fullDestinationPath"
-        }
-
         $flutterPath = Join-Path -Path $fullDestinationPath -ChildPath 'flutter'
-        if (Test-Path -LiteralPath $flutterPath -PathType Leaf) {
-            throw "The Flutter path must be a directory: $flutterPath"
-        }
 
         $versionDescription = if ([string]::IsNullOrWhiteSpace($Version)) { "current $Channel" } else { $Version }
         $actionDescription = "Install Flutter SDK $versionDescription for $Architecture"
@@ -93,11 +77,11 @@ function Install-WUFlutterSdk {
         $originalUserPath = $null
         $originalProcessPath = $null
         try {
-            if (-not (Test-Path -LiteralPath $fullDestinationPath -PathType Container)) {
-                $null = New-Item -Path $fullDestinationPath -ItemType Directory -Force -ErrorAction Stop
+            if (-not (Test-Path -LiteralPath $fullDestinationPath)) {
+                New-Item -Path $fullDestinationPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
                 $destinationCreated = $true
             }
-            $null = New-Item -Path $temporaryDirectory -ItemType Directory -Force -ErrorAction Stop
+            New-Item -Path $temporaryDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
             $release = Get-WUFlutterSdkRelease -Version $Version -Channel $Channel -Architecture $Architecture
             $packageFileName = [IO.Path]::GetFileName($release.Uri.AbsolutePath)
             if ([string]::IsNullOrWhiteSpace($packageFileName)) {
@@ -110,7 +94,7 @@ function Install-WUFlutterSdk {
                 -Path $downloadedPath
 
             $stagingDirectory = Join-Path -Path $fullDestinationPath -ChildPath ".flutter-install-$([guid]::NewGuid().ToString('N'))"
-            $null = New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop
+            New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop | Out-Null
 
             Add-Type -AssemblyName 'System.IO.Compression.FileSystem' -ErrorAction Stop
             $archive = [IO.Compression.ZipFile]::OpenRead($downloadedPath)
@@ -158,11 +142,9 @@ function Install-WUFlutterSdk {
             )
             $environmentUpdateStarted = $true
             Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend
-            Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'Process' -Prepend
+            Update-WUProcessEnvironment
 
-            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand -Command 'dart' -ArgumentList '--version'
-            Invoke-WUFlutterSdkCommand -Command 'flutter' -ArgumentList 'doctor' -IgnoreExitCode
+            Assert-WUFlutterSdkInstallation
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
                 Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
@@ -185,7 +167,7 @@ function Install-WUFlutterSdk {
                         [EnvironmentVariableTarget]::Process
                     )
                 } catch {
-                    $null = $_
+                    $_ | Out-Null
                 }
             }
             if ($newInstallationMoved -and (Test-Path -LiteralPath $flutterPath)) {
@@ -204,7 +186,7 @@ function Install-WUFlutterSdk {
             }
             if (
                 $destinationCreated -and
-                (Test-Path -LiteralPath $fullDestinationPath -PathType Container) -and
+                (Test-Path -LiteralPath $fullDestinationPath) -and
                 @(Get-ChildItem -LiteralPath $fullDestinationPath -Force).Count -eq 0
             ) {
                 Remove-Item -LiteralPath $fullDestinationPath -Force -ErrorAction SilentlyContinue

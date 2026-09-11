@@ -1,7 +1,7 @@
 function Assert-WUPSScript {
     <#
     .SYNOPSIS
-    Requires valid PowerShell script syntax.
+    Throws when a PowerShell script has syntax errors.
 
     .DESCRIPTION
     Uses Test-WUPSScript with the parser from the current PowerShell process. Parser errors are reported as an error. Successful checks produce no output.

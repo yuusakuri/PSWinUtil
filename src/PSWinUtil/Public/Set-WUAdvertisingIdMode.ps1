@@ -1,7 +1,7 @@
 function Set-WUAdvertisingIdMode {
     <#
     .SYNOPSIS
-    Sets the advertising ID mode.
+    Sets the Windows advertising ID policy to its default or disabled mode.
 
     .DESCRIPTION
     Applies the Default or Disabled option for the Windows advertising ID policy. Registry changes are delegated to the registry property commands.

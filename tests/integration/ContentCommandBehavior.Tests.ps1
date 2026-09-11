@@ -11,7 +11,7 @@ BeforeAll {
             Should -Be ([Convert]::ToBase64String([System.IO.File]::ReadAllBytes($OriginalPath)))
     }
 
-    function script:Get-PSWinUtilUtf8LfContent {
+    function Get-PSWinUtilUtf8LfContent {
         param([string]$Path)
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path)

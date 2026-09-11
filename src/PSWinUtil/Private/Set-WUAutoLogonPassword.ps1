@@ -106,7 +106,7 @@ function Set-WUAutoLogonPassword {
             [Runtime.InteropServices.Marshal]::FreeHGlobal($secretNameBuffer)
         }
         if ($policyHandle -ne [IntPtr]::Zero) {
-            $null = [PSWinUtil.NativeMethods.LsaPolicy]::LsaClose($policyHandle)
+            [PSWinUtil.NativeMethods.LsaPolicy]::LsaClose($policyHandle) | Out-Null
         }
     }
 }

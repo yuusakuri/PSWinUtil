@@ -1,7 +1,7 @@
 function Test-WUPathProperty {
     <#
     .SYNOPSIS
-    Tests PowerShell path properties.
+    Tests whether PowerShell paths exist and match optional item type requirements.
 
     .DESCRIPTION
     Expands wildcard Path values and returns a Boolean value for each resolved path. LiteralPath values are tested without wildcard interpretation. A missing path or an unmatched pattern returns false. An existing path can also be tested for its provider item type.

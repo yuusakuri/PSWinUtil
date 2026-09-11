@@ -1,7 +1,7 @@
 function Set-WUNodeExtraCaCertificate {
     <#
     .SYNOPSIS
-    Configures an additional CA certificate for Node.js.
+    Sets the Node.js extra CA certificate environment variable.
 
     .DESCRIPTION
     Sets NODE_EXTRA_CA_CERTS to a fully qualified certificate bundle file path. Node.js and npm processes started after the environment variable is updated use the additional CA certificates. The file must already exist and contain one or more trusted certificates in PEM format.
