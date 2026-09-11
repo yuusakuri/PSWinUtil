@@ -44,5 +44,4 @@ Describe 'Runtime certificate environment integration' {
         $env:JAVA_TOOL_OPTIONS | Should -Be '-Xmx2g'
     }
 
-
 }
