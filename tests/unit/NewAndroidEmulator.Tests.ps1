@@ -24,7 +24,7 @@ Describe 'Android AVD selection and errors' -Tag Android {
         $script:ExistingAvds = @()
         $script:InstallExitCode = 0
         Mock -CommandName Assert-WUPathProperty -ModuleName PSWinUtil
-        function Write-TestAndroidTools {
+        function Write-TestAndroidTool {
             $deviceLines = $script:DeviceCatalog -join "`r`necho "
             $packageLines = $script:PackageCatalog -join "`r`necho "
             $avdLines = $script:ExistingAvds -join "`r`necho "
@@ -33,7 +33,7 @@ Describe 'Android AVD selection and errors' -Tag Android {
             $androidScript = "@echo off`r`nif `"%4`"==`"install`" exit /b $($script:InstallExitCode)`r`necho $packageLines`r`nexit /b 0`r`n"
             [IO.File]::WriteAllText((Join-Path $script:ToolDirectory 'android.cmd'), $androidScript)
         }
-        Write-TestAndroidTools
+        Write-TestAndroidTool
         $env:Path = "$($script:ToolDirectory);$($script:OriginalPath)"
     }
 
@@ -68,19 +68,19 @@ Describe 'Android AVD selection and errors' -Tag Android {
 
     It 'reports an empty device catalog without inventing a profile' {
         $script:DeviceCatalog = @()
-        Write-TestAndroidTools
+        Write-TestAndroidTool
         { New-WUAndroidEmulator -SdkPath $script:SdkPath } | Should -Throw '*No standard Pixel*'
     }
 
     It 'reports an empty stable system image catalog' {
         $script:PackageCatalog = @()
-        Write-TestAndroidTools
+        Write-TestAndroidTool
         { New-WUAndroidEmulator -SdkPath $script:SdkPath } | Should -Throw '*No stable Android system image*'
     }
 
     It 'preserves an existing AVD by default' {
         $script:ExistingAvds = @('custom')
-        Write-TestAndroidTools
+        Write-TestAndroidTool
         { New-WUAndroidEmulator -SdkPath $script:SdkPath -Name custom } | Should -Throw '*already exists*'
     }
 
