@@ -1,7 +1,7 @@
 function Assert-WUCommand {
     <#
     .SYNOPSIS
-    Requires a command to be available.
+    Throws when a named command is unavailable on PATH.
 
     .DESCRIPTION
     Throws an error when PowerShell cannot resolve the specified command name.

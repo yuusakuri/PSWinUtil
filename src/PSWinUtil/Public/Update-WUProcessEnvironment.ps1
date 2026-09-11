@@ -1,7 +1,7 @@
 function Update-WUProcessEnvironment {
     <#
     .SYNOPSIS
-    Updates the current process environment.
+    Reloads Machine and User environment variables into the current PowerShell process.
 
     .DESCRIPTION
     Updates the current PowerShell process from Machine and User environment variables. User values override Machine values with the same name. Machine and User PATH values are combined in that order. Variables that exist only in the current process are preserved.

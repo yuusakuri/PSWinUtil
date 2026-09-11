@@ -1,7 +1,7 @@
 function Get-WURegistryProperty {
     <#
     .SYNOPSIS
-    Gets a registry property.
+    Reads a named registry value and its registry data type.
 
     .DESCRIPTION
     Gets one named registry property and its registry value type. A missing key or property produces no output.

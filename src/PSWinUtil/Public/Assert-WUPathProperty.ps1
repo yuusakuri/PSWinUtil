@@ -1,7 +1,7 @@
 function Assert-WUPathProperty {
     <#
     .SYNOPSIS
-    Requires PowerShell paths to match selected properties.
+    Validates resolved PowerShell paths against existence and item type requirements.
 
     .DESCRIPTION
     Tests PowerShell paths with Test-WUPathProperty and reports an error when a path does not match the selected provider item type. AllowNonExisting permits a missing path while still validating an existing path. Successful checks produce no output.

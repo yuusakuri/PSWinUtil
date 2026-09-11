@@ -1,7 +1,7 @@
 function Set-WUJavaWindowsRootTrustStore {
     <#
     .SYNOPSIS
-    Configures Java to use the Windows root certificate store.
+    Configures Java to trust certificates from the Windows root store.
 
     .DESCRIPTION
     In corporate or otherwise restricted network environments, JAVA_TOOL_OPTIONS is often used to force Java SSL verification through the Windows system certificate store (WINDOWS-ROOT). Bundled JDKs installed with Android Studio or IntelliJ may omit, customize, or contain defects in support for this Windows-specific store, causing HTTPS downloads to fail.

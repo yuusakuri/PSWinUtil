@@ -1,7 +1,7 @@
 function Get-WUWindowsAutoLogon {
     <#
     .SYNOPSIS
-    Gets the Windows auto logon configuration.
+    Reads the Windows automatic logon configuration.
 
     .DESCRIPTION
     Gets the enabled state, user name, and optional domain from the Winlogon registry key. The password and LSA private data are never read or returned.
