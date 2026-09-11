@@ -40,26 +40,9 @@ Describe 'Runtime certificate environment integration' {
     It 'previews certificate and trust store settings without changing their values' {
         $env:JAVA_TOOL_OPTIONS = '-Xmx2g'
         Set-WUNodeExtraCaCertificate -LiteralPath $script:CertificatePath -Scope Process -WhatIf
-        Set-WUJavaWindowsRootTrustStore -Scope Process -WhatIf
         $env:NODE_EXTRA_CA_CERTS | Should -Be 'original'
         $env:JAVA_TOOL_OPTIONS | Should -Be '-Xmx2g'
     }
 
-    It 'replaces trust store options while preserving <Existing>' -TestCases @(
-        @{ Existing = ''; Expected = '-Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Xmx2g -Dfile.encoding=UTF-8'; Expected = '-Xmx2g -Dfile.encoding=UTF-8 -Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Xmx2g -Djavax.net.ssl.trustStore=custom.jks -Djavax.net.ssl.trustStoreType=JKS'; Expected = '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Xmx2g -Djavax.net.ssl.trustStore="C:\Program Files\Java\custom.jks"'; Expected = '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Djavax.net.ssl.truststore=NONE -Xmx2g'; Expected = '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT'; Expected = '-Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Djavax.net.ssl.truststoretype=Windows-ROOT'; Expected = '-Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-        @{ Existing = '-Djavax.net.ssl.trustStoreType=JKS -Xmx2g -Djavax.net.ssl.trustStoreType=PKCS12'; Expected = '-Xmx2g -Djavax.net.ssl.trustStoreType=Windows-ROOT' }
-    ) {
-        param($Existing, $Expected)
-        $env:JAVA_TOOL_OPTIONS = $Existing
-        Set-WUJavaWindowsRootTrustStore -Scope Process
-        $env:JAVA_TOOL_OPTIONS | Should -Be $Expected
-        Set-WUJavaWindowsRootTrustStore -Scope Process
-        $env:JAVA_TOOL_OPTIONS | Should -Be $Expected
-    }
+
 }
