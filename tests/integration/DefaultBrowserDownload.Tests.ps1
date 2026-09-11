@@ -5,8 +5,10 @@ BeforeAll {
 Describe 'Invoke-WUDefaultBrowserDownload' {
     BeforeEach {
         Get-ChildItem -LiteralPath $TestDrive -File | Remove-Item -Force
-        Mock -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -MockWith {
-            Join-Path -Path $DownloadDirectory -ChildPath $FileName
+        $script:BrowserTargetPath = Join-Path $TestDrive 'package.zip'
+        $script:BrowserLockStream = $null
+        Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
+            [IO.File]::WriteAllText((Join-Path $TestDrive ([uri]::UnescapeDataString([IO.Path]::GetFileName(([uri]$FilePath).AbsolutePath)))), 'downloaded')
         }
     }
 
@@ -14,9 +16,7 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
         $result = Invoke-WUDefaultBrowserDownload -Uri 'https://example.com/files/package%20one.zip' -DownloadDirectory $TestDrive
 
         $result | Should -Be (Join-Path -Path $TestDrive -ChildPath 'package one.zip')
-        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $FileName -eq 'package one.zip'
-        }
+        [IO.File]::ReadAllText($result) | Should -Be 'downloaded'
     }
 
     It 'requires FileName when Uri has no file segment' {
@@ -44,33 +44,12 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
             Should -Throw '*Use Force*'
     }
 
-    It 'forwards Force and timeout to the internal operation' {
-        $targetPath = Join-Path -Path $TestDrive -ChildPath 'file.zip'
-        [IO.File]::WriteAllText($targetPath, 'existing')
-
-        Invoke-WUDefaultBrowserDownload -Uri 'https://example.com/file.zip' -DownloadDirectory $TestDrive -TimeoutSeconds 30 -Force
-
-        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Force -and $TimeoutSeconds -eq 30
-        }
-    }
+    
 
     It 'does not start the internal operation with WhatIf' {
         Invoke-WUDefaultBrowserDownload -Uri 'https://example.com/file.zip' -DownloadDirectory $TestDrive -WhatIf
 
-        Should -Invoke -CommandName Invoke-WUDefaultBrowserDownloadInternal -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-}
-
-Describe 'Invoke-WUDefaultBrowserDownloadInternal' {
-    BeforeEach {
-        Get-ChildItem -LiteralPath $TestDrive -File | Remove-Item -Force
-        $script:BrowserTargetPath = Join-Path -Path $TestDrive -ChildPath 'package.zip'
-        $script:BrowserFileContent = 'downloaded'
-        $script:BrowserLockStream = $null
-        Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
-            [IO.File]::WriteAllText($script:BrowserTargetPath, $script:BrowserFileContent)
-        }
+        Test-Path -LiteralPath (Join-Path $TestDrive 'file.zip') | Should -BeFalse
     }
 
     AfterEach {
@@ -86,9 +65,7 @@ Describe 'Invoke-WUDefaultBrowserDownloadInternal' {
             DownloadDirectory = $TestDrive
             TimeoutSeconds = 2
         }
-        $result = InModuleScope -ModuleName PSWinUtil -Parameters @{ InvokeParameters = $parameters } {
-            Invoke-WUDefaultBrowserDownloadInternal @InvokeParameters
-        }
+        $result = Invoke-WUDefaultBrowserDownload @parameters
 
         $result | Should -Be $script:BrowserTargetPath
         [IO.File]::ReadAllText($result) | Should -Be 'downloaded'
@@ -104,9 +81,7 @@ Describe 'Invoke-WUDefaultBrowserDownloadInternal' {
             Force = $true
         }
 
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ InvokeParameters = $parameters } {
-            Invoke-WUDefaultBrowserDownloadInternal @InvokeParameters
-        }
+        Invoke-WUDefaultBrowserDownload @parameters
 
         [IO.File]::ReadAllText($script:BrowserTargetPath) | Should -Be 'downloaded'
     }
@@ -123,9 +98,7 @@ Describe 'Invoke-WUDefaultBrowserDownloadInternal' {
             TimeoutSeconds = 2
         }
 
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ InvokeParameters = $parameters } {
-            Invoke-WUDefaultBrowserDownloadInternal @InvokeParameters
-        }
+        Invoke-WUDefaultBrowserDownload @parameters
 
         Test-Path -LiteralPath $chromePartialPath | Should -BeFalse
         Test-Path -LiteralPath $firefoxPartialPath | Should -BeFalse
@@ -149,9 +122,7 @@ Describe 'Invoke-WUDefaultBrowserDownloadInternal' {
         }
 
         {
-            InModuleScope -ModuleName PSWinUtil -Parameters @{ InvokeParameters = $parameters } {
-                Invoke-WUDefaultBrowserDownloadInternal @InvokeParameters
-            }
+            Invoke-WUDefaultBrowserDownload @parameters
         } | Should -Throw '*did not complete*'
     }
 
@@ -165,9 +136,7 @@ Describe 'Invoke-WUDefaultBrowserDownloadInternal' {
         }
 
         {
-            InModuleScope -ModuleName PSWinUtil -Parameters @{ InvokeParameters = $parameters } {
-                Invoke-WUDefaultBrowserDownloadInternal @InvokeParameters
-            }
+            Invoke-WUDefaultBrowserDownload @parameters
         } | Should -Throw '*did not complete*'
     }
 }

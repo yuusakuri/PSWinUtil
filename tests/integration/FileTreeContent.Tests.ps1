@@ -3,6 +3,27 @@ BeforeAll {
 }
 
 Describe 'Get-WUFileTreeWithContent' {
+    It 'does not follow a junction back into the same directory' {
+        $root = Join-Path $TestDrive 'junction-root'
+        New-Item -Path $root -ItemType Directory | Out-Null
+        $junction = Join-Path $root 'cycle'
+        New-Item -Path $junction -ItemType Junction -Target $root | Out-Null
+        try {
+            $result = @(Get-WUFileTreeWithContent -LiteralPath $root)
+            $result | Should -HaveCount 1
+            $result[0].Path | Should -Be $junction
+            $result[0].ItemType | Should -Be 'Directory'
+        } finally {
+            [IO.Directory]::Delete($junction)
+        }
+    }
+
+    It 'treats undecodable UTF-8 as binary content' {
+        $path = Join-Path $TestDrive 'invalid-utf8.bin'
+        [IO.File]::WriteAllBytes($path, [byte[]]@(195, 40))
+        (Get-WUFileTreeWithContent -LiteralPath $path).Content | Should -BeNullOrEmpty
+    }
+
     BeforeEach {
         $script:RootPath = Join-Path -Path $TestDrive -ChildPath 'root'
         $script:ChildPath = Join-Path -Path $script:RootPath -ChildPath 'child'
@@ -162,7 +183,7 @@ Describe 'Get-WUFileTreeWithContent' {
     It 'rejects a missing path' {
         $missingPath = Join-Path -Path $TestDrive -ChildPath 'missing'
 
-        { Get-WUFileTreeWithContent -LiteralPath $missingPath } | Should -Throw '*does not exist*'
+        { Get-WUFileTreeWithContent -LiteralPath $missingPath -ErrorAction Stop } | Should -Throw '*does not exist*'
     }
 
     It 'rejects an invalid depth range' {

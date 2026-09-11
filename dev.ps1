@@ -3,7 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         'format', 'analyze', 'lint', 'build', 'import', 'test', 'verify', 'ci',
-        'bump', 'release', 'docs', 'test-online-integration'
+        'bump', 'release', 'docs', 'test-online-integration', 'test-network-integration'
     )]
     [string]$Command,
 
@@ -570,25 +570,25 @@ function Invoke-WUDevTest {
     }
 }
 
-function Invoke-WUDevOnlineIntegrationTest {
+function Invoke-WUDevNetworkIntegrationTest {
     Invoke-WUDevBuild
 
-    $onlineIntegrationTests = @(
+    $networkIntegrationTests = @(
         Get-ChildItem `
             -LiteralPath (Join-Path -Path $repositoryRoot -ChildPath 'tests') `
             -File `
             -Recurse `
-            -Filter '*.OnlineIntegration.Tests.ps1'
+            -Filter '*.NetworkIntegration.Tests.ps1'
     )
-    if ($onlineIntegrationTests.Count -eq 0) {
-        throw 'No online integration tests were found.'
+    if ($networkIntegrationTests.Count -eq 0) {
+        throw 'No network integration tests were found.'
     }
 
     $configuration = New-PesterConfiguration
-    $configuration.Run.Path = @($onlineIntegrationTests.FullName)
+    $configuration.Run.Path = @($networkIntegrationTests.FullName)
     $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
-    $configuration.Filter.Tag = @('Online')
+    $configuration.Filter.Tag = @('Network')
 
     $testResult = Invoke-Pester -Configuration $configuration
     if (
@@ -596,10 +596,9 @@ function Invoke-WUDevOnlineIntegrationTest {
         $testResult.FailedCount -gt 0 -or
         $testResult.FailedContainersCount -gt 0
     ) {
-        throw 'Pester reported one or more failed online integration tests.'
+        throw 'Pester reported one or more failed network integration tests.'
     }
 }
-
 function Get-CommandReference {
     [CmdletBinding()]
     [OutputType([string])]
@@ -1548,7 +1547,13 @@ switch ($Command) {
         Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Import-RequiredModule -Name 'Pester'
-        Invoke-WUDevOnlineIntegrationTest
+        Invoke-WUDevNetworkIntegrationTest
+    }
+    'test-network-integration' {
+        Assert-WUDevSource
+        Import-RequiredModule -Name 'ModuleBuilder'
+        Import-RequiredModule -Name 'Pester'
+        Invoke-WUDevNetworkIntegrationTest
     }
     'verify' {
         Invoke-WUDevVerify

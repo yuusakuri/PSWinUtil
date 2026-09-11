@@ -27,4 +27,6 @@ jobs:
         run: .\install.ps1
 
       - name: Run verification
+        env:
+          PSWINUTIL_RUN_REGISTRY_SETTINGS_INTEGRATION: '1'
         run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
