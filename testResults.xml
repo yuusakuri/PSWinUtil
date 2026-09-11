@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="11" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-09-11" time="13:38:38">
+  <environment clr-version="4.0.30319.42000" user-domain="YUU" cwd="C:\Users\yuusa\pswinutil-java-cert-20260911" platform="Microsoft Windows 11 Pro|C:\WINDOWS|\Device\Harddisk1\Partition4" machine-name="YUU" nunit-version="2.5.8.0" os-version="10.0.26200" user="yuusa" />
+  <culture-info current-culture="ja-JP" current-uiculture="en-US" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="2.3502" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="C:\Users\yuusa\pswinutil-java-cert-20260911\tests\unit\RuntimeCertificateSettings.Tests.ps1" executed="True" result="Success" success="True" time="2.3502" asserts="0" description="C:\Users\yuusa\pswinutil-java-cert-20260911\tests\unit\RuntimeCertificateSettings.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="Set-WUNodeExtraCaCertificate" executed="True" result="Success" success="True" time="1.0899" asserts="0" description="Set-WUNodeExtraCaCertificate">
+            <results>
+              <test-case description="resolves and validates Path before setting the certificate" name="Set-WUNodeExtraCaCertificate.resolves and validates Path before setting the certificate" time="0.6085" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="resolves LiteralPath without wildcard interpretation" name="Set-WUNodeExtraCaCertificate.resolves LiteralPath without wildcard interpretation" time="0.0466" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="requires Path or LiteralPath" name="Set-WUNodeExtraCaCertificate.requires Path or LiteralPath" time="0.0717" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="rejects a Path that resolves to multiple files" name="Set-WUNodeExtraCaCertificate.rejects a Path that resolves to multiple files" time="0.0591" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="forwards WhatIf to the environment variable command" name="Set-WUNodeExtraCaCertificate.forwards WhatIf to the environment variable command" time="0.1436" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="sets the certificate in every selected scope" name="Set-WUNodeExtraCaCertificate.sets the certificate in every selected scope" time="0.0502" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+          <test-suite type="TestFixture" name="Set-WUJavaExtraCaCertificate" executed="True" result="Success" success="True" time="1.6554" asserts="0" description="Set-WUJavaExtraCaCertificate">
+            <results>
+              <test-case description="copies cacerts, imports the CRT, and sets the user trust store option" name="Set-WUJavaExtraCaCertificate.copies cacerts, imports the CRT, and sets the user trust store option" time="0.2292" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="uses JAVA_HOME by default" name="Set-WUJavaExtraCaCertificate.uses JAVA_HOME by default" time="0.1021" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="sets JAVA_TOOL_OPTIONS in every selected scope" name="Set-WUJavaExtraCaCertificate.sets JAVA_TOOL_OPTIONS in every selected scope" time="0.1098" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="does not change files or environment when WhatIf is used" name="Set-WUJavaExtraCaCertificate.does not change files or environment when WhatIf is used" time="0.0677" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="requires JavaHome when JAVA_HOME is not set" name="Set-WUJavaExtraCaCertificate.requires JavaHome when JAVA_HOME is not set" time="0.0446" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>

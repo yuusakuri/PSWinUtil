@@ -14,6 +14,9 @@ function Set-WUJavaExtraCaCertificate {
     .PARAMETER JavaHome
     Specifies the Java installation that supplies the default cacerts file. The default is JAVA_HOME.
 
+    .PARAMETER Scope
+    Specifies one or more of Process, User, and Machine for JAVA_TOOL_OPTIONS. The default is User.
+
     .EXAMPLE
     Set-WUJavaExtraCaCertificate -LiteralPath "$env:USERPROFILE\.certs\extra-ca-certs.crt"
 
@@ -39,16 +42,16 @@ function Set-WUJavaExtraCaCertificate {
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]$JavaHome = $env:JAVA_HOME
+        [string]$JavaHome = $env:JAVA_HOME,
+
+        [Parameter()]
+        [ValidateSet('Process', 'User', 'Machine')]
+        [string[]]$Scope = 'User'
     )
 
     if ([string]::IsNullOrWhiteSpace($JavaHome)) {
         throw 'JAVA_HOME must be set or JavaHome must be specified.'
     }
-    if ([string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
-        throw 'USERPROFILE must be set.'
-    }
-
     $extraCertificatePath = ConvertTo-WUFullPath -Path $LiteralPath
     $defaultCacertsPath = Join-Path -Path $JavaHome -ChildPath 'lib\security\cacerts'
     $cacertsPath = Join-Path -Path $env:USERPROFILE -ChildPath '.certs\java\cacerts'
@@ -88,5 +91,5 @@ function Set-WUJavaExtraCaCertificate {
     Set-WUEnvironmentVariable `
         -Name 'JAVA_TOOL_OPTIONS' `
         -Value "-Djavax.net.ssl.trustStore=$cacertsPath" `
-        -Scope User
+        -Scope $Scope
 }

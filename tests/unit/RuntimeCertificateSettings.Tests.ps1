@@ -139,6 +139,19 @@ Describe 'Set-WUJavaExtraCaCertificate' {
         }
     }
 
+    It 'sets JAVA_TOOL_OPTIONS in every selected scope' {
+        Set-WUJavaExtraCaCertificate `
+            -LiteralPath 'C:\Certificates\extra-ca-certs.crt' `
+            -JavaHome 'C:\Java\jdk-21' `
+            -Scope Process, User
+
+        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            @($Scope).Count -eq 2 -and
+            $Scope[0] -eq 'Process' -and
+            $Scope[1] -eq 'User'
+        }
+    }
+
     It 'does not change files or environment when WhatIf is used' {
         Set-WUJavaExtraCaCertificate -LiteralPath 'C:\Certificates\extra-ca-certs.crt' -JavaHome 'C:\Java\jdk-21' -WhatIf
 
