@@ -78,6 +78,7 @@ Get-Help -Name 'Set-WUEnvironmentVariable' -Full
 ## Documentation
 
 - [Command reference](docs/reference/commands.md) lists the exported commands and their summaries generated from PowerShell help.
+- [Android SDK tool compatibility](docs/explanation/android-sdk.md) explains Android CLI, Command-Line Tools, and Flutter version considerations.
 - [Architecture](docs/explanation/architecture.md) explains the source, build, distribution, and test boundaries.
 - [Contributing](CONTRIBUTING.md) describes the development workflow and repository-specific verification.
 - [Releasing](RELEASING.md) describes version preparation and publication.

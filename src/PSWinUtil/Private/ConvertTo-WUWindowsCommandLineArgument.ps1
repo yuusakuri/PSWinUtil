@@ -40,7 +40,7 @@ function ConvertTo-WUWindowsCommandLineArgument {
     }
 
     $builder = [System.Text.StringBuilder]::new()
-    $null = $builder.Append([char]34)
+    $builder.Append([char]34) | Out-Null
     $backslashCount = 0
 
     foreach ($character in $Argument.ToCharArray()) {
@@ -50,22 +50,22 @@ function ConvertTo-WUWindowsCommandLineArgument {
         }
 
         if ($character -eq [char]34) {
-            $null = $builder.Append([char]92, ($backslashCount * 2) + 1)
-            $null = $builder.Append([char]34)
+            $builder.Append([char]92, ($backslashCount * 2) + 1) | Out-Null
+            $builder.Append([char]34) | Out-Null
             $backslashCount = 0
             continue
         }
 
         if ($backslashCount -gt 0) {
-            $null = $builder.Append([char]92, $backslashCount)
+            $builder.Append([char]92, $backslashCount) | Out-Null
             $backslashCount = 0
         }
-        $null = $builder.Append($character)
+        $builder.Append($character) | Out-Null
     }
 
     if ($backslashCount -gt 0) {
-        $null = $builder.Append([char]92, $backslashCount * 2)
+        $builder.Append([char]92, $backslashCount * 2) | Out-Null
     }
-    $null = $builder.Append([char]34)
+    $builder.Append([char]34) | Out-Null
     $builder.ToString()
 }

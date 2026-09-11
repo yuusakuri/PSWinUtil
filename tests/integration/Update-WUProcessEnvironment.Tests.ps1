@@ -32,7 +32,7 @@ Describe 'Process environment update integration' {
         $null = [System.IO.Directory]::CreateDirectory($script:MachineTestPath)
         $null = [System.IO.Directory]::CreateDirectory($script:UserTestPath)
 
-        function script:Restore-PSWinUtilEnvironment {
+        function Restore-PSWinUtilEnvironment {
             [System.Environment]::SetEnvironmentVariable(
                 $script:EnvironmentName,
                 $script:OriginalUserValue,

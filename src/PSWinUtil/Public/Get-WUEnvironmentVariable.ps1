@@ -1,7 +1,7 @@
 function Get-WUEnvironmentVariable {
     <#
     .SYNOPSIS
-    Gets one or more environment variable values.
+    Reads environment variable values from Process, User, or Machine scope.
 
     .DESCRIPTION
     Gets environment variable values from one or more Process, User, or Machine scopes. A missing variable produces no output.

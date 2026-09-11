@@ -4,7 +4,7 @@ function Install-WUAndroidSdk {
     Installs and configures an Android SDK with Android CLI.
 
     .DESCRIPTION
-    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing platform-tools, SDK Platform, Build Tools, and emulator packages. Omitted versions select the latest stable package reported by android sdk list. The command sets ANDROID_HOME for the current user and process, adds SDK command directories to both PATH values, and points build-tools\latest to the selected Build Tools version.
+    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing cmdline-tools/latest, platform-tools, SDK Platform, Build Tools, and emulator packages. The cmdline-tools/latest/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Omitted versions select the latest stable package reported by android sdk list. The command persists ANDROID_HOME and SDK command directories for the current user, refreshes the current process from the persistent environment, and points build-tools\latest to the selected Build Tools version.
 
     .PARAMETER SdkPath
     Specifies the Android SDK directory. The default value is LOCALAPPDATA\Android\Sdk.
@@ -66,16 +66,12 @@ function Install-WUAndroidSdk {
         return
     }
 
-    $null = Install-WUWingetPackage -Id 'Google.AndroidCLI'
+    Install-WUWingetPackage -Id 'Google.AndroidCLI' | Out-Null
     Update-WUProcessEnvironment
     $androidArguments = @(
         '--no-metrics'
         "--sdk=$fullSdkPath"
     )
-    # Current Windows Android CLI releases can emit valid output and install
-    # packages before returning this signed process status. Required files are
-    # checked below before the command reports success.
-    $androidCliWindowsExitCode = -1073740791
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
         [string]$PlatformVersion
@@ -97,7 +93,7 @@ function Install-WUAndroidSdk {
             )
             $exitCode = $LASTEXITCODE
             $textOutput = @($availablePlatforms | ForEach-Object { $_.ToString() })
-            if ($exitCode -ne 0 -and $exitCode -ne $androidCliWindowsExitCode) {
+            if ($exitCode -ne 0) {
                 throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
             }
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
@@ -112,7 +108,7 @@ function Install-WUAndroidSdk {
             )
             $exitCode = $LASTEXITCODE
             $textOutput = @($availableBuildTools | ForEach-Object { $_.ToString() })
-            if ($exitCode -ne 0 -and $exitCode -ne $androidCliWindowsExitCode) {
+            if ($exitCode -ne 0) {
                 throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
             }
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
@@ -127,19 +123,26 @@ function Install-WUAndroidSdk {
     $buildToolsRoot = Join-Path -Path $fullSdkPath -ChildPath 'build-tools'
     $buildToolsPath = Join-Path -Path $buildToolsRoot -ChildPath $resolvedBuildToolsVersion
     $emulatorPath = Join-Path -Path $fullSdkPath -ChildPath 'emulator'
+    $cmdlineToolsPath = Join-Path -Path $fullSdkPath -ChildPath 'cmdline-tools\latest\bin'
 
     $packages = @()
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe') -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe'))) {
         $packages += 'platform-tools'
     }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $platformPath -ChildPath 'android.jar') -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath (Join-Path -Path $platformPath -ChildPath 'android.jar'))) {
         $packages += "platforms/android-$resolvedPlatformVersion"
     }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe') -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe'))) {
         $packages += "build-tools/$resolvedBuildToolsVersion"
     }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe') -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe'))) {
         $packages += 'emulator'
+    }
+    if (
+        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat')) -or
+        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat'))
+    ) {
+        $packages += 'cmdline-tools/latest'
     }
 
     if ($packages.Count -gt 0) {
@@ -150,7 +153,7 @@ function Install-WUAndroidSdk {
         )
         $exitCode = $LASTEXITCODE
         $textOutput = @($installOutput | ForEach-Object { $_.ToString() })
-        if ($exitCode -ne 0 -and $exitCode -ne $androidCliWindowsExitCode) {
+        if ($exitCode -ne 0) {
             throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
         }
     }
@@ -160,9 +163,11 @@ function Install-WUAndroidSdk {
         (Join-Path -Path $platformPath -ChildPath 'android.jar')
         (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe')
         (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe')
+        (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat')
+        (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat')
     )
     foreach ($requiredFile in $requiredFiles) {
-        if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
+        if (-not (Test-Path -LiteralPath $requiredFile)) {
             throw "Android CLI did not install an expected file: $requiredFile"
         }
     }
@@ -173,23 +178,17 @@ function Install-WUAndroidSdk {
     Set-WUEnvironmentVariable `
         -Name 'ANDROID_HOME' `
         -Value $fullSdkPath `
-        -Scope 'User', 'Process'
+        -Scope 'User'
     $userPaths = @(
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
         '%ANDROID_HOME%\build-tools\latest'
+        '%ANDROID_HOME%\cmdline-tools\latest\bin'
     )
     Add-WUPathEnvironmentVariable `
         -Path $userPaths `
         -Scope 'User'
-    $processPaths = @(
-        $platformToolsPath
-        $emulatorPath
-        (Join-Path -Path $buildToolsRoot -ChildPath 'latest')
-    )
-    Add-WUPathEnvironmentVariable `
-        -Path $processPaths `
-        -Scope 'Process'
+    Update-WUProcessEnvironment
 
     Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
 }

@@ -158,7 +158,7 @@ function Add-Content {
             }
         }
 
-        $null = $PSBoundParameters.Remove('WhatIf')
+        $PSBoundParameters.Remove('WhatIf') | Out-Null
         $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
             'Microsoft.PowerShell.Management\Add-Content',
             [System.Management.Automation.CommandTypes]::Cmdlet

@@ -1,7 +1,7 @@
 function Get-WUKeyboardRemapping {
     <#
     .SYNOPSIS
-    Gets Windows keyboard scan code mappings.
+    Reads configured Windows keyboard scan code remappings.
 
     .DESCRIPTION
     Reads and validates the machine Scancode Map registry value, then returns each mapping. Windows must be restarted before registry changes affect keyboard input.

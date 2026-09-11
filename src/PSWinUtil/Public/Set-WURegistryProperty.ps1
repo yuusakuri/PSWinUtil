@@ -86,7 +86,7 @@ function Set-WURegistryProperty {
     }
 
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-        $null = New-Item -Path $Path -Force -ErrorAction Stop
+        New-Item -Path $Path -Force -ErrorAction Stop | Out-Null
     }
     if ($Name.Length -eq 0) {
         $registryKey = Open-WURegistryKeyForWrite -Path $Path
@@ -105,7 +105,7 @@ function Set-WURegistryProperty {
             Force = $true
             ErrorAction = 'Stop'
         }
-        $null = New-ItemProperty @propertyParameters
+        New-ItemProperty @propertyParameters | Out-Null
     }
 
     if ($PassThru) {

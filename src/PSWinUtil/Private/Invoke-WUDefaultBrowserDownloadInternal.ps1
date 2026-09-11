@@ -82,7 +82,7 @@ function Invoke-WUDefaultBrowserDownloadInternal {
         }
     }
 
-    $null = Start-Process -FilePath $Uri.AbsoluteUri -ErrorAction Stop
+    Start-Process -FilePath $Uri.AbsoluteUri -ErrorAction Stop | Out-Null
     $stopwatch = [Diagnostics.Stopwatch]::StartNew()
     try {
         while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
@@ -101,9 +101,9 @@ function Invoke-WUDefaultBrowserDownloadInternal {
                     [IO.Path]::GetFullPath($targetPath)
                     return
                 } catch [IO.IOException] {
-                    $null = $_
+                    $_ | Out-Null
                 } catch [UnauthorizedAccessException] {
-                    $null = $_
+                    $_ | Out-Null
                 } finally {
                     if ($null -ne $stream) {
                         $stream.Dispose()
