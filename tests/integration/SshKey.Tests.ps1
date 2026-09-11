@@ -11,19 +11,19 @@ BeforeAll {
 Describe 'SSH key integration' -Skip:(-not $sshKeygenAvailable) {
     It 'changes a passphrase and preserves the key after an incorrect passphrase' {
         $keyPath = Join-Path $TestDrive 'passphrase key[1]'
-        $null = New-WUSshKey -Path $keyPath -Type ed25519 -Passphrase 'old secret'
+        New-WUSshKey -Path $keyPath -Type ed25519 -Passphrase 'old secret' | Out-Null
         $publicKey = [IO.File]::ReadAllText("$keyPath.pub")
         $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($keyPath))
         { Edit-WUSshKey -LiteralPath $keyPath -CurrentPassphrase wrong -NewPassphrase 'new secret' } | Should -Throw
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($keyPath)) | Should -Be $before
-        $null = Edit-WUSshKey -LiteralPath $keyPath -CurrentPassphrase 'old secret' -NewPassphrase 'new secret'
-        $null = Edit-WUSshKey -LiteralPath $keyPath -CurrentPassphrase 'new secret' -NewPassphrase ''
+        Edit-WUSshKey -LiteralPath $keyPath -CurrentPassphrase 'old secret' -NewPassphrase 'new secret' | Out-Null
+        Edit-WUSshKey -LiteralPath $keyPath -CurrentPassphrase 'new secret' -NewPassphrase '' | Out-Null
         [IO.File]::ReadAllText("$keyPath.pub") | Should -Be $publicKey
     }
 
     It 'preserves existing keys on duplicate creation and Force WhatIf' {
         $keyPath = Join-Path $TestDrive 'preserved-key'
-        $null = New-WUSshKey -Path $keyPath -Type ed25519
+        New-WUSshKey -Path $keyPath -Type ed25519 | Out-Null
         $before = (Get-FileHash -LiteralPath $keyPath).Hash
         { New-WUSshKey -Path $keyPath -Type ed25519 } | Should -Throw '*already exists*'
         New-WUSshKey -Path $keyPath -Type ed25519 -Force -WhatIf

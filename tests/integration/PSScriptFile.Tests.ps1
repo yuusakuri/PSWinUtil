@@ -12,7 +12,7 @@ Describe 'PowerShell script file behavior' {
 
     It 'expands wildcard Path values' {
         $scriptDirectory = Join-Path -Path $TestDrive -ChildPath 'wildcard-scripts'
-        $null = New-Item -Path $scriptDirectory -ItemType Directory -Force
+        New-Item -Path $scriptDirectory -ItemType Directory -Force | Out-Null
         $firstScript = Join-Path -Path $scriptDirectory -ChildPath 'first.ps1'
         $secondScript = Join-Path -Path $scriptDirectory -ChildPath 'second.ps1'
         [System.IO.File]::WriteAllText($firstScript, "Get-Item -Path .`n")

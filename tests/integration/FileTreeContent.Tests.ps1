@@ -5,9 +5,9 @@ BeforeAll {
 Describe 'Get-WUFileTreeWithContent' {
     It 'does not follow a junction back into the same directory' {
         $root = Join-Path $TestDrive 'junction-root'
-        $null = New-Item -Path $root -ItemType Directory
+        New-Item -Path $root -ItemType Directory | Out-Null
         $junction = Join-Path $root 'cycle'
-        $null = New-Item -Path $junction -ItemType Junction -Target $root
+        New-Item -Path $junction -ItemType Junction -Target $root | Out-Null
         try {
             $result = @(Get-WUFileTreeWithContent -LiteralPath $root)
             $result | Should -HaveCount 1

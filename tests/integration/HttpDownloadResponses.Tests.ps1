@@ -28,14 +28,14 @@ Describe 'HTTP download transport integration' {
         param($Mode)
         [IO.File]::WriteAllBytes($script:Destination, $script:Body[0..99])
         $uri = [uri]::new($script:Server.BaseUri, $Mode)
-        $null = Invoke-WUHttpFileDownload -Uri $uri -Path $script:Destination
+        Invoke-WUHttpFileDownload -Uri $uri -Path $script:Destination | Out-Null
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($script:Destination)) |
             Should -Be ([Convert]::ToBase64String($script:Body))
     }
 
     It 'resumes automatically after a connection closes during transfer' {
         $uri = [uri]::new($script:Server.BaseUri, 'interrupt')
-        $null = Invoke-WUHttpFileDownload -Uri $uri -Path $script:Destination
+        Invoke-WUHttpFileDownload -Uri $uri -Path $script:Destination | Out-Null
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($script:Destination)) |
             Should -Be ([Convert]::ToBase64String($script:Body))
     }
