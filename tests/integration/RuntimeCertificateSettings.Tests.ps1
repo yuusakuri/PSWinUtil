@@ -43,5 +43,4 @@ Describe 'Runtime certificate environment integration' {
         $env:NODE_EXTRA_CA_CERTS | Should -Be 'original'
         $env:JAVA_TOOL_OPTIONS | Should -Be '-Xmx2g'
     }
-
 }
