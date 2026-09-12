@@ -45,18 +45,6 @@ Import-Module -Name 'PSWinUtil'
 Get-Command -Module 'PSWinUtil'
 ```
 
-Read an environment variable from the current user profile:
-
-```powershell
-Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
-```
-
-Preview a persistent environment variable update:
-
-```powershell
-Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
-```
-
 Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
 ```powershell

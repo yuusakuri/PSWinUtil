@@ -1,0 +1,55 @@
+name: Android AVD integration
+
+on:
+  pull_request:
+    paths:
+      - 'src/PSWinUtil/**'
+      - 'tests/**'
+      - '.github/workflows/android-avd.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '31 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  android-avd:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Prepare Android SDK image
+        run: |
+          $cliDirectory = Join-Path $env:RUNNER_TEMP 'android-cli'
+          New-Item -Path $cliDirectory -ItemType Directory -Force | Out-Null
+          $android = Join-Path $cliDirectory 'android.exe'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://dl.google.com/android/cli/latest/windows_x86_64/android.exe' -OutFile $android
+          $cliDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & $android --no-metrics "--sdk=$env:ANDROID_HOME" sdk install 'system-images/android-29/default/x86_64'
+          $installExitCode = $LASTEXITCODE
+          if ($installExitCode -ne 0 -and $installExitCode -ne 1 -and $installExitCode -ne -1073740791) { throw "SDK image installation failed with exit code $installExitCode." }
+          $global:LASTEXITCODE = 0
+      - name: Build the module
+        run: |
+          .\install.ps1
+          .\dev.ps1 build
+      - name: Verify real AVD creation and SDK CLI contracts
+        run: |
+          $env:PSWINUTIL_RUN_ANDROID_INTEGRATION = '1'
+          $env:PSWINUTIL_ANDROID_TEST_SDK = $env:ANDROID_HOME
+          Import-Module Pester -RequiredVersion 6.0.1
+          $result = Invoke-Pester -Path .\tests\unit,.\tests\integration -Tag Android -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0 -or $result.PassedCount -le 0) {
+            throw 'Android tests failed or no tests passed.'
+          }

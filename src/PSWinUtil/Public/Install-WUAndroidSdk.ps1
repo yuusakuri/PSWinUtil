@@ -6,9 +6,6 @@ function Install-WUAndroidSdk {
     .DESCRIPTION
     Installs Google.AndroidCLI through Windows Package Manager and uses android.exe to install missing cmdline-tools/latest, platform-tools, SDK Platform, Build Tools, and emulator packages. The cmdline-tools/latest/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Omitted versions select the latest stable package reported by android sdk list. The command persists ANDROID_HOME and SDK command directories for the current user, refreshes the current process from the persistent environment, and points build-tools\latest to the selected Build Tools version.
 
-    .PARAMETER SdkPath
-    Specifies the Android SDK directory. The default value is LOCALAPPDATA\Android\Sdk.
-
     .PARAMETER PlatformVersion
     Specifies the Android SDK Platform API level. The greatest stable available API level is used when omitted.
 
@@ -25,11 +22,6 @@ function Install-WUAndroidSdk {
 
     Installs missing SDK components for Android API level 36 and Build Tools 36.0.0.
 
-    .EXAMPLE
-    Install-WUAndroidSdk -SdkPath 'D:\Android\Sdk'
-
-    Installs and configures the SDK under D:\Android\Sdk.
-
     .INPUTS
     None
 
@@ -40,16 +32,6 @@ function Install-WUAndroidSdk {
     [OutputType([System.IO.DirectoryInfo])]
     param(
         [Parameter()]
-        [AllowEmptyString()]
-        [string]$SdkPath = $(
-            if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
-                ''
-            } else {
-                Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
-            }
-        ),
-
-        [Parameter()]
         [ValidateRange(1, 2147483647)]
         [int]$PlatformVersion,
 
@@ -58,19 +40,22 @@ function Install-WUAndroidSdk {
         [string]$BuildToolsVersion
     )
 
-    if ([string]::IsNullOrWhiteSpace($SdkPath)) {
-        throw 'SdkPath is required. Specify it or set LOCALAPPDATA.'
+    $fullSdkPath = if (-not [string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
+        ConvertTo-WUFullPath -Path $env:ANDROID_HOME
+    } elseif (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
+    } else {
+        throw 'ANDROID_HOME or LOCALAPPDATA must be set.'
     }
-    $fullSdkPath = ConvertTo-WUFullPath -Path $SdkPath
     if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
         return
     }
 
     Install-WUWingetPackage -Id 'Google.AndroidCLI' | Out-Null
     Update-WUProcessEnvironment
+    Assert-WUCommand -Name 'android.exe'
     $androidArguments = @(
         '--no-metrics'
-        "--sdk=$fullSdkPath"
     )
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {

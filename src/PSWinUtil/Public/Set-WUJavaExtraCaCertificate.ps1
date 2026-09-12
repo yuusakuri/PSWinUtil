@@ -11,9 +11,6 @@ function Set-WUJavaExtraCaCertificate {
     .PARAMETER LiteralPath
     Specifies the additional CA certificate file in CRT format.
 
-    .PARAMETER JavaHome
-    Specifies the Java installation that supplies the default cacerts file. The default is JAVA_HOME.
-
     .PARAMETER Scope
     Specifies one or more of Process, User, and Machine for JAVA_TOOL_OPTIONS. The default is User.
 
@@ -21,11 +18,6 @@ function Set-WUJavaExtraCaCertificate {
     Set-WUJavaExtraCaCertificate -LiteralPath "$env:USERPROFILE\.certs\extra-ca-certs.crt"
 
     Copies JAVA_HOME\lib\security\cacerts, imports the certificate, and configures JAVA_TOOL_OPTIONS for the current user.
-
-    .EXAMPLE
-    Set-WUJavaExtraCaCertificate -LiteralPath 'C:\Certificates\corporate-root.crt' -JavaHome 'C:\Program Files\Eclipse Adoptium\jdk-21'
-
-    Uses the specified JDK trust store instead of JAVA_HOME.
 
     .INPUTS
     None
@@ -41,19 +33,15 @@ function Set-WUJavaExtraCaCertificate {
         [string]$LiteralPath,
 
         [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$JavaHome = $env:JAVA_HOME,
-
-        [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
         [string[]]$Scope = 'User'
     )
 
-    if ([string]::IsNullOrWhiteSpace($JavaHome)) {
-        throw 'JAVA_HOME must be set or JavaHome must be specified.'
+    if ([string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
+        throw 'JAVA_HOME must be set.'
     }
     $extraCertificatePath = ConvertTo-WUFullPath -Path $LiteralPath
-    $defaultCacertsPath = Join-Path -Path $JavaHome -ChildPath 'lib\security\cacerts'
+    $defaultCacertsPath = Join-Path -Path $env:JAVA_HOME -ChildPath 'lib\security\cacerts'
     $cacertsPath = Join-Path -Path $env:USERPROFILE -ChildPath '.certs\java\cacerts'
 
     Assert-WUPathProperty -LiteralPath $extraCertificatePath
