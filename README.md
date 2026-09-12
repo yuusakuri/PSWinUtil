@@ -45,30 +45,6 @@ Import-Module -Name 'PSWinUtil'
 Get-Command -Module 'PSWinUtil'
 ```
 
-Read an environment variable from the current user profile:
-
-```powershell
-Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
-```
-
-Preview a persistent environment variable update:
-
-```powershell
-Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
-```
-
-Create an Android virtual device with the newest standard Pixel profile available in your installed SDK tools and the latest stable system image:
-
-```powershell
-New-WUAndroidEmulator
-New-WUAndroidEmulator -Name 'App_API_35' -Device pixel_8 -PlatformVersion 35
-New-WUAndroidEmulator -PlatformVersion 35 -SystemImageTag google_apis_playstore -Abi x86_64
-```
-
-Android CLI (`android.exe`) and `avdmanager.bat` must be on PATH. Java and Android SDK Command-Line Tools provide the Pixel profiles and AVD creation options; update the tools to obtain newer Pixel profiles. The function uses the SDK selected by Android CLI and the installed environment.
-
-Android CLI 1.0.16261425 offers generic creation profiles without Pixel or API selection, so AVD creation currently uses `avdmanager`. Creation installs the image but does not boot the emulator. Existing AVDs are preserved unless `-Force` is supplied; `-WhatIf` performs no SDK calls.
-
 Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
 ```powershell
