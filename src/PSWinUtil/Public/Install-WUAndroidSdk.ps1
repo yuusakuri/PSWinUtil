@@ -44,6 +44,12 @@ function Install-WUAndroidSdk {
 
     .OUTPUTS
     System.IO.DirectoryInfo
+
+    .NOTES
+    Successful configuration removes the deprecated ANDROID_SDK_ROOT variable from the User and Process scopes.
+
+    .LINK
+    https://developer.android.com/tools/variables
     #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType([System.IO.DirectoryInfo])]
@@ -242,6 +248,8 @@ function Install-WUAndroidSdk {
     foreach ($commandName in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
         Assert-WUCommand -Name $commandName
     }
+
+    Remove-WUEnvironmentVariable -Name 'ANDROID_SDK_ROOT' -Scope Process, User
 
     Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
 }
