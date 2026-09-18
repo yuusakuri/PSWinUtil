@@ -39,77 +39,127 @@ Describe 'Get-WUGitInstallPath' {
 }
 
 Describe 'Install-WUGit' {
-    BeforeEach {
-        $script:GitInstallPaths = @('C:\Program Files\Git')
-        $script:GitInstallPathCallCount = 0
-        Mock -CommandName Get-WUGitInstallPath -ModuleName PSWinUtil -MockWith {
-            $script:GitInstallPathCallCount++
-            $lastIndex = $script:GitInstallPaths.Count - 1
-            $resultIndex = [Math]::Min($script:GitInstallPathCallCount - 1, $lastIndex)
-            $script:GitInstallPaths[$resultIndex]
+    BeforeAll {
+        InModuleScope -ModuleName PSWinUtil {
+            function script:winget.exe {
+                param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+
+                $Arguments | Out-Null
+                throw 'The package manager must be replaced by the test backend.'
+            }
         }
-        Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -MockWith {
-            'Git for Windows installed'
-        }
-        Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil
     }
 
-    It 'adds the command directory of an existing installation without using winget' {
+    BeforeEach {
+        $script:OriginalPath = $env:PATH
+        $script:OriginalProgramFiles = $env:ProgramFiles
+        $script:OriginalProgramFilesX86 = ${env:ProgramFiles(x86)}
+        $script:OriginalLocalAppData = $env:LOCALAPPDATA
+        $script:FixtureRoot = Join-Path -Path $TestDrive -ChildPath ([guid]::NewGuid().ToString('N'))
+        $script:GitDirectory = Join-Path -Path $script:FixtureRoot -ChildPath 'installed Git'
+        $script:GitCommandDirectory = Join-Path -Path $script:GitDirectory -ChildPath 'cmd'
+        New-Item -Path $script:GitCommandDirectory -ItemType Directory -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe'), 'existing Git')
+        $env:PATH = Join-Path -Path $script:FixtureRoot -ChildPath 'other tools'
+        $script:InitialPath = $env:PATH
+        $env:ProgramFiles = $script:FixtureRoot
+        ${env:ProgramFiles(x86)} = $script:FixtureRoot
+        $env:LOCALAPPDATA = $script:FixtureRoot
+        $script:InstalledPackages = @()
+        $script:ProduceInstalledFiles = $true
+        $script:PersistentPaths = @{}
+
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
+            if ($Path -eq 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\GitForWindows' -and $Name -eq 'InstallPath') {
+                [pscustomobject]@{ Value = $script:GitDirectory }
+            }
+        }
+        Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
+            param($Name, $Value, $Scope, [switch]$WhatIf)
+
+            if ($WhatIf -or $WhatIfPreference) {
+                return
+            }
+            foreach ($targetScope in $Scope) {
+                if ($targetScope -eq 'Process') {
+                    [Environment]::SetEnvironmentVariable($Name, $Value, 'Process')
+                } else {
+                    $script:PersistentPaths[$targetScope] = $Value
+                }
+            }
+        }
+        Mock -CommandName winget.exe -ModuleName PSWinUtil -MockWith {
+            param([string[]]$Arguments)
+
+            $packageIndex = [Array]::IndexOf($Arguments, '--id') + 1
+            $packageId = $Arguments[$packageIndex]
+            $script:InstalledPackages += $packageId
+            if ($packageId -eq 'Git.Git' -and $script:ProduceInstalledFiles) {
+                [IO.File]::WriteAllText((Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe'), 'new Git')
+            }
+            $global:LASTEXITCODE = 0
+            'Package installation completed'
+        }
+    }
+
+    AfterEach {
+        $env:PATH = $script:OriginalPath
+        $env:ProgramFiles = $script:OriginalProgramFiles
+        ${env:ProgramFiles(x86)} = $script:OriginalProgramFilesX86
+        $env:LOCALAPPDATA = $script:OriginalLocalAppData
+    }
+
+    It 'makes an existing Git installation available without downloading it again' {
         Install-WUGit
 
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq 'C:\Program Files\Git\cmd' -and
-            (@($Scope) -join '|') -eq 'Process'
-        }
+        Test-WUCommand -Name 'git.exe' | Should -BeTrue
+        $env:PATH.Split(';') | Should -Contain $script:InitialPath
+        [IO.File]::ReadAllText((Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe')) | Should -Be 'existing Git'
+        $script:InstalledPackages | Should -HaveCount 0
     }
 
-    It 'adds the command directory to every requested scope' {
+    It 'makes Git available in every requested PATH scope' {
         Install-WUGit -Scope Process, Machine
 
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            (@($Scope) -join '|') -eq 'Process|Machine'
-        }
+        Test-WUCommand -Name 'git.exe' | Should -BeTrue
+        $script:PersistentPaths['Machine'].Split(';') | Should -Contain $script:GitCommandDirectory
     }
 
-    It 'installs the exact package and uses the directory detected after the installation' {
-        $script:GitInstallPaths = @($null, 'D:\Tools\Git')
-
+    It 'makes a newly installed Git available from the installation location' {
+        Remove-Item -LiteralPath (Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe')
         Install-WUGit
 
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Id -eq 'Git.Git'
-        }
-        Should -Invoke -CommandName Get-WUGitInstallPath -ModuleName PSWinUtil -Times 2 -Exactly
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq 'D:\Tools\Git\cmd'
-        }
+        Test-WUCommand -Name 'git.exe' | Should -BeTrue
+        $env:PATH.Split(';') | Should -Contain $script:GitCommandDirectory
+        [IO.File]::ReadAllText((Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe')) | Should -Be 'new Git'
+        $script:InstalledPackages | Should -Be @('Git.Git')
     }
 
-    It 'forwards WhatIf to the delegated commands' {
+    It 'leaves PATH and an existing Git unchanged when previewing installation' {
+        Install-WUGit -Scope Process, Machine -WhatIf
+
+        $env:PATH | Should -Be $script:InitialPath
+        $script:PersistentPaths.Count | Should -Be 0
+        $script:InstalledPackages | Should -HaveCount 0
+        [IO.File]::ReadAllText((Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe')) | Should -Be 'existing Git'
+    }
+
+    It 'does not install Git or change PATH when previewing a missing installation' {
+        $commandPath = Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe'
+        Remove-Item -LiteralPath $commandPath
         Install-WUGit -WhatIf
 
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf -eq $true
-        }
+        $env:PATH | Should -Be $script:InitialPath
+        Test-Path -LiteralPath $commandPath | Should -BeFalse
+        $script:InstalledPackages | Should -HaveCount 0
     }
 
-    It 'does not change PATH with WhatIf while Git is missing' {
-        $script:GitInstallPaths = @($null)
-
-        { Install-WUGit -WhatIf } | Should -Not -Throw
-
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Id -eq 'Git.Git' -and $WhatIf -eq $true
-        }
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
-    }
-
-    It 'reports a missing installation directory after the installation' {
-        $script:GitInstallPaths = @($null)
+    It 'reports a missing installation without adding an unusable PATH entry' {
+        Remove-Item -LiteralPath (Join-Path -Path $script:GitCommandDirectory -ChildPath 'git.exe')
+        $script:ProduceInstalledFiles = $false
 
         { Install-WUGit } | Should -Throw '*installation directory was not found*'
-
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
+        $env:PATH | Should -Be $script:InitialPath
+        $script:PersistentPaths.Count | Should -Be 0
     }
 }

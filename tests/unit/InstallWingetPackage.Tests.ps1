@@ -26,8 +26,14 @@ Describe 'Install-WUWingetPackage' {
         )
     }
 
-    It 'does not invoke winget with WhatIf' {
-        Install-WUWingetPackage -Id 'Microsoft.PowerShell' -WhatIf
+    It 'does not install a package when previewing installation' {
+        InModuleScope -ModuleName PSWinUtil {
+            function script:winget.exe {
+                throw 'Previewing installation must not execute the package manager.'
+            }
+        }
+
+        { Install-WUWingetPackage -Id 'Microsoft.PowerShell' -WhatIf } | Should -Not -Throw
     }
 
     It 'reports the exit code and output when winget fails' {
