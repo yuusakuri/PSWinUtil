@@ -9,25 +9,45 @@ BeforeAll {
     $script:SecurePassword.MakeReadOnly()
 }
 
-Describe 'Get-WUWindowsAutoLogon' {
+Describe 'Windows auto logon configuration' {
     BeforeEach {
+        $script:Registry = @{
+            "$($script:WinlogonPath)|AutoAdminLogon" = [pscustomobject]@{ Value = '1'; Type = 'String' }
+            "$($script:WinlogonPath)|DefaultUserName" = [pscustomobject]@{ Value = 'ExampleUser'; Type = 'String' }
+            "$($script:WinlogonPath)|DefaultDomainName" = [pscustomobject]@{ Value = 'EXAMPLE'; Type = 'String' }
+            "$($script:WinlogonPath)|Unrelated" = [pscustomobject]@{ Value = 'keep'; Type = 'String' }
+        }
+        $script:StoredPassword = $script:SecurePassword
         Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $values = @{
-                AutoAdminLogon = '1'
-                DefaultUserName = 'ExampleUser'
-                DefaultDomainName = 'EXAMPLE'
+            if ($Name -eq 'DefaultPassword') {
+                throw 'The registry password must never be read.'
             }
-            if ($values.ContainsKey($Name)) {
-                [pscustomobject]@{
-                    Name = $Name
-                    Value = $values[$Name]
-                    Type = 'String'
-                }
+            $script:Registry["$Path|$Name"]
+        }
+        Mock -CommandName Test-Path -ModuleName PSWinUtil -ParameterFilter { $LiteralPath -like 'Registry::*' } -MockWith { $true }
+        Mock -CommandName New-ItemProperty -ModuleName PSWinUtil -ParameterFilter { $LiteralPath -like 'Registry::*' } -MockWith {
+            if ($Name -eq 'AutoAdminLogon' -and $Value -eq '1' -and $null -eq $script:StoredPassword) {
+                throw 'Auto logon must not be enabled before the credential is stored.'
             }
+            $script:Registry["$LiteralPath|$Name"] = [pscustomobject]@{ Value = $Value; Type = $PropertyType }
+        }
+        Mock -CommandName Remove-ItemProperty -ModuleName PSWinUtil -ParameterFilter { $LiteralPath -like 'Registry::*' } -MockWith {
+            $script:Registry.Remove("$LiteralPath|$Name")
+        }
+        Mock -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -MockWith {
+            param([securestring]$Password, [switch]$WhatIf)
+
+            if ($WhatIf -or $WhatIfPreference) {
+                return
+            }
+            if ($null -eq $Password -and $script:Registry["$($script:WinlogonPath)|AutoAdminLogon"].Value -ne '0') {
+                throw 'Auto logon must be disabled before its credential is removed.'
+            }
+            $script:StoredPassword = $Password
         }
     }
 
-    It 'returns the enabled state without a password' {
+    It 'returns enabled account information without reading or exposing a password' {
         $result = Get-WUWindowsAutoLogon
 
         $result.Enabled | Should -BeTrue
@@ -38,162 +58,96 @@ Describe 'Get-WUWindowsAutoLogon' {
         $result.PSObject.Properties.Name | Should -Not -Contain 'Secret'
     }
 
-    It 'reads only non-secret Winlogon values' {
-        $null = Get-WUWindowsAutoLogon
-
-        Should -Invoke -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -Times 3 -Exactly
-        Should -Invoke -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly -ParameterFilter {
-            $Name -eq 'DefaultPassword'
-        }
-    }
-
-    It 'returns a disabled state when values are missing' {
-        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil
-
+    It 'returns a disabled state when account values are absent' {
+        $script:Registry.Clear()
         $result = Get-WUWindowsAutoLogon
 
         $result.Enabled | Should -BeFalse
         $result.UserName | Should -BeNullOrEmpty
         $result.Domain | Should -BeNullOrEmpty
     }
-}
 
-Describe 'Enable-WUWindowsAutoLogon' {
-    BeforeEach {
-        $script:Calls = @()
-        Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $script:Calls += "Set:$Name=$Value"
-        }
-        Mock -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $script:Calls += "Remove:$Name"
-        }
-        Mock -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -MockWith {
-            $script:Calls += 'SetPassword'
-        }
-        Mock -CommandName Get-WUWindowsAutoLogon -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{
-                PSTypeName = 'PSWinUtil.WindowsAutoLogon'
-                Enabled = $true
-                UserName = 'ExampleUser'
-                Domain = 'EXAMPLE'
-            }
-        }
-    }
+    It 'enables auto logon for the selected account with a secure credential' {
+        $script:Registry["$($script:WinlogonPath)|AutoAdminLogon"].Value = '0'
+        $script:StoredPassword = $null
 
-    It 'uses a SecureString password parameter' {
-        $command = Get-Command -Name Enable-WUWindowsAutoLogon -Module PSWinUtil
-
-        $command.Parameters.Password.ParameterType | Should -Be ([securestring])
-    }
-
-    It 'stores account data and enables auto logon last' {
-        $parameters = @{
-            UserName = 'ExampleUser'
-            Password = $script:SecurePassword
-            Domain = 'EXAMPLE'
-        }
-        Enable-WUWindowsAutoLogon @parameters
-
-        $script:Calls | Should -Be @(
-            'Set:DefaultUserName=ExampleUser'
-            'Set:DefaultDomainName=EXAMPLE'
-            'SetPassword'
-            'Set:AutoAdminLogon=1'
-        )
-        Should -Invoke -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Password -is [securestring]
-        }
-    }
-
-    It 'removes the default domain when Domain is omitted' {
-        Enable-WUWindowsAutoLogon -UserName 'ExampleUser' -Password $script:SecurePassword
-
-        $script:Calls | Should -Be @(
-            'Set:DefaultUserName=ExampleUser'
-            'Remove:DefaultDomainName'
-            'SetPassword'
-            'Set:AutoAdminLogon=1'
-        )
-    }
-
-    It 'forwards WhatIf to every delegated change' {
-        Enable-WUWindowsAutoLogon -UserName 'ExampleUser' -Password $script:SecurePassword -WhatIf
-
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
-            $WhatIf
-        }
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
-        Should -Invoke -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
-    }
-
-    It 'returns only non-secret state with PassThru' {
-        $result = Enable-WUWindowsAutoLogon -UserName 'ExampleUser' -Password $script:SecurePassword -PassThru
+        Enable-WUWindowsAutoLogon -UserName 'NewUser' -Password $script:SecurePassword -Domain 'NEWDOMAIN'
+        $result = Get-WUWindowsAutoLogon
 
         $result.Enabled | Should -BeTrue
+        $result.UserName | Should -Be 'NewUser'
+        $result.Domain | Should -Be 'NEWDOMAIN'
+        $script:StoredPassword | Should -BeOfType ([securestring])
+        [object]::ReferenceEquals($script:StoredPassword, $script:SecurePassword) | Should -BeTrue
+        $script:Registry.ContainsKey("$($script:WinlogonPath)|DefaultPassword") | Should -BeFalse
+        $script:Registry["$($script:WinlogonPath)|Unrelated"].Value | Should -Be 'keep'
+    }
+
+    It 'removes a stale domain when enabling a local account' {
+        Enable-WUWindowsAutoLogon -UserName 'LocalUser' -Password $script:SecurePassword
+        $result = Get-WUWindowsAutoLogon
+
+        $result.Enabled | Should -BeTrue
+        $result.UserName | Should -Be 'LocalUser'
+        $result.Domain | Should -BeNullOrEmpty
+        $script:Registry.ContainsKey("$($script:WinlogonPath)|DefaultDomainName") | Should -BeFalse
+    }
+
+    It 'preserves account information and credentials when previewing enablement' {
+        $originalPassword = [securestring]::new()
+        $originalPassword.MakeReadOnly()
+        $script:StoredPassword = $originalPassword
+        Enable-WUWindowsAutoLogon -UserName 'NewUser' -Password $script:SecurePassword -WhatIf
+        $result = Get-WUWindowsAutoLogon
+
+        $result.Enabled | Should -BeTrue
+        $result.UserName | Should -Be 'ExampleUser'
+        $result.Domain | Should -Be 'EXAMPLE'
+        $script:Registry.Count | Should -Be 4
+        [object]::ReferenceEquals($script:StoredPassword, $originalPassword) | Should -BeTrue
+    }
+
+    It 'returns the resulting account state without a password when enabling with PassThru' {
+        $result = Enable-WUWindowsAutoLogon -UserName 'NewUser' -Password $script:SecurePassword -Domain 'NEWDOMAIN' -PassThru
+
+        $result.Enabled | Should -BeTrue
+        $result.UserName | Should -Be 'NewUser'
+        $result.Domain | Should -Be 'NEWDOMAIN'
         $result.PSObject.Properties.Name | Should -Not -Contain 'Password'
-        Should -Invoke -CommandName Get-WUWindowsAutoLogon -ModuleName PSWinUtil -Times 1 -Exactly
-    }
-}
-
-Describe 'Disable-WUWindowsAutoLogon' {
-    BeforeEach {
-        $script:Calls = @()
-        Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $script:Calls += "Set:$Name=$Value"
-        }
-        Mock -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -MockWith {
-            $script:Calls += 'RemovePassword'
-        }
-        Mock -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -MockWith {
-            $script:Calls += "Remove:$Name"
-        }
-        Mock -CommandName Get-WUWindowsAutoLogon -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{
-                PSTypeName = 'PSWinUtil.WindowsAutoLogon'
-                Enabled = $false
-                UserName = $null
-                Domain = $null
-            }
-        }
+        $result.PSObject.Properties.Name | Should -Not -Contain 'Secret'
     }
 
-    It 'disables auto logon before removing account data' {
+    It 'disables auto logon and removes its account and credential while preserving other settings' {
         Disable-WUWindowsAutoLogon
+        $result = Get-WUWindowsAutoLogon
 
-        $script:Calls | Should -Be @(
-            'Set:AutoAdminLogon=0'
-            'RemovePassword'
-            'Remove:DefaultUserName'
-            'Remove:DefaultDomainName'
-        )
-        Should -Invoke -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $null -eq $Password
-        }
+        $result.Enabled | Should -BeFalse
+        $result.UserName | Should -BeNullOrEmpty
+        $result.Domain | Should -BeNullOrEmpty
+        $script:StoredPassword | Should -BeNullOrEmpty
+        $script:Registry.Count | Should -Be 2
+        $script:Registry["$($script:WinlogonPath)|Unrelated"].Value | Should -Be 'keep'
     }
 
-    It 'forwards WhatIf to every delegated change' {
+    It 'preserves account information and credentials when previewing disablement' {
         Disable-WUWindowsAutoLogon -WhatIf
+        $result = Get-WUWindowsAutoLogon
 
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
-        Should -Invoke -CommandName Set-WUAutoLogonPassword -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
-            $WhatIf
-        }
+        $result.Enabled | Should -BeTrue
+        $result.UserName | Should -Be 'ExampleUser'
+        $result.Domain | Should -Be 'EXAMPLE'
+        $script:Registry.Count | Should -Be 4
+        [object]::ReferenceEquals($script:StoredPassword, $script:SecurePassword) | Should -BeTrue
     }
 
-    It 'returns a disabled state with PassThru' {
+    It 'returns the resulting disabled state without a password when disabling with PassThru' {
         $result = Disable-WUWindowsAutoLogon -PassThru
 
         $result.Enabled | Should -BeFalse
+        $result.UserName | Should -BeNullOrEmpty
+        $result.Domain | Should -BeNullOrEmpty
         $result.PSObject.Properties.Name | Should -Not -Contain 'Password'
+        $result.PSObject.Properties.Name | Should -Not -Contain 'Secret'
     }
 }
 
