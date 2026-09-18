@@ -97,29 +97,6 @@ function Install-WUFlutterSdk {
             New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop | Out-Null
 
             Add-Type -AssemblyName 'System.IO.Compression.FileSystem' -ErrorAction Stop
-            $archive = [IO.Compression.ZipFile]::OpenRead($downloadedPath)
-            try {
-                $stagingFullPath = [IO.Path]::GetFullPath($stagingDirectory)
-                $stagingPrefix = $stagingFullPath.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-                foreach ($entry in $archive.Entries) {
-                    $entryPath = $entry.FullName.Replace(
-                        [IO.Path]::AltDirectorySeparatorChar,
-                        [IO.Path]::DirectorySeparatorChar
-                    )
-                    $entryFullPath = [IO.Path]::GetFullPath(
-                        [IO.Path]::Combine($stagingFullPath, $entryPath)
-                    )
-                    if (-not $entryFullPath.StartsWith(
-                            $stagingPrefix,
-                            [StringComparison]::OrdinalIgnoreCase
-                        )) {
-                        throw "The Flutter SDK archive contains an unsafe path: $($entry.FullName)"
-                    }
-                }
-            } finally {
-                $archive.Dispose()
-            }
-
             [IO.Compression.ZipFile]::ExtractToDirectory($downloadedPath, $stagingDirectory)
             $stagedFlutterPath = Join-Path -Path $stagingDirectory -ChildPath 'flutter'
 

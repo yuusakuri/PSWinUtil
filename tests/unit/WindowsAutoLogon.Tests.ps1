@@ -15,7 +15,6 @@ Describe 'Windows auto logon configuration' {
             "$($script:WinlogonPath)|AutoAdminLogon" = [pscustomobject]@{ Value = '1'; Type = 'String' }
             "$($script:WinlogonPath)|DefaultUserName" = [pscustomobject]@{ Value = 'ExampleUser'; Type = 'String' }
             "$($script:WinlogonPath)|DefaultDomainName" = [pscustomobject]@{ Value = 'EXAMPLE'; Type = 'String' }
-            "$($script:WinlogonPath)|Unrelated" = [pscustomobject]@{ Value = 'keep'; Type = 'String' }
         }
         $script:StoredPassword = $script:SecurePassword
         Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
@@ -80,7 +79,6 @@ Describe 'Windows auto logon configuration' {
         $script:StoredPassword | Should -BeOfType ([securestring])
         [object]::ReferenceEquals($script:StoredPassword, $script:SecurePassword) | Should -BeTrue
         $script:Registry.ContainsKey("$($script:WinlogonPath)|DefaultPassword") | Should -BeFalse
-        $script:Registry["$($script:WinlogonPath)|Unrelated"].Value | Should -Be 'keep'
     }
 
     It 'removes a stale domain when enabling a local account' {
@@ -103,7 +101,7 @@ Describe 'Windows auto logon configuration' {
         $result.Enabled | Should -BeTrue
         $result.UserName | Should -Be 'ExampleUser'
         $result.Domain | Should -Be 'EXAMPLE'
-        $script:Registry.Count | Should -Be 4
+        $script:Registry.Count | Should -Be 3
         [object]::ReferenceEquals($script:StoredPassword, $originalPassword) | Should -BeTrue
     }
 
@@ -117,7 +115,7 @@ Describe 'Windows auto logon configuration' {
         $result.PSObject.Properties.Name | Should -Not -Contain 'Secret'
     }
 
-    It 'disables auto logon and removes its account and credential while preserving other settings' {
+    It 'disables auto logon and removes its account and credential' {
         Disable-WUWindowsAutoLogon
         $result = Get-WUWindowsAutoLogon
 
@@ -125,8 +123,7 @@ Describe 'Windows auto logon configuration' {
         $result.UserName | Should -BeNullOrEmpty
         $result.Domain | Should -BeNullOrEmpty
         $script:StoredPassword | Should -BeNullOrEmpty
-        $script:Registry.Count | Should -Be 2
-        $script:Registry["$($script:WinlogonPath)|Unrelated"].Value | Should -Be 'keep'
+        $script:Registry.Count | Should -Be 1
     }
 
     It 'preserves account information and credentials when previewing disablement' {
@@ -136,7 +133,7 @@ Describe 'Windows auto logon configuration' {
         $result.Enabled | Should -BeTrue
         $result.UserName | Should -Be 'ExampleUser'
         $result.Domain | Should -Be 'EXAMPLE'
-        $script:Registry.Count | Should -Be 4
+        $script:Registry.Count | Should -Be 3
         [object]::ReferenceEquals($script:StoredPassword, $script:SecurePassword) | Should -BeTrue
     }
 

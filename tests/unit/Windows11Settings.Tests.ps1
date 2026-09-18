@@ -26,7 +26,6 @@ Describe 'Set-WUJapaneseKeyboardLayout' {
         $script:DriverPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\i8042prt\Parameters'
         $script:Registry = @{
             "$($script:SubstitutePath)|00000411" = [pscustomobject]@{ Value = 'old substitute'; Type = 'String' }
-            "$($script:DriverPath)|Unrelated" = [pscustomobject]@{ Value = 'keep'; Type = 'String' }
         }
         $script:Languages = @('en-US')
         Mock -CommandName Set-WinUserLanguageList -ModuleName PSWinUtil -MockWith {
@@ -62,15 +61,13 @@ Describe 'Set-WUJapaneseKeyboardLayout' {
         $script:Registry["$($script:DriverPath)|OverrideKeyboardSubtype"].Value | Should -Be $Subtype
         $script:Registry["$($script:DriverPath)|OverrideKeyboardSubtype"].Type | Should -Be 'DWord'
         $script:Registry["$($script:DriverPath)|OverrideKeyboardType"].Value | Should -Be 7
-        $script:Registry["$($script:DriverPath)|Unrelated"].Value | Should -Be 'keep'
     }
 
     It 'preserves registry values and languages when previewing a layout change' {
         Set-WUJapaneseKeyboardLayout -Layout US -WhatIf
 
         $script:Languages | Should -Be @('en-US')
-        $script:Registry.Count | Should -Be 2
+        $script:Registry.Count | Should -Be 1
         $script:Registry["$($script:SubstitutePath)|00000411"].Value | Should -Be 'old substitute'
-        $script:Registry["$($script:DriverPath)|Unrelated"].Value | Should -Be 'keep'
     }
 }

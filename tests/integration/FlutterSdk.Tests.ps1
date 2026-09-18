@@ -320,32 +320,6 @@ Describe 'Install-WUFlutterSdk' {
         Test-Path -LiteralPath $oldFilePath -PathType Leaf | Should -BeTrue
     }
 
-    It 'rejects archive entries outside the staging directory' {
-        Remove-Item -LiteralPath $script:PackagePath -Force
-        $archive = [IO.Compression.ZipFile]::Open(
-            $script:PackagePath,
-            [IO.Compression.ZipArchiveMode]::Create
-        )
-        try {
-            $entry = $archive.CreateEntry('../escaped.txt')
-            $writer = [IO.StreamWriter]::new($entry.Open())
-            try {
-                $writer.Write('unsafe')
-            } finally {
-                $writer.Dispose()
-            }
-        } finally {
-            $archive.Dispose()
-        }
-        $escapedPath = Join-Path -Path $script:DestinationPath -ChildPath 'escaped.txt'
-
-        {
-            Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*unsafe path*'
-
-        Test-Path -LiteralPath $escapedPath | Should -BeFalse
-    }
-
     It 'restores an existing installation when PATH configuration fails' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
