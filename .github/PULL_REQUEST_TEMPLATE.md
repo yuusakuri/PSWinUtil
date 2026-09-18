@@ -8,7 +8,7 @@
 
 ## Verification
 
-<!-- Describe the behavior actually verified by tests: target, condition, and observable result. Prefer results that fulfill the function's purpose and relevant persisted state over internal call counts or implementation steps. Omit incidental state preservation and guarantees provided by dependencies. -->
+<!-- Describe the behavior actually verified by tests: target, condition, and observable result. Prefer user-visible results and relevant persisted state over internal call counts or implementation steps. Include only behavior relevant to the change; omit incidental state preservation and guarantees provided by dependencies. -->
 
 | Target | Condition | Verified result |
 | --- | --- | --- |
