@@ -15,6 +15,7 @@ AfterAll {
 Describe 'Android SDK availability' {
     BeforeEach {
         $script:SavedAndroidHome = $env:ANDROID_HOME
+        $script:SavedSdkRoot = $env:ANDROID_SDK_ROOT
         $script:SavedPath = $env:Path
         $fixture = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $script:Sdk = Join-Path $fixture 'configured SDK'
@@ -40,7 +41,14 @@ Describe 'Android SDK availability' {
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
         Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
             if ($Scope -contains 'User') {
-                $script:UserEnvironment[$Name] = $Value
+                if ($null -eq $Value) {
+                    $script:UserEnvironment.Remove($Name)
+                } else {
+                    $script:UserEnvironment[$Name] = $Value
+                }
+            }
+            if ($Scope -contains 'Process') {
+                [Environment]::SetEnvironmentVariable($Name, $Value, 'Process')
             }
         }
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
@@ -122,6 +130,7 @@ Describe 'Android SDK availability' {
 
     AfterEach {
         $env:ANDROID_HOME = $script:SavedAndroidHome
+        $env:ANDROID_SDK_ROOT = $script:SavedSdkRoot
         $env:Path = $script:SavedPath
     }
 
@@ -179,12 +188,29 @@ Describe 'Android SDK availability' {
 
     It 'leaves SDK files and environment settings unchanged when previewing installation' {
         $beforePath = $env:Path
+        $env:ANDROID_SDK_ROOT = 'old process SDK'
+        $script:UserEnvironment.ANDROID_SDK_ROOT = 'old user SDK'
         Install-WUAndroidSdk -WhatIf
 
         Test-Path -LiteralPath $script:Sdk | Should -BeFalse
         $script:UserEnvironment.ContainsKey('ANDROID_HOME') | Should -BeFalse
         $env:Path | Should -Be $beforePath
         $script:Downloads | Should -HaveCount 0
+        $env:ANDROID_SDK_ROOT | Should -Be 'old process SDK'
+        $script:UserEnvironment.ANDROID_SDK_ROOT | Should -Be 'old user SDK'
+    }
+
+    It 'uses ANDROID_HOME without a conflicting deprecated SDK root after installation' {
+        $env:ANDROID_SDK_ROOT = 'old process SDK'
+        $script:UserEnvironment.ANDROID_SDK_ROOT = 'old user SDK'
+
+        $result = Install-WUAndroidSdk
+
+        $result.FullName | Should -Be $script:Sdk
+        $env:ANDROID_HOME | Should -Be $script:Sdk
+        $script:UserEnvironment.ANDROID_HOME | Should -Be $script:Sdk
+        $env:ANDROID_SDK_ROOT | Should -BeNullOrEmpty
+        $script:UserEnvironment.ContainsKey('ANDROID_SDK_ROOT') | Should -BeFalse
     }
 
     It 'uses available tools from another SDK without requiring duplicate executables' {
