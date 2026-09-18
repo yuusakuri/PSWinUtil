@@ -128,10 +128,12 @@ Describe 'Install-WUAndroidSdk' {
         $script:OriginalAndroidHome = $env:ANDROID_HOME
         $env:ANDROID_HOME = $script:AndroidHomePath
         $script:AndroidCalls = @()
+        $script:SkipPackageFiles = $false
         Remove-Item -LiteralPath $script:AndroidHomePath -Recurse -Force -ErrorAction Ignore
 
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
         Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil
+        Mock -CommandName Assert-WUCommand -ModuleName PSWinUtil
         Mock -CommandName android.exe -ModuleName PSWinUtil -MockWith {
             $global:LASTEXITCODE = 0
             $androidArguments = @($args)
@@ -151,6 +153,10 @@ Describe 'Install-WUAndroidSdk' {
                 )
             }
 
+            if ($script:SkipPackageFiles) {
+                New-Item -Path $script:AndroidHomePath -ItemType Directory -Force | Out-Null
+                return
+            }
             foreach ($argument in $androidArguments) {
                 if ($argument -eq 'platform-tools') {
                     $file = Join-Path -Path $script:AndroidHomePath -ChildPath 'platform-tools\adb.exe'
@@ -307,6 +313,27 @@ Describe 'Install-WUAndroidSdk' {
         $script:AndroidCalls.Count | Should -Be 0
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
+    It 'accepts commands from PATH without requiring SDK-specific executable files' {
+        $script:SkipPackageFiles = $true
+
+        $result = Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0'
+
+        $result | Should -BeOfType ([System.IO.DirectoryInfo])
+        foreach ($expectedCommand in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
+            Should -Invoke -CommandName Assert-WUCommand -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+                $Name -eq $expectedCommand
+            }
+        }
+    }
+
+    It 'rejects an unavailable SDK command on PATH' {
+        Mock -CommandName Assert-WUCommand -ModuleName PSWinUtil -ParameterFilter { $Name -eq 'emulator.exe' } -MockWith {
+            throw "Command 'emulator.exe' is not available."
+        }
+
+        { Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' } | Should -Throw '*emulator.exe*'
     }
 
     It 'requires ANDROID_HOME instead of using an expected SDK location' {

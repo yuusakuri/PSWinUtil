@@ -138,20 +138,6 @@ function Install-WUAndroidSdk {
         }
     }
 
-    $requiredFiles = @(
-        (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe')
-        (Join-Path -Path $platformPath -ChildPath 'android.jar')
-        (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe')
-        (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe')
-        (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat')
-        (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat')
-    )
-    foreach ($requiredFile in $requiredFiles) {
-        if (-not (Test-Path -LiteralPath $requiredFile)) {
-            throw "Android CLI did not install an expected file: $requiredFile"
-        }
-    }
-
     Set-WUAndroidBuildToolsLatest `
         -BuildToolsPath $buildToolsRoot `
         -Version $resolvedBuildToolsVersion
@@ -169,6 +155,10 @@ function Install-WUAndroidSdk {
         -Path $userPaths `
         -Scope 'User'
     Update-WUProcessEnvironment
+
+    foreach ($commandName in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
+        Assert-WUCommand -Name $commandName
+    }
 
     Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
 }
