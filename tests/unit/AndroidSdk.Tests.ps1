@@ -1,14 +1,14 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
-    $script:SavedAndroidFunction = Get-Item -LiteralPath Function:\global:android.exe -ErrorAction Ignore
-    Set-Item -LiteralPath Function:\global:android.exe -Value { }
+    $script:CreatedAndroidFunction = -not (Test-WUCommand -Name 'android.exe')
+    if ($script:CreatedAndroidFunction) {
+        Set-Item -LiteralPath Function:\global:android.exe -Value { }
+    }
 }
 
 AfterAll {
-    if ($null -ne $script:SavedAndroidFunction) {
-        Set-Item -LiteralPath Function:\global:android.exe -Value $script:SavedAndroidFunction.ScriptBlock
-    } else {
-        Remove-Item -LiteralPath Function:\global:android.exe
+    if ($script:CreatedAndroidFunction) {
+        Remove-Item -LiteralPath Function:\android.exe
     }
 }
 
