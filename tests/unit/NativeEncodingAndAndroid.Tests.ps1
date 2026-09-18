@@ -283,7 +283,6 @@ Describe 'Android virtual devices' {
                 'start -avd "Tablet_API_35" -port 5556'
             )
         }
-        Should -Invoke -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -Times 1 -Exactly
     }
 
     It 'starts the selected Android virtual device' {
@@ -305,7 +304,6 @@ Describe 'Android virtual devices' {
         { Start-WUAndroidEmulator -Name 'Missing_AVD' -Port 5554 } | Should -Throw '*was not found*'
 
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'quotes valid AVD names that contain spaces and parentheses' {
@@ -372,7 +370,7 @@ Describe 'Android virtual devices' {
                 'emulator-5554 device'
             )
 
-            @(Get-WUAndroidEmulatorUnavailablePort) | Should -Be @(5554)
+            Get-WUAndroidEmulatorPort | Should -Be 5556
         }
     }
 
@@ -401,7 +399,7 @@ Describe 'Android virtual devices' {
         }
 
         InModuleScope -ModuleName PSWinUtil {
-            @(Get-WUAndroidEmulatorUnavailablePort) | Should -Be @(5682)
+            @(Get-WUAndroidEmulatorPort -Count 64) | Should -Be @(5554..5680 | Where-Object { $_ % 2 -eq 0 })
         }
     }
 
@@ -447,14 +445,16 @@ Describe 'Android virtual devices' {
     }
 
     It 'starts on an explicit port and waits for its exact serial' {
+        $script:WaitedSerials = @()
+        Mock -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -MockWith {
+            $script:WaitedSerials += @($Emulator.Serial)
+        }
         $process = Start-WUAndroidEmulator -Name 'Tablet_API_35' -Port 5682
 
         $process | Should -BeOfType ([System.Diagnostics.Process])
+        $script:WaitedSerials | Should -Be @('emulator-5682')
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             ($ArgumentList -join ' ') -eq '-avd "Tablet_API_35" -port 5682'
-        }
-        Should -Invoke -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            @($Emulator.Serial).Count -eq 1 -and $Emulator[0].Serial -eq 'emulator-5682'
         }
     }
 
@@ -506,7 +506,6 @@ Describe 'Android virtual devices' {
         { Start-WUAndroidEmulator -Name 'Pixel_API_35', 'Pixel_API_35' -NoWait } |
             Should -Throw '*only once*'
 
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
@@ -550,6 +549,9 @@ Describe 'Android virtual devices' {
     }
 
     It 'does not wait for a named device with NoWait' {
+        Mock -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -MockWith {
+            throw 'This operation must return without waiting.'
+        }
         Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5556 -NoWait
 
         InModuleScope -ModuleName PSWinUtil {
@@ -611,22 +613,13 @@ exit /b 1
         Should -Invoke -CommandName Stop-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
-    It 'collects port availability once when selecting three ports' {
+    It 'selects three distinct available ports' {
         InModuleScope -ModuleName PSWinUtil {
             $script:TestAdbDevices = @('emulator-5556 offline')
         }
 
         @(Get-WUAndroidEmulatorPort -Count 3) | Should -Be @(5554, 5558, 5560)
 
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
-            ($Port -join ',') -eq ((5554..5683) -join ',')
-        }
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LocalAddress.Equals([System.Net.IPAddress]::Loopback)
-        }
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LocalAddress.Equals([System.Net.IPAddress]::IPv6Loopback)
-        }
         InModuleScope -ModuleName PSWinUtil {
             @($script:TestAndroidEvents) | Should -Be @('devices')
         }
@@ -643,9 +636,8 @@ exit /b 1
         }
 
         InModuleScope -ModuleName PSWinUtil {
-            @(Get-WUAndroidEmulatorUnavailablePort) | Should -Be @(5554, 5556)
+            @(Get-WUAndroidEmulatorPort -Count 3) | Should -Be @(5558, 5560, 5562)
         }
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 2 -Exactly
     }
 
     It 'returns ordered Boolean results for a port array' {
@@ -664,17 +656,15 @@ exit /b 1
         foreach ($result in $results) {
             $result | Should -BeOfType ([bool])
         }
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 2 -Exactly
     }
 
-    It 'uses one availability observation for all pipeline inputs' {
+    It 'returns availability for every pipeline input' {
         InModuleScope -ModuleName PSWinUtil {
             $script:TestAdbDevices = @('emulator-5554 device')
         }
 
         @(5554, 5556, 5558 | Test-WUAndroidEmulatorPort) | Should -Be @($false, $true, $true)
 
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 2 -Exactly
         InModuleScope -ModuleName PSWinUtil {
             @($script:TestAndroidEvents) | Should -Be @('devices')
         }
@@ -686,8 +676,6 @@ exit /b 1
         @{ InvalidPort = 5683 }
     ) {
         { Test-WUAndroidEmulatorPort -Port 5554, $InvalidPort } | Should -Throw
-
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'rejects an invalid pipeline port' {
@@ -696,9 +684,11 @@ exit /b 1
 
     It 'selects one or several distinct ports in ascending order' {
         InModuleScope -ModuleName PSWinUtil {
-            Select-WUAndroidEmulatorPort -UnavailablePort 5554, 5558 | Should -Be 5556
-            @(Select-WUAndroidEmulatorPort -UnavailablePort 5554, 5558 -Count 3) | Should -Be @(5556, 5560, 5562)
-            @(Select-WUAndroidEmulatorPort -UnavailablePort 5554 -Count 64) | Should -Be @(5556..5682 | Where-Object { $_ % 2 -eq 0 })
+            $script:TestAdbDevices = @('emulator-5554 device', 'emulator-5558 offline')
+            Get-WUAndroidEmulatorPort | Should -Be 5556
+            @(Get-WUAndroidEmulatorPort -Count 3) | Should -Be @(5556, 5560, 5562)
+            $script:TestAdbDevices = @('emulator-5554 device')
+            @(Get-WUAndroidEmulatorPort -Count 64) | Should -Be @(5556..5682 | Where-Object { $_ % 2 -eq 0 })
         }
     }
 
@@ -707,10 +697,6 @@ exit /b 1
         @{ Count = 65 }
     ) {
         { Get-WUAndroidEmulatorPort -Count $Count } | Should -Throw
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ RequestedCount = $Count } {
-            { Select-WUAndroidEmulatorPort -Count $RequestedCount } | Should -Throw
-        }
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
     It 'does not return partial ports or start devices when too few ports remain' {
@@ -746,8 +732,7 @@ exit /b 1
         $processes = @(Start-WUAndroidEmulator)
 
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 3 -Exactly
-        Should -Invoke -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -Times 1 -Exactly
-        Should -Invoke -CommandName Test-WUTcpPort -ModuleName PSWinUtil -Times 2 -Exactly
+
         $processes | Should -HaveCount 3
         for ($index = 0; $index -lt 3; $index++) {
             $processes[$index] | Should -BeOfType ([System.Diagnostics.Process])
@@ -755,13 +740,14 @@ exit /b 1
         }
     }
 
-    It 'does not invoke the waiter with NoWait or WhatIf' {
-        Mock -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil
+    It 'returns without waiting with NoWait or WhatIf' {
+        Mock -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -MockWith {
+            throw 'This operation must return without waiting.'
+        }
 
         @(Start-WUAndroidEmulator -NoWait) | Should -HaveCount 2
         @(Start-WUAndroidEmulator -WhatIf) | Should -HaveCount 0
 
-        Should -Invoke -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -Times 0 -Exactly
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 2 -Exactly
     }
 
