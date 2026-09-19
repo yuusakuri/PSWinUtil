@@ -20,8 +20,7 @@ function Assert-WUFlutterSdkInstallation {
     [CmdletBinding()]
     param()
 
-    Assert-WUCommand -Name 'flutter'
-    Assert-WUCommand -Name 'dart'
+    Assert-WUCommand -Name @('flutter', 'dart')
     $previousErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
