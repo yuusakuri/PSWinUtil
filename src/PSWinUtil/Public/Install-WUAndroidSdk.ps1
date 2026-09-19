@@ -1,12 +1,10 @@
 function Install-WUAndroidSdk {
     <#
     .SYNOPSIS
-    Installs an Android SDK and makes its tools available on Windows.
+    Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools.
 
     .DESCRIPTION
-    Uses the current ANDROID_HOME as the SDK location. When it is unset, uses the standard Windows location under LOCALAPPDATA\Android\Sdk. Installs Google.AndroidCLI through Windows Package Manager, then uses android.exe to install the SDK Platform, Build Tools, Platform Tools, Emulator, and Android SDK Command-Line Tools into that location.
-
-    When the API level or Build Tools version is omitted, selects the latest stable version listed by Android CLI. Already installed components that match the selected versions remain in place. After installation, sets ANDROID_HOME and the SDK tool directories on the user PATH, refreshes the current process environment, and exposes the selected Build Tools version through build-tools\latest. The Command-Line Tools remain available at cmdline-tools\latest\bin. Removes the deprecated ANDROID_SDK_ROOT from the user and current process environments after successful configuration. Does not change ANDROID_USER_HOME or ANDROID_SDK_HOME.
+    Installs the SDK under ANDROID_HOME. When ANDROID_HOME is unset, uses %LOCALAPPDATA%\Android\Sdk and sets ANDROID_HOME to that location. The API level and Build Tools version can be selected with parameters. Sets ANDROID_HOME and PATH in the User and current Process scopes.
 
     .PARAMETER PlatformVersion
     Specifies the Android SDK Platform API level. The greatest stable available API level is used when omitted.
