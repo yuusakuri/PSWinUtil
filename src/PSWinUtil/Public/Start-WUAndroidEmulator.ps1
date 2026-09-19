@@ -138,7 +138,7 @@ function Start-WUAndroidEmulator {
     for ($index = 0; $index -lt $approvedNames.Count; $index++) {
         $selectedName = $approvedNames[$index]
         $selectedPort = $selectedPorts[$index]
-        $nameArgument = ConvertTo-WUWindowsCommandLineArgument -Argument $selectedName -AlwaysQuote
+        $nameArgument = ConvertTo-WUCommandLineArgument -Argument $selectedName -AlwaysQuote
         $arguments = @('-avd', $nameArgument, '-port', [string]$selectedPort)
         $process = Start-Process -FilePath 'emulator.exe' -ArgumentList $arguments -PassThru -ErrorAction Stop
         $startedEmulator = [pscustomobject]@{

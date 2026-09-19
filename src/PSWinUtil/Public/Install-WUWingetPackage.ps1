@@ -42,12 +42,15 @@ function Install-WUWingetPackage {
         '--accept-package-agreements'
     )
 
-    $commandOutput = @(& 'winget.exe' @arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    $textOutput = @($commandOutput | ForEach-Object { $_.ToString() })
-    if ($exitCode -ne 0) {
+    $result = Invoke-WUExternalCommand -Command 'winget.exe' -ArgumentList $arguments -CaptureOutput
+    $textOutput = @(
+        foreach ($stream in @($result.StandardOutput, $result.StandardError)) {
+            $stream -split '\r?\n' | Where-Object { $_ -ne '' }
+        }
+    )
+    if (-not $result.Succeeded) {
         $message = $textOutput -join [Environment]::NewLine
-        throw "winget.exe failed with exit code $exitCode.$([Environment]::NewLine)$message"
+        throw "winget.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
     }
 
     $textOutput

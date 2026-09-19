@@ -121,11 +121,10 @@ function Edit-WUSshKey {
         return
     }
 
-    $commandOutput = @(& 'ssh-keygen.exe' @arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-        throw "ssh-keygen.exe failed with exit code $exitCode.$([Environment]::NewLine)$message"
+    $result = Invoke-WUExternalCommand -Command 'ssh-keygen.exe' -ArgumentList $arguments -CaptureOutput
+    if (-not $result.Succeeded) {
+        $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
+        throw "ssh-keygen.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
     }
 
     Get-Item -LiteralPath $fullKeyPath

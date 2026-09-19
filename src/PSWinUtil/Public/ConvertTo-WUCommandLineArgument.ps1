@@ -1,10 +1,10 @@
-function ConvertTo-WUWindowsCommandLineArgument {
+function ConvertTo-WUCommandLineArgument {
     <#
     .SYNOPSIS
-    Quotes one Windows command-line argument.
+    Quotes an argument for a Windows executable command line.
 
     .DESCRIPTION
-    Converts one argument to the quoting form used by Windows command-line parsers. Backslashes before quotation marks and at the end of a quoted argument are escaped.
+    Formats one argument for an executable that follows the standard Windows argument parsing rules. Backslashes before quotation marks and at the end of a quoted argument are escaped.
 
     .PARAMETER Argument
     Specifies the argument text.
@@ -13,7 +13,7 @@ function ConvertTo-WUWindowsCommandLineArgument {
     Encloses the argument in quotation marks even when quoting is not otherwise required.
 
     .EXAMPLE
-    ConvertTo-WUWindowsCommandLineArgument -Argument 'C:\Program Files\Example\app.exe' -AlwaysQuote
+    ConvertTo-WUCommandLineArgument -Argument 'C:\Program Files\Example\app.exe' -AlwaysQuote
 
     Returns a quoted executable path.
 
@@ -33,6 +33,10 @@ function ConvertTo-WUWindowsCommandLineArgument {
         [Parameter()]
         [switch]$AlwaysQuote
     )
+
+    if ($Argument.IndexOf([char]0) -ge 0) {
+        throw 'A process argument cannot contain a null character.'
+    }
 
     if (-not $AlwaysQuote -and $Argument.Length -gt 0 -and $Argument -notmatch '[\s"]') {
         $Argument

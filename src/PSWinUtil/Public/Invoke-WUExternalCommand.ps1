@@ -50,17 +50,28 @@ function Invoke-WUExternalCommand {
         [int[]]$ContinueExitCodes = @()
     )
 
-    $commandInfo = Get-Command -Name $Command -CommandType Application -ErrorAction Stop
+    $commandInfo = $ExecutionContext.InvokeCommand.GetCommand(
+        $Command,
+        [System.Management.Automation.CommandTypes]::Application
+    )
+    if ($null -eq $commandInfo) {
+        throw "Command '$Command' is not available."
+    }
     $commandPath = $commandInfo.Path
     $process = [System.Diagnostics.Process]::new()
     try {
         $process.StartInfo.UseShellExecute = $false
         if ([System.IO.Path]::GetExtension($commandPath) -in '.cmd', '.bat') {
-            $process.StartInfo.FileName = Join-Path -Path ([Environment]::SystemDirectory) -ChildPath 'cmd.exe'
+            $process.StartInfo.FileName = 'cmd.exe'
             $process.StartInfo.Arguments = New-WUCmdArgument -CommandPath $commandPath -ArgumentList $ArgumentList
         } else {
             $process.StartInfo.FileName = $commandPath
-            $process.StartInfo.Arguments = (@($ArgumentList | ConvertTo-WUProcessArgument) -join ' ')
+            $quotedArguments = @(
+                foreach ($argument in $ArgumentList) {
+                    ConvertTo-WUCommandLineArgument -Argument $argument
+                }
+            )
+            $process.StartInfo.Arguments = $quotedArguments -join ' '
         }
 
         $process.StartInfo.RedirectStandardOutput = [bool]$CaptureOutput

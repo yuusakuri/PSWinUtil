@@ -98,20 +98,16 @@ function New-WUSshKey {
         Remove-Item -LiteralPath $publicKeyPath -Force
     }
 
-    $nativeComment = ConvertTo-WUNativeCommandArgument -Argument $Comment
-    $nativePassphrase = ConvertTo-WUNativeCommandArgument -Argument $Passphrase
-
     $arguments = @('-q', '-t', $Type)
     if ($PSBoundParameters.ContainsKey('Bits')) {
         $arguments += @('-b', [string]$Bits)
     }
-    $arguments += @('-C', $nativeComment, '-N', $nativePassphrase, '-f', $keyPath)
+    $arguments += @('-C', $Comment, '-N', $Passphrase, '-f', $keyPath)
 
-    $commandOutput = @(& 'ssh-keygen.exe' @arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-        throw "ssh-keygen.exe failed with exit code $exitCode.$([Environment]::NewLine)$message"
+    $result = Invoke-WUExternalCommand -Command 'ssh-keygen.exe' -ArgumentList $arguments -CaptureOutput
+    if (-not $result.Succeeded) {
+        $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
+        throw "ssh-keygen.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
     }
     Assert-WUPathProperty -LiteralPath $keyPath, $publicKeyPath -Leaf
 

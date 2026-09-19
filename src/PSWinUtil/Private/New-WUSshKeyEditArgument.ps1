@@ -59,15 +59,12 @@ function New-WUSshKeyEditArgument {
         [string]$Comment
     )
 
-    $nativeCurrentPassphrase = ConvertTo-WUNativeCommandArgument -Argument $CurrentPassphrase
     if ($PSBoundParameters.ContainsKey('NewPassphrase')) {
-        $nativeNewPassphrase = ConvertTo-WUNativeCommandArgument -Argument $NewPassphrase
-        '-q', '-p', '-P', $nativeCurrentPassphrase,
-        '-N', $nativeNewPassphrase, '-f', $KeyPath
+        '-q', '-p', '-P', $CurrentPassphrase,
+        '-N', $NewPassphrase, '-f', $KeyPath
         return
     }
 
-    $nativeComment = ConvertTo-WUNativeCommandArgument -Argument $Comment
-    '-q', '-c', '-P', $nativeCurrentPassphrase,
-    '-C', $nativeComment, '-f', $KeyPath
+    '-q', '-c', '-P', $CurrentPassphrase,
+    '-C', $Comment, '-f', $KeyPath
 }

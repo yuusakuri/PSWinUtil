@@ -10,10 +10,10 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
 | `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
+| `ConvertTo-WUCommandLineArgument` | Quotes an argument for a Windows executable command line. |
 | `ConvertTo-WUFullPath` | Converts file system paths to fully qualified paths. |
 | `ConvertTo-WUNativeCommandArgument` | Converts values for native command arguments. |
 | `ConvertTo-WUPSStringLiteral` | Converts strings to PowerShell string literals. |
-| `ConvertTo-WUProcessArgument` | Quotes arguments for a Windows process command line. |
 | `Disable-WUAppLaunchTracking` | Disables application launch tracking. |
 | `Disable-WUAppSuggestions` | Disables application suggestions. |
 | `Disable-WUClassicContextMenu` | Disables the classic Windows 11 Explorer context menu. |

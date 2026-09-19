@@ -23,17 +23,15 @@ function Get-WUAndroidEmulator {
 
     Assert-WUCommand -Name 'emulator.exe'
 
-    $arguments = @('-list-avds')
-    $commandOutput = @(& 'emulator.exe' @arguments 2>&1)
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        $message = @($commandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-        throw "emulator.exe -list-avds failed with exit code $exitCode.$([Environment]::NewLine)$message"
+    $result = Invoke-WUExternalCommand -Command 'emulator.exe' -ArgumentList @('-list-avds') -CaptureOutput
+    if (-not $result.Succeeded) {
+        $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
+        throw "emulator.exe -list-avds failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
     }
 
     $avdNames = @(
-        $commandOutput |
-            ForEach-Object { $_.ToString().Trim() } |
+        $result.StandardOutput -split '\r?\n' |
+            ForEach-Object { $_.Trim() } |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     )
     $avdNames

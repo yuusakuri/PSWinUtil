@@ -4,12 +4,11 @@ BeforeAll {
 
 Describe 'Install-WUWingetPackage' {
     BeforeEach {
-        InModuleScope -ModuleName PSWinUtil {
-            function script:winget.exe {
-                $script:CapturedWingetArguments = @($args)
-                $global:LASTEXITCODE = 0
-                'Package installed'
+        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
+            InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
+                $script:CapturedWingetArguments = @($Arguments)
             }
+            [PSWinUtil.ExternalCommandResult]::new($true, 0, 'Package installed', '')
         }
     }
 
@@ -31,11 +30,8 @@ Describe 'Install-WUWingetPackage' {
     }
 
     It 'reports the exit code and output when winget fails' {
-        InModuleScope -ModuleName PSWinUtil {
-            function script:winget.exe {
-                $global:LASTEXITCODE = 42
-                'Installation failed'
-            }
+        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
+            [PSWinUtil.ExternalCommandResult]::new($false, 42, '', 'Installation failed')
         }
 
         {
