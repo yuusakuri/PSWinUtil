@@ -16,9 +16,11 @@ Describe 'Android SDK availability' -Tag Android {
     BeforeEach {
         $script:SavedAndroidHome = $env:ANDROID_HOME
         $script:SavedSdkRoot = $env:ANDROID_SDK_ROOT
+        $script:SavedLocalAppData = $env:LOCALAPPDATA
         $script:SavedPath = $env:Path
         $fixture = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $script:Sdk = Join-Path $fixture 'configured SDK'
+        $env:LOCALAPPDATA = Join-Path $fixture 'LocalAppData'
         $script:OtherTools = Join-Path $fixture 'other SDK tools'
         New-Item -Path $script:OtherTools -ItemType Directory -Force | Out-Null
         $env:ANDROID_HOME = $script:Sdk
@@ -138,6 +140,7 @@ Describe 'Android SDK availability' -Tag Android {
     AfterEach {
         $env:ANDROID_HOME = $script:SavedAndroidHome
         $env:ANDROID_SDK_ROOT = $script:SavedSdkRoot
+        $env:LOCALAPPDATA = $script:SavedLocalAppData
         $env:Path = $script:SavedPath
     }
 
@@ -151,6 +154,19 @@ Describe 'Android SDK availability' -Tag Android {
         foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
             Test-WUCommand -Name $command | Should -BeTrue
         }
+    }
+
+    It 'installs into the standard Windows SDK location when ANDROID_HOME is unset' {
+        $env:ANDROID_HOME = $null
+        $expectedPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
+
+        $result = Install-WUAndroidSdk
+
+        $result.FullName | Should -Be $expectedPath
+        $env:ANDROID_HOME | Should -Be $expectedPath
+        $script:UserEnvironment.ANDROID_HOME | Should -Be $expectedPath
+        Test-Path -LiteralPath (Join-Path $expectedPath 'platforms/android-36/android.jar') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $expectedPath 'cmdline-tools/latest/bin/avdmanager.bat') | Should -BeTrue
     }
 
     It 'makes a requested API and Build Tools version usable' {
@@ -194,13 +210,16 @@ Describe 'Android SDK availability' -Tag Android {
     }
 
     It 'leaves SDK files and environment settings unchanged when previewing installation' {
+        $env:ANDROID_HOME = $null
+        $defaultSdkPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
         $beforePath = $env:Path
         $env:ANDROID_SDK_ROOT = 'old process SDK'
         $script:UserEnvironment.ANDROID_SDK_ROOT = 'old user SDK'
         Install-WUAndroidSdk -WhatIf
 
-        Test-Path -LiteralPath $script:Sdk | Should -BeFalse
+        Test-Path -LiteralPath $defaultSdkPath | Should -BeFalse
         $script:UserEnvironment.ContainsKey('ANDROID_HOME') | Should -BeFalse
+        $env:ANDROID_HOME | Should -BeNullOrEmpty
         $env:Path | Should -Be $beforePath
         $script:Downloads | Should -HaveCount 0
         $env:ANDROID_SDK_ROOT | Should -Be 'old process SDK'

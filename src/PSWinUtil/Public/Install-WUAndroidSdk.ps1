@@ -1,10 +1,14 @@
 function Install-WUAndroidSdk {
     <#
     .SYNOPSIS
-    Installs and configures an Android SDK with Android CLI.
+    Installs an Android SDK and makes its tools available on Windows.
 
     .DESCRIPTION
-    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe on PATH to install Command-Line Tools, Platform Tools, SDK Platform, Build Tools, and emulator packages under the configured ANDROID_HOME. Set ANDROID_HOME before running this command. The selected cmdline-tools/VERSION/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Missing packages use the latest stable version when a version is omitted; existing packages are preserved. Explicit package versions are applied even when files already exist and allow downgrading the shared SDK packages. The command persists ANDROID_HOME and SDK command directories for the current user, refreshes the current process from the persistent environment, and points build-tools\latest to the selected Build Tools version.
+    Uses ANDROID_HOME as the SDK location, or LOCALAPPDATA\Android\Sdk when ANDROID_HOME is unset. Installs Google.AndroidCLI through Windows Package Manager and uses android.exe on PATH to install SDK Platform, Build Tools, Platform Tools, Emulator, and Android SDK Command-Line Tools into that location.
+
+    Selects the latest stable API level and Build Tools version when they are omitted. Installs other missing components and preserves their installed versions unless a package version is requested. An explicitly requested package version is applied even when the package is already installed and can downgrade the shared SDK. The selected Command-Line Tools version is available from cmdline-tools\VERSION\bin on PATH, and build-tools\latest points to the selected Build Tools version.
+
+    After successful installation, saves ANDROID_HOME and SDK tool directories in the user environment, refreshes the current process, and removes the deprecated ANDROID_SDK_ROOT from User and Process. Does not change ANDROID_USER_HOME or ANDROID_SDK_HOME.
 
     .PARAMETER PlatformVersion
     Specifies the Android SDK Platform API level. The greatest stable available API level is used when omitted.
@@ -27,12 +31,12 @@ function Install-WUAndroidSdk {
     .EXAMPLE
     Install-WUAndroidSdk
 
-    Installs missing SDK components under ANDROID_HOME by using the latest stable Platform and Build Tools versions.
+    Uses ANDROID_HOME or the standard Windows SDK location and installs the latest stable SDK Platform and Build Tools versions.
 
     .EXAMPLE
     Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0'
 
-    Installs missing SDK components for Android API level 36 and Build Tools 36.0.0.
+    Installs Android API level 36 and Build Tools 36.0.0 at the selected SDK location.
 
     .EXAMPLE
     Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' -CommandLineToolsVersion '22.0' -PlatformPackageVersion '2.0.0' -PlatformToolsVersion '37.0.1' -EmulatorVersion '37.1.11'
@@ -46,10 +50,13 @@ function Install-WUAndroidSdk {
     System.IO.DirectoryInfo
 
     .NOTES
-    Successful configuration removes the deprecated ANDROID_SDK_ROOT variable from the User and Process scopes.
+    Android documents LOCALAPPDATA\Android\Sdk as the usual Windows SDK location and ANDROID_SDK_ROOT as a deprecated alternative to ANDROID_HOME.
 
     .LINK
     https://developer.android.com/tools/variables
+
+    .LINK
+    https://developer.android.com/studio/emulator_archive
     #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType([System.IO.DirectoryInfo])]
@@ -79,7 +86,12 @@ function Install-WUAndroidSdk {
         [string]$PlatformPackageVersion
     )
 
-    $fullSdkPath = ConvertTo-WUFullPath -Path $env:ANDROID_HOME
+    $sdkPath = if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
+        Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
+    } else {
+        $env:ANDROID_HOME
+    }
+    $fullSdkPath = ConvertTo-WUFullPath -Path $sdkPath
     if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
         return
     }
