@@ -155,62 +155,27 @@ function Install-WUAndroidSdk {
         -Path $env:ANDROID_HOME `
         -ChildPath "platforms\android-$resolvedPlatformVersion"
     $buildToolsRoot = Join-Path -Path $env:ANDROID_HOME -ChildPath 'build-tools'
-    $buildToolsPath = Join-Path -Path $buildToolsRoot -ChildPath $resolvedBuildToolsVersion
     $emulatorPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'emulator'
-    $cmdlineToolsPath = Join-Path -Path $env:ANDROID_HOME -ChildPath "cmdline-tools\$CommandLineToolsVersion\bin"
 
-    $packages = @()
-    if ($PSBoundParameters.ContainsKey('PlatformToolsVersion') -or -not (Test-Path -LiteralPath (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe'))) {
-        $packages += if ($PSBoundParameters.ContainsKey('PlatformToolsVersion')) {
-            "platform-tools@$PlatformToolsVersion"
-        } else {
-            'platform-tools'
-        }
+    if ($PSBoundParameters.ContainsKey('PlatformToolsVersion')) {
+        Install-WUAndroidPlatformTool -Version $PlatformToolsVersion
+    } else {
+        Install-WUAndroidPlatformTool
     }
-    if ($PSBoundParameters.ContainsKey('PlatformPackageVersion') -or -not (Test-Path -LiteralPath (Join-Path -Path $platformPath -ChildPath 'android.jar'))) {
-        $packages += if ($PSBoundParameters.ContainsKey('PlatformPackageVersion')) {
-            "platforms/android-$resolvedPlatformVersion@$PlatformPackageVersion"
-        } else {
-            "platforms/android-$resolvedPlatformVersion"
-        }
+    if ($PSBoundParameters.ContainsKey('PlatformPackageVersion')) {
+        Install-WUAndroidSdkPlatform `
+            -ApiVersion $resolvedPlatformVersion `
+            -PackageVersion $PlatformPackageVersion
+    } else {
+        Install-WUAndroidSdkPlatform -ApiVersion $resolvedPlatformVersion
     }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe'))) {
-        $packages += "build-tools/$resolvedBuildToolsVersion"
+    Install-WUAndroidBuildTool -Version $resolvedBuildToolsVersion
+    if ($PSBoundParameters.ContainsKey('EmulatorVersion')) {
+        Install-WUAndroidEmulator -Version $EmulatorVersion
+    } else {
+        Install-WUAndroidEmulator
     }
-    if ($PSBoundParameters.ContainsKey('EmulatorVersion') -or -not (Test-Path -LiteralPath (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe'))) {
-        $packages += if ($PSBoundParameters.ContainsKey('EmulatorVersion')) {
-            "emulator@$EmulatorVersion"
-        } else {
-            'emulator'
-        }
-    }
-    if (
-        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat')) -or
-        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat'))
-    ) {
-        $packages += "cmdline-tools/$CommandLineToolsVersion"
-    }
-
-    if ($packages.Count -gt 0) {
-        $installArguments = @('sdk', 'install') + $packages
-        if ($packages -match '@') {
-            $installArguments += '--force'
-        }
-        $commandArguments = $androidArguments + $installArguments
-        $savedErrorActionPreference = $ErrorActionPreference
-        try {
-            $ErrorActionPreference = 'Continue'
-            $installOutput = @(& android.exe @commandArguments 2>&1)
-            $exitCode = $LASTEXITCODE
-        } finally {
-            $ErrorActionPreference = $savedErrorActionPreference
-        }
-        $textOutput = @($installOutput | ForEach-Object { $_.ToString() })
-        # Android CLI 1.0.16261425 can exit with 0xC0000409 after SDK output on Windows.
-        if ($exitCode -ne 0 -and $exitCode -ne -1073740791) {
-            throw "android.exe failed with exit code $exitCode.$([Environment]::NewLine)$($textOutput -join [Environment]::NewLine)"
-        }
-    }
+    Install-WUAndroidCommandLineTool -Version $CommandLineToolsVersion
 
     $versionedPackages = @{
         PlatformToolsVersion = $platformToolsPath
@@ -250,5 +215,5 @@ function Install-WUAndroidSdk {
 
     Assert-WUCommand -Name @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')
 
-    Get-Item -LiteralPath $env:ANDROID_HOME -ErrorAction Stop
+    [System.IO.DirectoryInfo]$env:ANDROID_HOME
 }
