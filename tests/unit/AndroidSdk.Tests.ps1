@@ -111,6 +111,13 @@ Describe 'Android SDK availability' {
                 if (-not $script:EmitPackageFiles) {
                     continue
                 }
+                $properties = Join-Path $directory 'source.properties'
+                if ($argument -match '@' -and (Test-Path -LiteralPath $properties)) {
+                    $installed = [IO.File]::ReadAllText($properties) -replace '^Pkg.Revision=', ''
+                    if ([version]$revision -lt [version]$installed -and $arguments -notcontains '--force') {
+                        continue
+                    }
+                }
                 foreach ($file in $files) {
                     $destination = Join-Path $directory $file
                     New-Item -Path (Split-Path $destination -Parent) -ItemType Directory -Force | Out-Null
@@ -273,5 +280,53 @@ Describe 'Android SDK availability' {
 
         Test-Path -LiteralPath $script:Sdk | Should -BeFalse
         $script:UserEnvironment.ANDROID_HOME | Should -Be $script:Sdk
+    }
+
+    It 'uses the selected Command-Line Tools version while preserving other installations' {
+        Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' | Out-Null
+        $latest = Join-Path $script:Sdk 'cmdline-tools/latest/bin/sdkmanager.bat'
+        [IO.File]::WriteAllText($latest, 'keep latest tools')
+
+        Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' -CommandLineToolsVersion '22.0' | Out-Null
+
+        (Get-Command -Name sdkmanager.bat).Path | Should -Be (Join-Path $script:Sdk 'cmdline-tools/22.0/bin/sdkmanager.bat')
+        [IO.File]::ReadAllText($latest) | Should -Be 'keep latest tools'
+        Test-WUCommand -Name avdmanager.bat | Should -BeTrue
+    }
+
+    It 'makes requested component revisions available even when older versions are requested' {
+        Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' | Out-Null
+
+        Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' -PlatformPackageVersion '1.0.0' -PlatformToolsVersion '36.0.0' -EmulatorVersion '36.2.12' | Out-Null
+
+        [IO.File]::ReadAllText((Join-Path $script:Sdk 'platforms/android-36/source.properties')) | Should -Be 'Pkg.Revision=1.0.0'
+        [IO.File]::ReadAllText((Join-Path $script:Sdk 'platform-tools/source.properties')) | Should -Be 'Pkg.Revision=36.0.0'
+        [IO.File]::ReadAllText((Join-Path $script:Sdk 'emulator/source.properties')) | Should -Be 'Pkg.Revision=36.2.12'
+    }
+
+    It 'returns a usable SDK after the observed Windows CLI termination' {
+        $script:InstallExitCode = -1073740791
+
+        $result = Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0'
+
+        $result.FullName | Should -Be $script:Sdk
+        Test-WUCommand -Name adb.exe | Should -BeTrue
+        Test-WUCommand -Name aapt2.exe | Should -BeTrue
+    }
+
+    It 'reports an unavailable requested revision without adding SDK commands to PATH' {
+        $script:InstalledVersionOverride = '36.0.0'
+        $beforePath = $script:UserEnvironment.Path
+
+        { Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' -PlatformToolsVersion '37.0.1' } |
+            Should -Throw '*did not install PlatformToolsVersion 37.0.1*installed version is 36.0.0*'
+
+        $script:UserEnvironment.Path | Should -Be $beforePath
+    }
+
+    It 'reports other CLI failures with their exit code' {
+        $script:InstallExitCode = 23
+
+        { Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' } | Should -Throw '*exit code 23*'
     }
 }
