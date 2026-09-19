@@ -80,11 +80,6 @@ Describe 'Android SDK availability' -Tag Android {
             }
             $sdkRoot = $env:ANDROID_HOME
             foreach ($argument in $arguments) {
-                if ($argument -like '--sdk=*') {
-                    $sdkRoot = $argument.Substring(6)
-                }
-            }
-            foreach ($argument in $arguments) {
                 $package = ($argument -split '@')[0]
                 $revision = ($argument -split '@')[1]
                 $files = @()
