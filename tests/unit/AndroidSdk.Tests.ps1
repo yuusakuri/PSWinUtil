@@ -266,7 +266,7 @@ Describe 'Android SDK availability' {
         [IO.File]::ReadAllText($keptFile) | Should -Be 'keep this directory'
     }
 
-    It 'reports an unavailable stable SDK without configuring it' -TestCases @(
+    It 'reports an unavailable stable SDK before downloading components' -TestCases @(
         @{ Catalog = @('platforms/android-37-beta1 1.0.0 preview') }
         @{ Catalog = @('platforms/android-36 2.0.0 stable', 'build-tools/37.0.0-rc1 37.0.0-rc.1 preview') }
     ) {
@@ -277,6 +277,6 @@ Describe 'Android SDK availability' {
         { Install-WUAndroidSdk } | Should -Throw '*No stable*'
 
         Test-Path -LiteralPath $script:Sdk | Should -BeFalse
-        $script:UserEnvironment.ContainsKey('ANDROID_HOME') | Should -BeFalse
+        $script:UserEnvironment.ANDROID_HOME | Should -Be $script:Sdk
     }
 }
