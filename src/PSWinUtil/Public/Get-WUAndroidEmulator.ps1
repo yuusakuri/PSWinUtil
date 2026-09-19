@@ -3,6 +3,9 @@ function Get-WUAndroidEmulator {
     .SYNOPSIS
     Lists Android virtual device names that the emulator can start.
 
+    .DESCRIPTION
+    Returns created AVD names, including stopped devices, for the Name parameter of Start-WUAndroidEmulator.
+
     .EXAMPLE
     Get-WUAndroidEmulator
 
