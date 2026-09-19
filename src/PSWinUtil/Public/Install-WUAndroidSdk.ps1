@@ -1,10 +1,12 @@
 function Install-WUAndroidSdk {
     <#
     .SYNOPSIS
-    Installs and configures an Android SDK with Android CLI.
+    Installs an Android SDK and makes its tools available on Windows.
 
     .DESCRIPTION
-    Installs Google.AndroidCLI through Windows Package Manager and uses android.exe on PATH to install missing cmdline-tools/latest, platform-tools, SDK Platform, Build Tools, and emulator packages under the configured ANDROID_HOME. Set ANDROID_HOME before running this command. The cmdline-tools/latest/bin directory remains available for sdkmanager, avdmanager, and other established command-line tools. Omitted versions select the latest stable package reported by android sdk list. The command persists ANDROID_HOME and SDK command directories for the current user, refreshes the current process from the persistent environment, and points build-tools\latest to the selected Build Tools version.
+    Uses the current ANDROID_HOME as the SDK location. When it is unset, uses the standard Windows location under LOCALAPPDATA\Android\Sdk. Installs Google.AndroidCLI through Windows Package Manager, then uses android.exe to install the SDK Platform, Build Tools, Platform Tools, Emulator, and Android SDK Command-Line Tools into that location.
+
+    When the API level or Build Tools version is omitted, selects the latest stable version listed by Android CLI. Already installed components that match the selected versions remain in place. After installation, sets ANDROID_HOME and the SDK tool directories on the user PATH, refreshes the current process environment, and exposes the selected Build Tools version through build-tools\latest. The Command-Line Tools remain available at cmdline-tools\latest\bin. Removes the deprecated ANDROID_SDK_ROOT from the user and current process environments after successful configuration. Does not change ANDROID_USER_HOME or ANDROID_SDK_HOME.
 
     .PARAMETER PlatformVersion
     Specifies the Android SDK Platform API level. The greatest stable available API level is used when omitted.
@@ -15,12 +17,12 @@ function Install-WUAndroidSdk {
     .EXAMPLE
     Install-WUAndroidSdk
 
-    Installs missing SDK components under ANDROID_HOME by using the latest stable Platform and Build Tools versions.
+    Uses ANDROID_HOME or the standard Windows SDK location and installs the latest stable SDK Platform and Build Tools versions.
 
     .EXAMPLE
     Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0'
 
-    Installs missing SDK components for Android API level 36 and Build Tools 36.0.0.
+    Installs Android API level 36 and Build Tools 36.0.0 at the selected SDK location.
 
     .INPUTS
     None
@@ -29,10 +31,13 @@ function Install-WUAndroidSdk {
     System.IO.DirectoryInfo
 
     .NOTES
-    Successful configuration removes the deprecated ANDROID_SDK_ROOT variable from the User and Process scopes.
+    Android documents LOCALAPPDATA\Android\Sdk as the usual Windows SDK location and ANDROID_SDK_ROOT as a deprecated alternative to ANDROID_HOME.
 
     .LINK
     https://developer.android.com/tools/variables
+
+    .LINK
+    https://developer.android.com/studio/emulator_archive
     #>
     [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType([System.IO.DirectoryInfo])]
@@ -46,7 +51,12 @@ function Install-WUAndroidSdk {
         [string]$BuildToolsVersion
     )
 
-    $fullSdkPath = ConvertTo-WUFullPath -Path $env:ANDROID_HOME
+    $sdkPath = if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
+        Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
+    } else {
+        $env:ANDROID_HOME
+    }
+    $fullSdkPath = ConvertTo-WUFullPath -Path $sdkPath
     if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
         return
     }
