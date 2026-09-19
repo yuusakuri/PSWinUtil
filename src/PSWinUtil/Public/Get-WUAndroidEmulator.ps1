@@ -4,7 +4,7 @@ function Get-WUAndroidEmulator {
     Lists Android virtual device names that the emulator can start.
 
     .DESCRIPTION
-    Returns created AVD names, including stopped devices, for the Name parameter of Start-WUAndroidEmulator.
+    The Get-WUAndroidEmulator cmdlet gets the names of AVDs configured in the current Android environment. The list includes running and stopped devices.
 
     .EXAMPLE
     Get-WUAndroidEmulator

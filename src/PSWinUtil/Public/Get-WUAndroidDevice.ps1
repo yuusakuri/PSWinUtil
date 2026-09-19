@@ -4,12 +4,12 @@ function Get-WUAndroidDevice {
     Gets Android hardware profile IDs that can be used to create virtual devices.
 
     .DESCRIPTION
-    Returns available hardware profile IDs, such as pixel_8, for the Device parameter of New-WUAndroidEmulator.
+    The Get-WUAndroidDevice cmdlet gets the hardware profile IDs available to the Android SDK tools. A hardware profile describes a device configuration, such as a Pixel phone, for an AVD.
 
     .EXAMPLE
     Get-WUAndroidDevice
 
-    Lists hardware profile IDs that New-WUAndroidEmulator accepts for Device.
+    Lists the available Android hardware profile IDs.
 
     .INPUTS
     None
