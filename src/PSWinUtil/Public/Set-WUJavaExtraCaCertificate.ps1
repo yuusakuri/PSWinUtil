@@ -1,10 +1,10 @@
 function Set-WUJavaExtraCaCertificate {
     <#
     .SYNOPSIS
-    Copies a CA certificate into a Java trust store and configures JAVA_TOOL_OPTIONS to use it.
+    Copies a CA certificate into a Java trust store and configures the JAVA_TOOL_OPTIONS environment variable to use it.
 
     .DESCRIPTION
-    Copies the cacerts file from JAVA_HOME to the per-user .certs\java directory, imports the specified .crt certificate with keytool on PATH, and sets JAVA_TOOL_OPTIONS in the selected scopes to select that trust store. Java processes started after the environment variable is set use the additional certificate.
+    Copies the cacerts file from JAVA_HOME to $env:USERPROFILE\.certs\java, imports the specified .crt certificate with keytool on PATH, and sets the JAVA_TOOL_OPTIONS environment variable to select that trust store. Java processes started after the environment variable is set use the additional certificate.
 
     The Windows root certificate store approach is not recommended for Android Studio because Android Studio may use its bundled Java runtime instead of JAVA_HOME. Configure the trust store used by the selected Java installation with this function.
 
@@ -12,12 +12,12 @@ function Set-WUJavaExtraCaCertificate {
     Specifies the additional CA certificate file in CRT format.
 
     .PARAMETER Scope
-    Specifies one or more of Process, User, and Machine for JAVA_TOOL_OPTIONS. The default is User.
+    Specifies one or more of Process, User, and Machine for the JAVA_TOOL_OPTIONS environment variable. The default is User.
 
     .EXAMPLE
     Set-WUJavaExtraCaCertificate -LiteralPath "$env:USERPROFILE\.certs\extra-ca-certs.crt"
 
-    Copies JAVA_HOME\lib\security\cacerts, imports the certificate, and configures JAVA_TOOL_OPTIONS for the current user.
+    Copies JAVA_HOME\lib\security\cacerts, imports the certificate, and configures the JAVA_TOOL_OPTIONS environment variable for the current user.
 
     .INPUTS
     None
