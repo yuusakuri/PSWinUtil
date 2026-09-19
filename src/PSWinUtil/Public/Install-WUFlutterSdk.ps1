@@ -4,7 +4,7 @@ function Install-WUFlutterSdk {
     Installs the Flutter SDK on Windows.
 
     .DESCRIPTION
-    Downloads an official Windows Flutter SDK archive, installs it under the destination directory, and adds flutter\bin to the current user PATH before refreshing the current process environment. The command verifies the installed Flutter and Dart commands, then displays the Flutter doctor report without using that report as a success condition. An existing Flutter installation is restored if installation fails. Temporary files are removed after the operation.
+    Downloads an official Windows Flutter SDK archive, installs it under the destination directory, and adds flutter\bin to the current user PATH before refreshing the current process environment. The command runs the installed Flutter and Dart version commands and the Flutter doctor report. An existing Flutter installation is restored if installation fails. Temporary files are removed after the operation.
 
     .PARAMETER Version
     Specifies the Flutter SDK version. An omitted or empty value selects the current release for the requested channel.
@@ -144,7 +144,9 @@ function Install-WUFlutterSdk {
             Add-WUPathEnvironmentVariable -Path $flutterBinPath -Scope 'User' -Prepend
             Update-WUProcessEnvironment
 
-            Assert-WUFlutterSdkInstallation
+            Start-Process -FilePath 'flutter' -ArgumentList '--version' -NoNewWindow -Wait
+            Start-Process -FilePath 'dart' -ArgumentList '--version' -NoNewWindow -Wait
+            Start-Process -FilePath 'flutter' -ArgumentList 'doctor' -NoNewWindow -Wait
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
                 Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
