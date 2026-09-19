@@ -1,10 +1,10 @@
 function Get-WUAndroidEmulator {
     <#
     .SYNOPSIS
-    Gets the names of local Android virtual devices.
+    Lists Android virtual device names that the emulator can start.
 
     .DESCRIPTION
-    Finds emulator.exe on PATH and returns every Android virtual device name registered with the local Android SDK, including devices that are not running. Returns no output when no virtual devices are registered.
+    Runs emulator.exe -list-avds using the command on PATH and returns the AVD names it reports, including devices that are not running. Returns no output when the command reports no AVDs. These are created virtual devices, not the hardware profile IDs returned by Get-WUAndroidDevice.
 
     .EXAMPLE
     Get-WUAndroidEmulator

@@ -59,7 +59,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Enable-WUWindowsSecurityNonCriticalNotifications` | Enables non-critical Windows Security notifications. |
 | `Get-SystemArchitecture` | Gets the Windows system architecture. |
 | `Get-WUAndroidDevice` | Gets Android hardware profile IDs that can be used to create virtual devices. |
-| `Get-WUAndroidEmulator` | Gets the names of local Android virtual devices. |
+| `Get-WUAndroidEmulator` | Lists Android virtual device names that the emulator can start. |
 | `Get-WUAndroidEmulatorPort` | Gets available Android emulator console ports. |
 | `Get-WUEnvironmentVariable` | Reads environment variable values from Process, User, or Machine scope. |
 | `Get-WUFileTreeWithContent` | Lists a file tree and reads UTF-8 text content for each file. |

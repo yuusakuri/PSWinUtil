@@ -22,7 +22,7 @@ android sdk install 'cmdline-tools/22.0'
 sdkmanager.bat --install 'cmdline-tools;22.0'
 ```
 
-The [Android CLI known issues](https://developer.android.com/tools/agents/android-cli#known-issues) state that its `android emulator` command is currently disabled on Windows. The installer still installs the separate `emulator` package, and `avdmanager` remains available for AVD creation. The module uses `emulator.exe` to list or start AVDs; neither operation depends on the Android CLI emulator subcommand. The [avdmanager documentation](https://developer.android.com/tools/avdmanager) and [emulator command documentation](https://developer.android.com/studio/run/emulator-commandline) describe these commands.
+The [Android CLI known issues](https://developer.android.com/tools/agents/android-cli#known-issues) state that its `android emulator` command is currently disabled on Windows. The installer still installs the separate `emulator` package. `New-WUAndroidEmulator` uses `avdmanager` to create AVDs, while `Get-WUAndroidEmulator` and `Start-WUAndroidEmulator` use `emulator.exe` to list or start them. These operations do not depend on the Android CLI emulator subcommand. The [avdmanager documentation](https://developer.android.com/tools/avdmanager) and [emulator command documentation](https://developer.android.com/studio/run/emulator-commandline) describe these commands.
 
 ## Flutter compatibility
 

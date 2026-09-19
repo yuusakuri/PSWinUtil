@@ -4,7 +4,7 @@ function Get-WUAndroidDevice {
     Gets Android hardware profile IDs that can be used to create virtual devices.
 
     .DESCRIPTION
-    Requires avdmanager.bat on PATH. Returns the installed Android SDK Command-Line Tools hardware profile IDs after trimming whitespace and removing blank lines. These are creation templates, not the names of existing virtual devices returned by Get-WUAndroidEmulator.
+    Runs avdmanager.bat list device -c using the command on PATH and returns the hardware profile IDs it reports. These IDs are templates accepted by New-WUAndroidEmulator, not names of AVDs already created; use Get-WUAndroidEmulator for those names.
 
     .EXAMPLE
     Get-WUAndroidDevice
