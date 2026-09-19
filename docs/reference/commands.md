@@ -58,7 +58,8 @@ The following table is generated from the exported commands and their comment-ba
 | `Enable-WUWindowsSecurityAllNotifications` | Enables all Windows Security notifications. |
 | `Enable-WUWindowsSecurityNonCriticalNotifications` | Enables non-critical Windows Security notifications. |
 | `Get-SystemArchitecture` | Gets the Windows system architecture. |
-| `Get-WUAndroidEmulator` | Gets the names of local Android virtual devices. |
+| `Get-WUAndroidDevice` | Gets Android hardware profile IDs that can be used to create virtual devices. |
+| `Get-WUAndroidEmulator` | Lists Android virtual device names that the emulator can start. |
 | `Get-WUAndroidEmulatorPort` | Gets available Android emulator console ports. |
 | `Get-WUEnvironmentVariable` | Reads environment variable values from Process, User, or Machine scope. |
 | `Get-WUFileTreeWithContent` | Lists a file tree and reads UTF-8 text content for each file. |
@@ -76,6 +77,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
 | `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
+| `New-WUAndroidEmulator` | Creates an Android virtual device using the latest available Pixel by default. |
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |

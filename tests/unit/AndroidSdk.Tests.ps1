@@ -12,7 +12,7 @@ AfterAll {
     }
 }
 
-Describe 'Android SDK availability' {
+Describe 'Android SDK availability' -Tag Android {
     BeforeEach {
         $script:SavedAndroidHome = $env:ANDROID_HOME
         $script:SavedSdkRoot = $env:ANDROID_SDK_ROOT
