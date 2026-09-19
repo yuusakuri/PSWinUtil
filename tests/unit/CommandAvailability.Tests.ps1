@@ -13,4 +13,8 @@ Describe 'Command availability helpers' {
         { Assert-WUCommand -Name 'PSWinUtil-command-that-does-not-exist' } |
             Should -Throw "Command 'PSWinUtil-command-that-does-not-exist' is not available."
     }
+
+    It 'asserts multiple available commands' {
+        { Assert-WUCommand -Name @('Write-Output', 'Write-Error') } | Should -Not -Throw
+    }
 }

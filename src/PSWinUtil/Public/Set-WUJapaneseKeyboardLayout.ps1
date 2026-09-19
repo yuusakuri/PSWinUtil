@@ -33,9 +33,7 @@ function Set-WUJapaneseKeyboardLayout {
         [string]$Layout
     )
 
-    foreach ($commandName in @('New-WinUserLanguageList', 'Set-WinUserLanguageList')) {
-        Assert-WUCommand -Name $commandName
-    }
+    Assert-WUCommand -Name @('New-WinUserLanguageList', 'Set-WinUserLanguageList')
 
     $languageList = New-WinUserLanguageList -Language 'ja-JP'
     if ($PSCmdlet.ShouldProcess('Current user language list', 'Set the language list to Japanese')) {
