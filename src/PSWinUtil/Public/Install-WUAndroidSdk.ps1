@@ -79,18 +79,16 @@ function Install-WUAndroidSdk {
         [string]$PlatformPackageVersion
     )
 
-    $targetSdkPath = if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
-        ConvertTo-WUFullPath -Path (Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk')
-    } else {
-        ConvertTo-WUFullPath -Path $env:ANDROID_HOME
-    }
-    if (-not $PSCmdlet.ShouldProcess($targetSdkPath, 'Install and configure Android SDK')) {
+    if (-not $PSCmdlet.ShouldProcess('Android SDK', 'Install and configure Android SDK')) {
         return
     }
 
+    if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
+        $env:ANDROID_HOME = Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
+    }
     Set-WUEnvironmentVariable `
         -Name 'ANDROID_HOME' `
-        -Value $targetSdkPath `
+        -Value $env:ANDROID_HOME `
         -Scope User, Process
     Remove-WUEnvironmentVariable -Name 'ANDROID_SDK_ROOT' -Scope User, Process
 
@@ -99,7 +97,6 @@ function Install-WUAndroidSdk {
     Assert-WUCommand -Name 'android.exe'
     $androidArguments = @(
         '--no-metrics'
-        "--sdk=$env:ANDROID_HOME"
     )
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
