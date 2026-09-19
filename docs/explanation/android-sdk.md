@@ -4,7 +4,7 @@
 
 `Install-WUAndroidSdk` installs the official Android CLI through WinGet, then uses `android sdk` to install the SDK packages required by the module. It also installs the Android SDK Command-Line Tools package at `cmdline-tools/latest` and adds `cmdline-tools\latest\bin` to both user and process `PATH` values. This keeps `sdkmanager`, `avdmanager`, `lint`, and the other established tools available alongside `android.exe`.
 
-Android CLI package names use slash-separated paths. To inspect or install the command-line tools directly, use:
+To inspect or install Command-Line Tools directly, use:
 
 ```powershell
 android sdk list 'cmdline-tools/*' --all
