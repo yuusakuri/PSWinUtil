@@ -45,18 +45,6 @@ Import-Module -Name 'PSWinUtil'
 Get-Command -Module 'PSWinUtil'
 ```
 
-Read an environment variable from the current user profile:
-
-```powershell
-Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
-```
-
-Preview a persistent environment variable update:
-
-```powershell
-Set-WUEnvironmentVariable -Name 'MY_TOOL_HOME' -Value 'C:\Tools' -Scope User -WhatIf
-```
-
 Use `Get-Help` for a command's complete parameters, behavior, and examples:
 
 ```powershell
@@ -66,7 +54,6 @@ Get-Help -Name 'Set-WUEnvironmentVariable' -Full
 ## Documentation
 
 - [Command reference](docs/reference/commands.md) lists the exported commands and their summaries generated from PowerShell help.
-- [Android SDK tool compatibility](docs/explanation/android-sdk.md) explains Android CLI, Command-Line Tools, and Flutter version considerations.
 - [Architecture](docs/explanation/architecture.md) explains the source, build, distribution, and test boundaries.
 - [Contributing](CONTRIBUTING.md) describes the development workflow and repository-specific verification.
 - [Releasing](RELEASING.md) describes version preparation and publication.

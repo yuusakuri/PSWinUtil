@@ -68,7 +68,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WURegistrySetting` | Gets a Windows registry setting state. |
 | `Get-WUStartupEntry` | Gets Windows startup entries. |
 | `Get-WUWindowsAutoLogon` | Reads the Windows automatic logon configuration. |
-| `Install-WUAndroidSdk` | Installs and configures an Android SDK with Android CLI. |
+| `Install-WUAndroidSdk` | Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
 | `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
@@ -90,7 +90,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Set-WUEnvironmentVariable` | Sets environment variables in selected Process, User, or Machine scopes. |
 | `Set-WUJapaneseImeHalfWidthInput` | Sets Microsoft IME space, number, and alphabet input to half width. |
 | `Set-WUJapaneseKeyboardLayout` | Sets the physical layout used with the Japanese Microsoft IME. |
-| `Set-WUJavaExtraCaCertificate` | Copies a CA certificate into a Java trust store and configures JAVA_TOOL_OPTIONS to use it. |
+| `Set-WUJavaExtraCaCertificate` | Copies a CA certificate into a Java trust store and configures the JAVA_TOOL_OPTIONS environment variable to use it. |
 | `Set-WUKeyboardRemapping` | Sets a Windows keyboard scan code mapping. |
 | `Set-WUNativeCommandEncoding` | Sets native command input and output encoding to UTF-8. |
 | `Set-WUNodeExtraCaCertificate` | Sets the Node.js extra CA certificate environment variable. |

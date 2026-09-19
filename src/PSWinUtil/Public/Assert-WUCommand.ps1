@@ -4,10 +4,10 @@ function Assert-WUCommand {
     Throws when a named command is unavailable on PATH.
 
     .DESCRIPTION
-    Throws an error when PowerShell cannot resolve the specified command name.
+    Throws an error when PowerShell cannot resolve any specified command name.
 
     .PARAMETER Name
-    Specifies the command name to find.
+    Specifies one or more command names to find.
 
     .EXAMPLE
     Assert-WUCommand -Name 'git'
@@ -18,10 +18,12 @@ function Assert-WUCommand {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$Name
+        [string[]]$Name
     )
 
-    if (-not (Test-WUCommand -Name $Name)) {
-        throw "Command '$Name' is not available."
+    foreach ($commandName in $Name) {
+        if (-not (Test-WUCommand -Name $commandName)) {
+            throw "Command '$commandName' is not available."
+        }
     }
 }
