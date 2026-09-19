@@ -4,7 +4,7 @@ function Install-WUAndroidSdk {
     Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools.
 
     .DESCRIPTION
-    Installs the SDK under ANDROID_HOME. When ANDROID_HOME is unset, uses %LOCALAPPDATA%\Android\Sdk and sets ANDROID_HOME to that location. The API level and SDK component versions can be selected with parameters. Sets ANDROID_HOME and PATH in the User and current Process scopes.
+    Installs the SDK under ANDROID_HOME, using %LOCALAPPDATA%\Android\Sdk when unset. The API level and SDK component versions can be selected with parameters. Sets ANDROID_HOME and PATH in the User and current Process scopes.
 
     .PARAMETER PlatformVersion
     Specifies the Android SDK Platform API level. The greatest stable available API level is used when omitted.
@@ -91,6 +91,12 @@ function Install-WUAndroidSdk {
     if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
         return
     }
+
+    Set-WUEnvironmentVariable `
+        -Name 'ANDROID_HOME' `
+        -Value $fullSdkPath `
+        -Scope User, Process
+    Remove-WUEnvironmentVariable -Name 'ANDROID_SDK_ROOT' -Scope User, Process
 
     Install-WUWingetPackage -Id 'Google.AndroidCLI' | Out-Null
     Update-WUProcessEnvironment
@@ -237,10 +243,6 @@ function Install-WUAndroidSdk {
     Set-WUAndroidBuildToolsLatest `
         -BuildToolsPath $buildToolsRoot `
         -Version $resolvedBuildToolsVersion
-    Set-WUEnvironmentVariable `
-        -Name 'ANDROID_HOME' `
-        -Value $fullSdkPath `
-        -Scope 'User'
     $userPaths = @(
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
@@ -256,8 +258,6 @@ function Install-WUAndroidSdk {
     foreach ($commandName in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
         Assert-WUCommand -Name $commandName
     }
-
-    Remove-WUEnvironmentVariable -Name 'ANDROID_SDK_ROOT' -Scope Process, User
 
     Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
 }
