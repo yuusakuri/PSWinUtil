@@ -49,19 +49,18 @@ function Install-WUAndroidSdk {
         [string]$BuildToolsVersion
     )
 
-    $sdkPath = if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
-        Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
+    $targetSdkPath = if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
+        ConvertTo-WUFullPath -Path (Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk')
     } else {
-        $env:ANDROID_HOME
+        ConvertTo-WUFullPath -Path $env:ANDROID_HOME
     }
-    $fullSdkPath = ConvertTo-WUFullPath -Path $sdkPath
-    if (-not $PSCmdlet.ShouldProcess($fullSdkPath, 'Install and configure Android SDK')) {
+    if (-not $PSCmdlet.ShouldProcess($targetSdkPath, 'Install and configure Android SDK')) {
         return
     }
 
     Set-WUEnvironmentVariable `
         -Name 'ANDROID_HOME' `
-        -Value $fullSdkPath `
+        -Value $targetSdkPath `
         -Scope User, Process
     Remove-WUEnvironmentVariable -Name 'ANDROID_SDK_ROOT' -Scope User, Process
 
@@ -70,7 +69,7 @@ function Install-WUAndroidSdk {
     Assert-WUCommand -Name 'android.exe'
     $androidArguments = @(
         '--no-metrics'
-        "--sdk=$fullSdkPath"
+        "--sdk=$env:ANDROID_HOME"
     )
 
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
@@ -116,14 +115,14 @@ function Install-WUAndroidSdk {
         }
     }
 
-    $platformToolsPath = Join-Path -Path $fullSdkPath -ChildPath 'platform-tools'
+    $platformToolsPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'platform-tools'
     $platformPath = Join-Path `
-        -Path $fullSdkPath `
+        -Path $env:ANDROID_HOME `
         -ChildPath "platforms\android-$resolvedPlatformVersion"
-    $buildToolsRoot = Join-Path -Path $fullSdkPath -ChildPath 'build-tools'
+    $buildToolsRoot = Join-Path -Path $env:ANDROID_HOME -ChildPath 'build-tools'
     $buildToolsPath = Join-Path -Path $buildToolsRoot -ChildPath $resolvedBuildToolsVersion
-    $emulatorPath = Join-Path -Path $fullSdkPath -ChildPath 'emulator'
-    $cmdlineToolsPath = Join-Path -Path $fullSdkPath -ChildPath 'cmdline-tools\latest\bin'
+    $emulatorPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'emulator'
+    $cmdlineToolsPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'cmdline-tools\latest\bin'
 
     $packages = @()
     if (-not (Test-Path -LiteralPath (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe'))) {
@@ -176,5 +175,5 @@ function Install-WUAndroidSdk {
         Assert-WUCommand -Name $commandName
     }
 
-    Get-Item -LiteralPath $fullSdkPath -ErrorAction Stop
+    Get-Item -LiteralPath $env:ANDROID_HOME -ErrorAction Stop
 }
