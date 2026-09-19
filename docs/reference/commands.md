@@ -9,9 +9,11 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
+| `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
 | `ConvertTo-WUFullPath` | Converts file system paths to fully qualified paths. |
 | `ConvertTo-WUNativeCommandArgument` | Converts values for native command arguments. |
 | `ConvertTo-WUPSStringLiteral` | Converts strings to PowerShell string literals. |
+| `ConvertTo-WUProcessArgument` | Quotes arguments for a Windows process command line. |
 | `Disable-WUAppLaunchTracking` | Disables application launch tracking. |
 | `Disable-WUAppSuggestions` | Disables application suggestions. |
 | `Disable-WUClassicContextMenu` | Disables the classic Windows 11 Explorer context menu. |
@@ -74,8 +76,10 @@ The following table is generated from the exported commands and their comment-ba
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
 | `Install-WUWingetPackage` | Installs an exact package with Windows Package Manager. |
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
+| `Invoke-WUExternalCommand` | Runs an external command and returns its exit status. |
 | `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
+| `New-WUCmdArgument` | Creates a cmd.exe argument string for a Windows batch command. |
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |
