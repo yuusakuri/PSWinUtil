@@ -333,6 +333,5 @@ Describe 'Android SDK availability' {
         $script:InstallExitCode = 23
 
         { Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' } | Should -Throw '*exit code 23*'
-
     }
 }
