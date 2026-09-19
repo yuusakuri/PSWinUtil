@@ -28,9 +28,6 @@ function Install-WUAndroidSdk {
     .OUTPUTS
     System.IO.DirectoryInfo
 
-    .NOTES
-    Android documents LOCALAPPDATA\Android\Sdk as the usual Windows SDK location and ANDROID_SDK_ROOT as a deprecated alternative to ANDROID_HOME.
-
     .LINK
     https://developer.android.com/tools/variables
 
