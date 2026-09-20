@@ -21,13 +21,13 @@ function Get-WUAndroidSdkPackageVersion {
     $result = Invoke-WUNativeCommand `
         -Command 'android.exe' `
         -ArgumentList @(
-            '--no-metrics'
-            'sdk'
-            'list'
-            $packagePattern
-            '--all'
-            '--all-versions'
-        ) `
+        '--no-metrics'
+        'sdk'
+        'list'
+        $packagePattern
+        '--all'
+        '--all-versions'
+    ) `
         -CaptureOutput `
         -ContinueExitCodes @(-1073740791) `
         -ErrorAction Stop
