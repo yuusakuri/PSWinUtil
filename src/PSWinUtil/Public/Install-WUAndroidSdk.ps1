@@ -88,7 +88,7 @@ function Install-WUAndroidSdk {
             $commandArguments = $androidArguments + @(
                 'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
             )
-            $result = Invoke-WUExternalCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
+            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
             if (-not $result.Succeeded) {
                 throw "android.exe failed: $($result.ToDebugString())"
             }
@@ -100,7 +100,7 @@ function Install-WUAndroidSdk {
             $commandArguments = $androidArguments + @(
                 'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
             )
-            $result = Invoke-WUExternalCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
+            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
             if (-not $result.Succeeded) {
                 throw "android.exe failed: $($result.ToDebugString())"
             }
@@ -142,7 +142,7 @@ function Install-WUAndroidSdk {
     if ($packages.Count -gt 0) {
         $installArguments = @('sdk', 'install') + $packages
         $commandArguments = $androidArguments + $installArguments
-        $result = Invoke-WUExternalCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
+        $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
         if (-not $result.Succeeded) {
             throw "android.exe failed: $($result.ToDebugString())"
         }

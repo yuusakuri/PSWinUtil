@@ -121,7 +121,7 @@ function Edit-WUSshKey {
         return
     }
 
-    $result = Invoke-WUExternalCommand -Command 'ssh-keygen.exe' -ArgumentList $arguments -CaptureOutput -ErrorAction Ignore
+    $result = Invoke-WUNativeCommand -Command 'ssh-keygen.exe' -ArgumentList $arguments -CaptureOutput -ErrorAction Ignore
     if (-not $result.Succeeded) {
         throw "ssh-keygen.exe failed: $($result.ToDebugString())"
     }

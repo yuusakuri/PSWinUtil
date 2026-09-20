@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PSWinUtil
 {
-    public sealed class ExternalCommandResult
+    public sealed class NativeCommandResult
     {
         [DataContract]
         private sealed class DebugResult
@@ -26,7 +26,7 @@ namespace PSWinUtil
 
         public string StandardError { get; }
 
-        public ExternalCommandResult(bool succeeded, int exitCode, string standardOutput, string standardError)
+        public NativeCommandResult(bool succeeded, int exitCode, string standardOutput, string standardError)
         {
             Succeeded = succeeded;
             ExitCode = exitCode;

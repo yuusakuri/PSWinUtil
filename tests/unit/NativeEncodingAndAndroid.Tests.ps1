@@ -150,14 +150,14 @@ Describe 'Android virtual devices' {
             $script:TestAdbExitCode = 0
             $script:TestAndroidEvents = [System.Collections.Generic.List[string]]::new()
         }
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
             InModuleScope -ModuleName PSWinUtil -Parameters @{
                 NativeCommand = $Command
                 NativeArguments = $ArgumentList
             } {
                 if ($NativeCommand -eq 'emulator.exe') {
                     $script:CapturedAndroidArguments = @($NativeArguments)
-                    return [PSWinUtil.ExternalCommandResult]::new(
+                    return [PSWinUtil.NativeCommandResult]::new(
                         ($script:TestAndroidExitCode -eq 0),
                         $script:TestAndroidExitCode,
                         ($script:TestAndroidAvds -join [Environment]::NewLine),
@@ -166,7 +166,7 @@ Describe 'Android virtual devices' {
                 }
 
                 $script:TestAndroidEvents.Add(($NativeArguments -join ' '))
-                [PSWinUtil.ExternalCommandResult]::new(
+                [PSWinUtil.NativeCommandResult]::new(
                     ($script:TestAdbExitCode -eq 0),
                     $script:TestAdbExitCode,
                     ($script:TestAdbDevices -join [Environment]::NewLine),
@@ -570,8 +570,8 @@ Describe 'Android virtual devices' {
     }
 
     It 'handles native adb devices stderr under Windows PowerShell ErrorAction Stop' -Skip:($PSVersionTable.PSEdition -ne 'Desktop') {
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
-            [PSWinUtil.ExternalCommandResult]::new(
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            [PSWinUtil.NativeCommandResult]::new(
                 $true,
                 0,
                 "List of devices attached`nemulator-5554 offline",

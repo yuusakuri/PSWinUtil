@@ -2,7 +2,7 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 }
 
-Describe 'Invoke-WUExternalCommand' {
+Describe 'Invoke-WUNativeCommand' {
     BeforeAll {
         $script:CommandDirectory = Join-Path -Path $TestDrive -ChildPath 'batch tools & data'
         New-Item -Path $script:CommandDirectory -ItemType Directory -Force | Out-Null
@@ -44,11 +44,11 @@ Describe 'Invoke-WUExternalCommand' {
         @{ Value = 'C:\path with spaces\' }
         @{ Value = "two`twords" }
     ) {
-        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ProcessScriptPath, $Value
         ) -CaptureOutput
 
-        $result | Should -BeOfType ([PSWinUtil.ExternalCommandResult])
+        $result | Should -BeOfType ([PSWinUtil.NativeCommandResult])
         $result.Succeeded | Should -BeTrue
         $result.ExitCode | Should -Be 0
         $result.StandardOutput.TrimEnd() | Should -Be "VALUE=$Value"
@@ -66,7 +66,7 @@ Describe 'Invoke-WUExternalCommand' {
         @{ Value = 'C:\folder' }
         @{ Value = 'C:\path with spaces' }
     ) {
-        $result = Invoke-WUExternalCommand -Command $script:BatchPath -ArgumentList @($Value) -CaptureOutput
+        $result = Invoke-WUNativeCommand -Command $script:BatchPath -ArgumentList @($Value) -CaptureOutput
 
         $result.Succeeded | Should -BeTrue
         $result.StandardOutput.TrimEnd() | Should -Be "PSWINUTIL_VALUE=[$Value]"
@@ -82,18 +82,18 @@ Describe 'Invoke-WUExternalCommand' {
         @{ Value = 'C:\path with spaces\' }
         @{ Value = "two`twords" }
     ) {
-        { Invoke-WUExternalCommand -Command $script:BatchPath -ArgumentList @($Value) -CaptureOutput } | Should -Throw
+        { Invoke-WUNativeCommand -Command $script:BatchPath -ArgumentList @($Value) -CaptureOutput } | Should -Throw
     }
 
     It 'runs a batch file without arguments' {
-        $result = Invoke-WUExternalCommand -Command $script:BatchPath -CaptureOutput
+        $result = Invoke-WUNativeCommand -Command $script:BatchPath -CaptureOutput
 
         $result.Succeeded | Should -BeTrue
         $result.StandardOutput.TrimEnd() | Should -Be 'PSWINUTIL_VALUE=[]'
     }
 
     It 'runs a .bat file with an argument' {
-        $result = Invoke-WUExternalCommand -Command $script:BatPath -ArgumentList @('one value') -CaptureOutput
+        $result = Invoke-WUNativeCommand -Command $script:BatPath -ArgumentList @('one value') -CaptureOutput
 
         $result.Succeeded | Should -BeTrue
         $result.StandardOutput.TrimEnd() | Should -Be 'PSWINUTIL_VALUE=[one value]'
@@ -103,7 +103,7 @@ Describe 'Invoke-WUExternalCommand' {
         $previousPath = $env:PATH
         try {
             $env:PATH = "$script:CommandDirectory;$previousPath"
-            $result = Invoke-WUExternalCommand -Command 'echo two arguments.cmd' -ArgumentList @(
+            $result = Invoke-WUNativeCommand -Command 'echo two arguments.cmd' -ArgumentList @(
                 'one value', 'a&b'
             ) -CaptureOutput
 
@@ -115,7 +115,7 @@ Describe 'Invoke-WUExternalCommand' {
     }
 
     It 'returns a failed result when the error is ignored' {
-        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath
         ) -CaptureOutput -ErrorAction Ignore -ErrorVariable ignoredErrors
 
@@ -131,7 +131,7 @@ Describe 'Invoke-WUExternalCommand' {
     }
 
     It 'writes a structured error without exposing arguments when error handling continues' {
-        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath, 'secret-value'
         ) -CaptureOutput -ErrorAction Continue -ErrorVariable commandError 2>$null
 
@@ -147,7 +147,7 @@ Describe 'Invoke-WUExternalCommand' {
     }
 
     It 'uses a caller-provided redacted command line in the error' {
-        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath, 'secret-value'
         ) -ErrorCommandLine 'powershell.exe -File <redacted>' -ErrorAction Continue -ErrorVariable commandError 2>$null
 
@@ -159,14 +159,14 @@ Describe 'Invoke-WUExternalCommand' {
 
     It 'stops on failure when the caller requests terminating errors' {
         {
-            Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+            Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
                 '-NoProfile', '-File', $script:ExitScriptPath
             ) -CaptureOutput -ErrorAction Stop
         } | Should -Throw '*Command failed:*'
     }
 
     It 'reports a failing batch command with its exit code' {
-        $result = Invoke-WUExternalCommand -Command $script:FailBatchPath -ErrorAction Continue -ErrorVariable commandError 2>$null
+        $result = Invoke-WUNativeCommand -Command $script:FailBatchPath -ErrorAction Continue -ErrorVariable commandError 2>$null
 
         $result.Succeeded | Should -BeFalse
         $diagnostic = $commandError[0].Exception.Message.Substring('Command failed: '.Length) | ConvertFrom-Json
@@ -175,7 +175,7 @@ Describe 'Invoke-WUExternalCommand' {
     }
 
     It 'treats a selected exit code as success without changing the actual exit code' {
-        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath
         ) -CaptureOutput -ContinueExitCodes 7
 
@@ -184,7 +184,7 @@ Describe 'Invoke-WUExternalCommand' {
     }
 
     It 'does not capture output unless requested' {
-        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath
         ) -ErrorAction Ignore
 

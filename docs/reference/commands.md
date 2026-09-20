@@ -76,7 +76,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
 | `Install-WUWingetPackage` | Installs an exact package with Windows Package Manager. |
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
-| `Invoke-WUExternalCommand` | Runs an external command and returns its exit status. |
+| `Invoke-WUNativeCommand` | Runs a native executable or batch command and returns its exit status. |
 | `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
 | `New-WUCmdArgument` | Creates a cmd.exe argument string for a Windows batch command. |

@@ -1,13 +1,13 @@
-function Invoke-WUExternalCommand {
+function Invoke-WUNativeCommand {
     <#
     .SYNOPSIS
-    Runs an external command and returns its exit status.
+    Runs a native executable or batch command and returns its exit status.
 
     .DESCRIPTION
     Runs an executable or Windows batch command with separate argument values. Batch commands run through cmd.exe and reject values that cmd.exe cannot reliably preserve. Output appears in the console by default; CaptureOutput instead returns standard output and standard error in the result. A failed exit writes an error according to the caller's ErrorAction setting and still returns the result unless error handling stops execution. ContinueExitCodes marks additional exit codes as successful.
 
     .PARAMETER Command
-    Specifies the external command name or path.
+    Specifies the native command name or path.
 
     .PARAMETER ArgumentList
     Specifies the values passed as individual arguments.
@@ -22,20 +22,20 @@ function Invoke-WUExternalCommand {
     Specifies a display-only command line for failure errors. Omit secrets before providing it. By default, the error contains only the command name, not its arguments.
 
     .EXAMPLE
-    Invoke-WUExternalCommand -Command 'git' -ArgumentList @('status', '--short') -CaptureOutput
+    Invoke-WUNativeCommand -Command 'git' -ArgumentList @('status', '--short') -CaptureOutput
 
     Returns Git output and its exit status.
 
     .EXAMPLE
-    Invoke-WUExternalCommand -Command 'npm.cmd' -ArgumentList @('install')
+    Invoke-WUNativeCommand -Command 'npm.cmd' -ArgumentList @('install')
 
     Runs npm.cmd and returns its exit status.
 
     .OUTPUTS
-    PSWinUtil.ExternalCommandResult
+    PSWinUtil.NativeCommandResult
     #>
     [CmdletBinding()]
-    [OutputType([PSWinUtil.ExternalCommandResult])]
+    [OutputType([PSWinUtil.NativeCommandResult])]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -98,7 +98,7 @@ function Invoke-WUExternalCommand {
         }
 
         $exitCode = $process.ExitCode
-        $result = [PSWinUtil.ExternalCommandResult]::new(
+        $result = [PSWinUtil.NativeCommandResult]::new(
             ($exitCode -eq 0 -or $ContinueExitCodes -contains $exitCode),
             $exitCode,
             $standardOutput,
@@ -117,7 +117,7 @@ function Invoke-WUExternalCommand {
             } | ConvertTo-Json -Compress
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 [System.InvalidOperationException]::new("Command failed: $diagnostic"),
-                'ExternalCommandFailed',
+                'NativeCommandFailed',
                 [System.Management.Automation.ErrorCategory]::NotSpecified,
                 $result
             )

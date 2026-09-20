@@ -4,11 +4,11 @@ BeforeAll {
 
 Describe 'Install-WUWingetPackage' {
     BeforeEach {
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
             InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
                 $script:CapturedWingetArguments = @($Arguments)
             }
-            [PSWinUtil.ExternalCommandResult]::new($true, 0, $null, $null)
+            [PSWinUtil.NativeCommandResult]::new($true, 0, $null, $null)
         }
     }
 
@@ -29,8 +29,8 @@ Describe 'Install-WUWingetPackage' {
     }
 
     It 'reports the exit code when winget fails' {
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
-            [PSWinUtil.ExternalCommandResult]::new($false, 42, $null, $null)
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            [PSWinUtil.NativeCommandResult]::new($false, 42, $null, $null)
         }
 
         {

@@ -4,7 +4,7 @@ BeforeAll {
 
 Describe 'New-WUSshKey' {
     BeforeEach {
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
             InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
                 $script:CapturedSshArguments = @($Arguments)
             }
@@ -12,7 +12,7 @@ Describe 'New-WUSshKey' {
             $keyPath = [string]$ArgumentList[$fileIndex]
             [System.IO.File]::WriteAllText($keyPath, 'private key')
             [System.IO.File]::WriteAllText("$keyPath.pub", 'public key')
-            [PSWinUtil.ExternalCommandResult]::new($true, 0, '', '')
+            [PSWinUtil.NativeCommandResult]::new($true, 0, '', '')
         }
     }
 
@@ -52,8 +52,8 @@ Describe 'New-WUSshKey' {
     }
 
     It 'reports ssh-keygen failures' {
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
-            [PSWinUtil.ExternalCommandResult]::new($false, 7, '', 'failure details')
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            [PSWinUtil.NativeCommandResult]::new($false, 7, '', 'failure details')
         }
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'failed-key'
 
@@ -64,11 +64,11 @@ Describe 'New-WUSshKey' {
 
 Describe 'Edit-WUSshKey' {
     BeforeEach {
-        Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
             InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
                 $script:CapturedSshArguments = @($Arguments)
             }
-            [PSWinUtil.ExternalCommandResult]::new($true, 0, '', '')
+            [PSWinUtil.NativeCommandResult]::new($true, 0, '', '')
         }
     }
 

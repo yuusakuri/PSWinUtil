@@ -2,9 +2,9 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 }
 
-Describe 'ExternalCommandResult.ToDebugString' {
+Describe 'NativeCommandResult.ToDebugString' {
     It 'returns exit code and stderr before stdout as JSON' {
-        $result = [PSWinUtil.ExternalCommandResult]::new(
+        $result = [PSWinUtil.NativeCommandResult]::new(
             $false, 7, 'stdout "quoted"', "stderr`n"
         )
 
@@ -17,7 +17,7 @@ Describe 'ExternalCommandResult.ToDebugString' {
     }
 
     It 'returns an empty message when no output was captured' {
-        $result = [PSWinUtil.ExternalCommandResult]::new($false, 3, $null, $null)
+        $result = [PSWinUtil.NativeCommandResult]::new($false, 3, $null, $null)
 
         $debugResult = $result.ToDebugString() | ConvertFrom-Json
 
@@ -29,7 +29,7 @@ Describe 'ExternalCommandResult.ToDebugString' {
     }
 
     It 'combines stderr and stdout without adding a newline before CRLF' {
-        $result = [PSWinUtil.ExternalCommandResult]::new($false, 7, "`r`noutput", 'error')
+        $result = [PSWinUtil.NativeCommandResult]::new($false, 7, "`r`noutput", 'error')
 
         $result.Message() | Should -BeExactly "error`r`noutput"
         ($result.ToDebugString() | ConvertFrom-Json).message |
