@@ -65,8 +65,7 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
     }
 
     It 'previews startup without launching the created AVD' {
-        New-WUAndroidEmulator -Name startup_preview -PlatformVersion 29 -SystemImageTag default | Out-Null
-        @(Start-WUAndroidEmulator -Name startup_preview -WhatIf) | Should -HaveCount 0
-        @(Get-WUAndroidEmulator) | Should -Contain 'startup_preview'
+        @(Start-WUAndroidEmulator -Name contract_device -WhatIf) | Should -HaveCount 0
+        @(Get-WUAndroidEmulator) | Should -Contain 'contract_device'
     }
 }
