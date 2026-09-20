@@ -72,7 +72,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WUWindowsAutoLogon` | Reads the Windows automatic logon configuration. |
 | `Install-WUAndroidSdk` | Installs and configures an Android SDK with Android CLI. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
-| `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
+| `Install-WUGit` | Installs Git for Windows when the Git command is unavailable. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
 | `Install-WUWingetPackage` | Installs an exact package with Windows Package Manager. |
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
