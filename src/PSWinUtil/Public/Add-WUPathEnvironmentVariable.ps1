@@ -4,7 +4,7 @@ function Add-WUPathEnvironmentVariable {
     Adds paths to the PATH environment variable.
 
     .DESCRIPTION
-    Adds paths to one or more Process, User, or Machine PATH values. Empty PATH items are removed when the value is read. Existing item text and order are preserved. Duplicate checks ignore leading and trailing spaces, a trailing backslash, and character case.
+    Adds paths to one or more Process, User, or Machine PATH values. Empty PATH items are removed when the value is read. Existing item text and order are preserved. Duplicate checks trim whitespace, expand environment variables for the selected scope, normalize fully qualified paths, ignore a trailing backslash, and ignore character case.
 
     .PARAMETER Path
     Specifies one or more paths to add. The paths do not need to exist.

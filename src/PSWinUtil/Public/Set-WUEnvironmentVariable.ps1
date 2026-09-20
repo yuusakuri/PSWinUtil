@@ -185,9 +185,16 @@ function Set-WUEnvironmentVariable {
                 [PSWinUtil.EnvironmentChangeNotification]::Broadcast()
             }
             if ($PassThru) {
+                $getParameters = @{
+                    Name = $setting.Name
+                    Scope = $setting.Scope
+                }
+                if ($setting.Scope -ne 'Process') {
+                    $getParameters.NoExpand = $true
+                }
                 [pscustomobject]@{
                     Name = $setting.Name
-                    Value = Get-WUEnvironmentVariable -Name $setting.Name -Scope $setting.Scope
+                    Value = Get-WUEnvironmentVariable @getParameters
                     Scope = $setting.Scope
                 }
             }

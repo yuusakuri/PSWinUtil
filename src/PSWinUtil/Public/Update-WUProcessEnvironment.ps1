@@ -27,6 +27,10 @@ function Update-WUProcessEnvironment {
 
     $environmentValues = @{}
     $environmentLookup = @{}
+    foreach ($environmentEntry in [System.Environment]::GetEnvironmentVariables(
+            [System.EnvironmentVariableTarget]::Process).GetEnumerator()) {
+        $environmentLookup[[string]$environmentEntry.Key] = [string]$environmentEntry.Value
+    }
     foreach ($target in @(
             [System.EnvironmentVariableTarget]::Machine,
             [System.EnvironmentVariableTarget]::User

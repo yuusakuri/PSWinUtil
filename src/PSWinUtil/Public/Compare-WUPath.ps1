@@ -13,7 +13,7 @@ function Compare-WUPath {
     Specifies the second path to compare.
 
     .PARAMETER Scope
-    Specifies the environment-variable scope used to resolve references in the paths. User includes Machine as a fallback; Machine and Process use only their named scope.
+    Specifies the environment-variable scope used to resolve references in the paths.
 
     .EXAMPLE
     Compare-WUPath -ReferencePath 'C:\Tools' -DifferencePath 'c:\tools\'
@@ -39,45 +39,18 @@ function Compare-WUPath {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
+        [ValidateCount(1, 1)]
         [string[]]$Scope = 'Process'
     )
-
-    if ($Scope.Count -ne 1) {
-        throw 'Compare-WUPath accepts exactly one scope.'
-    }
-
-    $scopes = switch ($Scope[0]) {
-        'Process' { @('Process') }
-        'User' { @('User', 'Machine') }
-        'Machine' { @('Machine') }
-    }
 
     $normalize = {
         param([string]$Value)
 
-        $expandedValue = [System.Text.RegularExpressions.Regex]::Replace(
-            $Value.Trim(),
-            '%([^%]+)%',
-            {
-                param($Match)
-
-                foreach ($lookupScope in $scopes) {
-                    $lookupValues = @(Get-WUEnvironmentVariable -Name $Match.Groups[1].Value -Scope $lookupScope)
-                    if ($lookupValues.Count -gt 0) {
-                        return [string]$lookupValues[0]
-                    }
-                }
-
-                $Match.Value
-            }
-        )
+        $expandedValue = [PSWinUtil.EnvironmentVariableExpander]::Expand($Value.Trim(), $Scope[0])
         $expandedValue = $expandedValue.Replace('/', '\')
-        if ($expandedValue -notmatch '%[^%]+%') {
-            try {
-                $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
-            } catch {
-                $expandedValue = $expandedValue.TrimEnd([char]'\')
-            }
+        $isFullyQualified = $expandedValue -match '^(?:[A-Za-z]:[\\/]|\\\\)'
+        if ($isFullyQualified) {
+            $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
         }
         if ($expandedValue.Length -gt 3) {
             $expandedValue = $expandedValue.TrimEnd([char]'\')
