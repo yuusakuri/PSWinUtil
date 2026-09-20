@@ -71,13 +71,16 @@ Describe 'Built module manifest' {
     It 'accepts multiple Scope values in every scoped public command' {
         $scopedCommands = @(
             $script:Module.ExportedFunctions.Values |
-                Where-Object { $_.Parameters.ContainsKey('Scope') }
+                Where-Object { $_.Parameters.ContainsKey('Scope') -and $_.Name -ne 'Compare-WUPath' }
         )
 
         foreach ($command in $scopedCommands) {
             $command.Parameters.Scope.ParameterType |
                 Should -Be ([string[]]) -Because "$($command.Name) must accept multiple scopes"
         }
+
+        $script:Module.ExportedFunctions['Compare-WUPath'].Parameters.Scope.ParameterType |
+            Should -Be ([string]) -Because 'a path comparison returns one Boolean for one scope'
     }
 
     It 'uses consistent wildcard and literal parameters for file selectors' {

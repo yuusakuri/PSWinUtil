@@ -72,7 +72,8 @@ function Update-WUProcessEnvironment {
         )) {
         $pathValue = Get-WUEnvironmentVariable -Name 'Path' -Scope ([string]$target) -NoExpand
         if (-not [string]::IsNullOrEmpty($pathValue)) {
-            $pathValues += & $expandPath $pathValue
+            $scopedPath = [PSWinUtil.EnvironmentVariableExpander]::Expand($pathValue, [string]$target)
+            $pathValues += & $expandPath $scopedPath
         }
     }
     $environmentValues['Path'] = $pathValues -join ';'

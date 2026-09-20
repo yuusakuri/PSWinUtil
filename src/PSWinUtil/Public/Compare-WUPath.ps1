@@ -39,21 +39,26 @@ function Compare-WUPath {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [ValidateCount(1, 1)]
-        [string[]]$Scope = 'Process'
+        [string]$Scope = 'Process'
     )
 
-    $scopeName = $Scope[0]
+    $scopeName = $Scope
     $normalize = {
         param([string]$Value)
 
         $expandedValue = [PSWinUtil.EnvironmentVariableExpander]::Expand($Value.Trim(), $scopeName)
         $expandedValue = $expandedValue.Replace('/', '\')
         $isFullyQualified = $expandedValue -match '^(?:[A-Za-z]:[\\/]|\\\\)'
+        $rootLength = 0
         if ($isFullyQualified) {
-            $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
+            try {
+                $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
+                $rootLength = [System.IO.Path]::GetPathRoot($expandedValue).Length
+            } catch {
+                return $expandedValue.TrimEnd([char]'\')
+            }
         }
-        if ($expandedValue.Length -gt 3) {
+        if ($expandedValue.Length -gt $rootLength) {
             $expandedValue = $expandedValue.TrimEnd([char]'\')
         }
 

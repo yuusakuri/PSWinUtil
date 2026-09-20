@@ -30,6 +30,14 @@ Describe 'Compare-WUPath' {
             Should -BeTrue
     }
 
+    It 'expands a user environment reference when the resulting path exceeds the initial buffer' {
+        $source = ('%USERPROFILE%\' * 40) + 'bin'
+        $expected = ("$env:USERPROFILE\" * 40) + 'bin'
+
+        [PSWinUtil.EnvironmentVariableExpander]::Expand($source, 'User') |
+            Should -Be $expected
+    }
+
     It 'does not make an unresolved variable relative to the current directory' {
         Compare-WUPath `
             -ReferencePath '%PSWINUTIL_UNKNOWN%\bin' `
@@ -49,6 +57,11 @@ Describe 'Compare-WUPath' {
             -ReferencePath 'C:relative' `
             -DifferencePath 'C:\relative' `
             -Scope Process |
+            Should -BeFalse
+    }
+
+    It 'keeps a fully qualified root distinct from its incomplete spelling' {
+        Compare-WUPath -ReferencePath '\\?\C:\' -DifferencePath '\\?\C:' |
             Should -BeFalse
     }
 }

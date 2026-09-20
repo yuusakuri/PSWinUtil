@@ -67,4 +67,25 @@ Describe 'Update-WUProcessEnvironment' {
             [Environment]::SetEnvironmentVariable($variableName, $originalValue, $script:EnvironmentTarget)
         }
     }
+
+    It 'expands USERPROFILE in a persistent user path' {
+        $originalUserProfile = [Environment]::GetEnvironmentVariable('USERPROFILE', $script:EnvironmentTarget)
+        Mock -CommandName Get-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {
+            if ($Scope -contains 'Machine') {
+                return ''
+            }
+
+            '%USERPROFILE%\bin'
+        }
+
+        try {
+            [Environment]::SetEnvironmentVariable('USERPROFILE', $null, $script:EnvironmentTarget)
+            Update-WUProcessEnvironment
+
+            [Environment]::GetEnvironmentVariable('Path', $script:EnvironmentTarget) |
+                Should -Be (Join-Path $originalUserProfile 'bin')
+        } finally {
+            [Environment]::SetEnvironmentVariable('USERPROFILE', $originalUserProfile, $script:EnvironmentTarget)
+        }
+    }
 }
