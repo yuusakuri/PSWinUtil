@@ -4,13 +4,25 @@ function Install-WUAndroidSdk {
     Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools.
 
     .DESCRIPTION
-    Installs the SDK under $env:ANDROID_HOME, using $env:LOCALAPPDATA\Android\Sdk when unset. The API level and Build Tools version can be selected with parameters. Sets $env:ANDROID_HOME and $env:PATH in the User and current Process scopes.
+    Installs the SDK under $env:ANDROID_HOME, using $env:LOCALAPPDATA\Android\Sdk when unset. The API level and SDK component versions can be selected with parameters. Sets $env:ANDROID_HOME and $env:PATH in the User and current Process scopes.
 
     .PARAMETER PlatformVersion
     Specifies the Android SDK Platform API level. The greatest stable available API level is used when omitted.
 
     .PARAMETER BuildToolsVersion
     Specifies a three-part Android SDK Build Tools version. The greatest stable available version is used when omitted.
+
+    .PARAMETER CommandLineToolsVersion
+    Specifies the stable Command-Line Tools package identifier, such as 22.0, from cmdline-tools/VERSION. Defaults to latest.
+
+    .PARAMETER PlatformToolsVersion
+    Specifies the three-part platform-tools package version reported by android sdk list. When omitted, installs the latest stable version only if Platform Tools are missing.
+
+    .PARAMETER EmulatorVersion
+    Specifies the three-part emulator package version reported by android sdk list. When omitted, installs the latest stable version only if the emulator is missing.
+
+    .PARAMETER PlatformPackageVersion
+    Specifies the three-part SDK Platform package version reported by android sdk list, independently of the PlatformVersion API level. When omitted, installs the latest stable package version only if that API's SDK Platform is missing.
 
     .EXAMPLE
     Install-WUAndroidSdk
@@ -21,6 +33,11 @@ function Install-WUAndroidSdk {
     Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0'
 
     Installs Android API level 36 and Build Tools 36.0.0 at the selected SDK location.
+
+    .EXAMPLE
+    Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0' -CommandLineToolsVersion '22.0' -PlatformPackageVersion '2.0.0' -PlatformToolsVersion '37.0.1' -EmulatorVersion '37.1.11'
+
+    Installs the specified versions of the requested SDK components when they are available.
 
     .INPUTS
     None
@@ -43,7 +60,23 @@ function Install-WUAndroidSdk {
 
         [Parameter()]
         [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
-        [string]$BuildToolsVersion
+        [string]$BuildToolsVersion,
+
+        [Parameter()]
+        [ValidatePattern('^(latest|[0-9]+\.[0-9]+)$')]
+        [string]$CommandLineToolsVersion = 'latest',
+
+        [Parameter()]
+        [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
+        [string]$PlatformToolsVersion,
+
+        [Parameter()]
+        [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
+        [string]$EmulatorVersion,
+
+        [Parameter()]
+        [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
+        [string]$PlatformPackageVersion
     )
 
     if (-not $PSCmdlet.ShouldProcess('Android SDK', 'Install and configure Android SDK')) {
@@ -81,7 +114,7 @@ function Install-WUAndroidSdk {
             $commandArguments = $androidArguments + @(
                 'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
             )
-            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Stop
+            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop
             $availablePlatforms = @($result.StandardOutput | Split-WUNewLine)
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
                 -InputObject $availablePlatforms
@@ -90,7 +123,7 @@ function Install-WUAndroidSdk {
             $commandArguments = $androidArguments + @(
                 'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
             )
-            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Stop
+            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop
             $availableBuildTools = @($result.StandardOutput | Split-WUNewLine)
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
                 -InputObject $availableBuildTools
@@ -102,34 +135,47 @@ function Install-WUAndroidSdk {
         -Path $env:ANDROID_HOME `
         -ChildPath "platforms\android-$resolvedPlatformVersion"
     $buildToolsRoot = Join-Path -Path $env:ANDROID_HOME -ChildPath 'build-tools'
-    $buildToolsPath = Join-Path -Path $buildToolsRoot -ChildPath $resolvedBuildToolsVersion
     $emulatorPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'emulator'
-    $cmdlineToolsPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'cmdline-tools\latest\bin'
 
-    $packages = @()
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $platformToolsPath -ChildPath 'adb.exe'))) {
-        $packages += 'platform-tools'
-    }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $platformPath -ChildPath 'android.jar'))) {
-        $packages += "platforms/android-$resolvedPlatformVersion"
-    }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $buildToolsPath -ChildPath 'aapt2.exe'))) {
-        $packages += "build-tools/$resolvedBuildToolsVersion"
-    }
-    if (-not (Test-Path -LiteralPath (Join-Path -Path $emulatorPath -ChildPath 'emulator.exe'))) {
-        $packages += 'emulator'
-    }
-    if (
-        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'sdkmanager.bat')) -or
-        -not (Test-Path -LiteralPath (Join-Path -Path $cmdlineToolsPath -ChildPath 'avdmanager.bat'))
-    ) {
-        $packages += 'cmdline-tools/latest'
-    }
+    $platformToolsParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'PlatformToolsVersion'
+    Install-WUAndroidPlatformTool @platformToolsParameters
 
-    if ($packages.Count -gt 0) {
-        $installArguments = @('sdk', 'install') + $packages
-        $commandArguments = $androidArguments + $installArguments
-        Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Stop | Out-Null
+    $platformParameters = @{ ApiVersion = $resolvedPlatformVersion }
+    $platformParameters += Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'PlatformPackageVersion'
+    Install-WUAndroidSdkPlatform @platformParameters
+
+    Install-WUAndroidBuildTool -Version $resolvedBuildToolsVersion
+
+    $emulatorParameters = Select-WUBoundParameter `
+        -BoundParameters $PSBoundParameters `
+        -Name 'EmulatorVersion'
+    Install-WUAndroidEmulator @emulatorParameters
+
+    Install-WUAndroidCommandLineTool -Version $CommandLineToolsVersion
+
+    $versionedPackages = @{
+        PlatformToolsVersion = $platformToolsPath
+        EmulatorVersion = $emulatorPath
+        PlatformPackageVersion = $platformPath
+    }
+    foreach ($parameterName in $versionedPackages.Keys) {
+        if (-not $PSBoundParameters.ContainsKey($parameterName)) {
+            continue
+        }
+        $propertiesPath = Join-Path $versionedPackages[$parameterName] 'source.properties'
+        $properties = Get-Content -LiteralPath $propertiesPath -Raw -ErrorAction Stop
+        $revision = [regex]::Match($properties, '(?m)^Pkg.Revision\s*=\s*([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?\s*$')
+        if (-not $revision.Success) {
+            throw "Android package revision was not found: $propertiesPath"
+        }
+        $installedVersion = [version]::new([int]$revision.Groups[1].Value, [int]$revision.Groups[2].Value, [int]$revision.Groups[3].Value)
+        if ($installedVersion -ne [version]$PSBoundParameters[$parameterName]) {
+            throw "Android CLI did not install $parameterName $($PSBoundParameters[$parameterName]); installed version is $installedVersion."
+        }
     }
 
     Set-WUAndroidBuildToolsLatest `
@@ -139,11 +185,12 @@ function Install-WUAndroidSdk {
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
         '%ANDROID_HOME%\build-tools\latest'
-        '%ANDROID_HOME%\cmdline-tools\latest\bin'
+        "%ANDROID_HOME%\cmdline-tools\$CommandLineToolsVersion\bin"
     )
     Add-WUPathEnvironmentVariable `
         -Path $userPaths `
-        -Scope 'User'
+        -Scope 'User' `
+        -Prepend
     Update-WUProcessEnvironment
 
     Assert-WUCommand -Name @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')
