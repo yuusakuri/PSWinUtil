@@ -8,7 +8,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUCommand` | Throws when a named command is unavailable on PATH. |
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
-| `Compare-WUPath` | Compares two PATH entries using the selected environment-variable scope. |
+| `Compare-WUPath` | Compares two PATH environment variable items. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
 | `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
 | `ConvertTo-WUCommandLineArgument` | Quotes an argument for a Windows executable command line. |
@@ -71,7 +71,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WURegistrySetting` | Gets a Windows registry setting state. |
 | `Get-WUStartupEntry` | Gets Windows startup entries. |
 | `Get-WUWindowsAutoLogon` | Reads the Windows automatic logon configuration. |
-| `Install-WUAndroidSdk` | Installs and configures an Android SDK with Android CLI. |
+| `Install-WUAndroidSdk` | Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
 | `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |

@@ -12,6 +12,9 @@ function Compare-WUPath {
     .PARAMETER DifferencePath
     Specifies the second path to compare.
 
+    .PARAMETER Scope
+    Specifies the environment-variable scope used to resolve references in the paths. User includes Machine as a fallback; Machine and Process use only their named scope.
+
     .EXAMPLE
     Compare-WUPath -ReferencePath 'C:\Tools' -DifferencePath 'c:\tools\'
 
@@ -36,10 +39,14 @@ function Compare-WUPath {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string]$Scope = 'Process'
+        [string[]]$Scope = 'Process'
     )
 
-    $scopes = switch ($Scope) {
+    if ($Scope.Count -ne 1) {
+        throw 'Compare-WUPath accepts exactly one scope.'
+    }
+
+    $scopes = switch ($Scope[0]) {
         'Process' { @('Process') }
         'User' { @('User', 'Machine') }
         'Machine' { @('Machine') }
