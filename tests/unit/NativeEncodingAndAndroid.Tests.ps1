@@ -243,7 +243,7 @@ Describe 'Android virtual devices' {
         }
         $names = @()
 
-        { $names += Get-WUAndroidEmulator } | Should -Throw '*exit code 1*list error*'
+        { $names += Get-WUAndroidEmulator } | Should -Throw '*"exit_code":1*"message":*list error*'
         $names | Should -HaveCount 0
     }
 
@@ -259,7 +259,7 @@ Describe 'Android virtual devices' {
             $script:TestAndroidAvds = @('list error')
         }
 
-        { Start-WUAndroidEmulator } | Should -Throw '*exit code 1*'
+        { Start-WUAndroidEmulator } | Should -Throw '*"exit_code":1*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
@@ -453,8 +453,8 @@ Describe 'Android virtual devices' {
             $script:TestAdbDevices = @('cannot connect to daemon')
         }
 
-        { Get-WUAndroidEmulatorPort } | Should -Throw '*exit code 1*cannot connect to daemon*'
-        { Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5554 } | Should -Throw '*exit code 1*'
+        { Get-WUAndroidEmulatorPort } | Should -Throw '*"exit_code":1*cannot connect to daemon*'
+        { Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5554 } | Should -Throw '*"exit_code":1*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 

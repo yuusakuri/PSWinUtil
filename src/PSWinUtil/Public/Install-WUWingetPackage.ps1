@@ -49,8 +49,7 @@ function Install-WUWingetPackage {
         }
     )
     if (-not $result.Succeeded) {
-        $message = $textOutput -join [Environment]::NewLine
-        throw "winget.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+        throw "winget.exe failed: $($result.ToDebugString())"
     }
 
     $textOutput

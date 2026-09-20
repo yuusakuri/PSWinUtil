@@ -36,6 +36,6 @@ Describe 'Install-WUWingetPackage' {
 
         {
             Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-        } | Should -Throw '*exit code 42*Installation failed*'
+        } | Should -Throw '*"exit_code":42*"message":"Installation failed"*'
     }
 }

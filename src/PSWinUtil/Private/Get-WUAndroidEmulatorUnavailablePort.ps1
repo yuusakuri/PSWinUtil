@@ -22,8 +22,7 @@ function Get-WUAndroidEmulatorUnavailablePort {
 
     $result = Invoke-WUExternalCommand -Command 'adb.exe' -ArgumentList @('devices') -CaptureOutput
     if (-not $result.Succeeded) {
-        $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
-        throw "adb.exe devices failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+        throw "adb.exe devices failed: $($result.ToDebugString())"
     }
 
     $unavailablePorts = @(

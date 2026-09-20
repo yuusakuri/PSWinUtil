@@ -90,8 +90,7 @@ function Install-WUAndroidSdk {
             )
             $result = Invoke-WUExternalCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput
             if (-not $result.Succeeded) {
-                $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
-                throw "android.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+                throw "android.exe failed: $($result.ToDebugString())"
             }
             $availablePlatforms = @($result.StandardOutput -split '\r?\n')
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
@@ -103,8 +102,7 @@ function Install-WUAndroidSdk {
             )
             $result = Invoke-WUExternalCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput
             if (-not $result.Succeeded) {
-                $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
-                throw "android.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+                throw "android.exe failed: $($result.ToDebugString())"
             }
             $availableBuildTools = @($result.StandardOutput -split '\r?\n')
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
@@ -146,8 +144,7 @@ function Install-WUAndroidSdk {
         $commandArguments = $androidArguments + $installArguments
         $result = Invoke-WUExternalCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput
         if (-not $result.Succeeded) {
-            $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
-            throw "android.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+            throw "android.exe failed: $($result.ToDebugString())"
         }
     }
 

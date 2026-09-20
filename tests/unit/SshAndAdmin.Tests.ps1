@@ -58,7 +58,7 @@ Describe 'New-WUSshKey' {
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'failed-key'
 
         { New-WUSshKey -Path $keyPath } |
-            Should -Throw '*exit code 7*failure details*'
+            Should -Throw '*"exit_code":7*"message":"failure details"*'
     }
 }
 

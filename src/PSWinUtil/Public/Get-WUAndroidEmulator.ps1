@@ -25,8 +25,7 @@ function Get-WUAndroidEmulator {
 
     $result = Invoke-WUExternalCommand -Command 'emulator.exe' -ArgumentList @('-list-avds') -CaptureOutput
     if (-not $result.Succeeded) {
-        $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
-        throw "emulator.exe -list-avds failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+        throw "emulator.exe -list-avds failed: $($result.ToDebugString())"
     }
 
     $avdNames = @(

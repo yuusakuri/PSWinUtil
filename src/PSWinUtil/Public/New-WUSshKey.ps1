@@ -106,8 +106,7 @@ function New-WUSshKey {
 
     $result = Invoke-WUExternalCommand -Command 'ssh-keygen.exe' -ArgumentList $arguments -CaptureOutput
     if (-not $result.Succeeded) {
-        $message = @($result.StandardOutput, $result.StandardError) -join [Environment]::NewLine
-        throw "ssh-keygen.exe failed with exit code $($result.ExitCode).$([Environment]::NewLine)$message"
+        throw "ssh-keygen.exe failed: $($result.ToDebugString())"
     }
     Assert-WUPathProperty -LiteralPath $keyPath, $publicKeyPath -Leaf
 
