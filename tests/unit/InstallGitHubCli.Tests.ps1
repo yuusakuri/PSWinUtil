@@ -4,22 +4,39 @@ BeforeAll {
 
 Describe 'Install-WUGitHubCli' {
     BeforeEach {
-        Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
-    }
+        $script:InstalledPackages = @()
+        $script:PackageExitCode = 0
+        Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -MockWith {
+            param($Id, [switch]$WhatIf)
 
-    It 'installs the exact GitHub CLI package through the winget installer' {
-        Install-WUGitHubCli
-
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Id -eq 'GitHub.cli'
+            if ($WhatIf -or $WhatIfPreference) {
+                return
+            }
+            if ($script:PackageExitCode -ne 0) {
+                throw "winget.exe failed with exit code $script:PackageExitCode. Package manager output"
+            }
+            $script:InstalledPackages += $Id
+            'Package manager output'
         }
     }
 
-    It 'forwards WhatIf to the winget installer' {
+    It 'installs GitHub CLI and returns the package manager output' {
+        $result = Install-WUGitHubCli
+
+        $script:InstalledPackages | Should -Be @('GitHub.cli')
+        $result | Should -Be 'Package manager output'
+    }
+
+    It 'does not install any package when previewing installation' {
         Install-WUGitHubCli -WhatIf
 
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Id -eq 'GitHub.cli' -and $WhatIf -eq $true
-        }
+        $script:InstalledPackages | Should -HaveCount 0
+    }
+
+    It 'reports an unsuccessful installation' {
+        $script:PackageExitCode = 7
+
+        { Install-WUGitHubCli } | Should -Throw '*exit code 7*Package manager output*'
+        $script:InstalledPackages | Should -HaveCount 0
     }
 }

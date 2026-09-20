@@ -175,7 +175,7 @@ Describe 'Resolve-WUPathFromParameterSet' {
         $result.ProviderPath | Should -Be $script:ParameterFirstPath
     }
 
-    It 'forwards Relative to Resolve-WUPath' {
+    It 'returns a path relative to the current directory' {
         Push-Location -LiteralPath $script:ParameterDirectory
         try {
             $parameters = @{
@@ -191,7 +191,7 @@ Describe 'Resolve-WUPathFromParameterSet' {
         $result | Should -Be '.\first.txt'
     }
 
-    It 'forwards DenyMultiplePaths to Resolve-WUPath' {
+    It 'rejects multiple matching paths when one path is required' {
         $parameters = @{
             ParameterSetName = 'Path'
             Path = "$script:ParameterDirectory\*.txt"
@@ -202,17 +202,26 @@ Describe 'Resolve-WUPathFromParameterSet' {
         } | Should -Throw '*more than one result*'
     }
 
-    It 'forwards Credential to Resolve-WUPath' {
+    It 'resolves a path using the credentials accepted by its provider' {
         $securePassword = [System.Security.SecureString]::new()
         $securePassword.AppendChar('x')
         $credential = [System.Management.Automation.PSCredential]::new(
             'user',
             $securePassword
         )
-        $expectedPath = $script:ParameterFirstPath
-        $expectedCredential = $credential
-        Mock -CommandName Resolve-WUPath -ModuleName PSWinUtil -MockWith {
-            'resolved'
+        $script:ExpectedCredential = $credential
+        $script:ExpectedProviderPath = $script:ParameterFirstPath
+        $script:AuthenticatedPath = Resolve-Path -LiteralPath $script:ParameterFirstPath
+        Mock -CommandName Resolve-Path -ModuleName PSWinUtil -MockWith {
+            param($LiteralPath, [pscredential]$Credential)
+
+            if (
+                [string]$LiteralPath -ne $script:ExpectedProviderPath -or
+                -not [object]::ReferenceEquals($Credential, $script:ExpectedCredential)
+            ) {
+                throw [UnauthorizedAccessException]::new('The provider requires the selected credentials.')
+            }
+            $script:AuthenticatedPath
         }
         $parameters = @{
             ParameterSetName = 'LiteralPath'
@@ -222,11 +231,7 @@ Describe 'Resolve-WUPathFromParameterSet' {
 
         $result = Resolve-WUPathFromParameterSet @parameters
 
-        $result | Should -Be 'resolved'
-        Should -Invoke -CommandName Resolve-WUPath -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $LiteralPath -eq $expectedPath -and
-            $Credential -eq $expectedCredential
-        }
+        $result.ProviderPath | Should -Be $script:ExpectedProviderPath
     }
 
     It 'rejects a selected parameter set without a path value' {

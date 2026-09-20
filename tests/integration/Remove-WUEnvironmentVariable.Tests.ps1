@@ -4,46 +4,45 @@ BeforeAll {
 
 Describe 'Remove-WUEnvironmentVariable' {
     BeforeEach {
-        Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {}
+        $script:VariableName = 'PSWINUTIL_REMOVE_' + [guid]::NewGuid().ToString('N')
+        $script:UserVariableCreated = $false
+        [Environment]::SetEnvironmentVariable($script:VariableName, 'remove me', 'Process')
     }
 
-    It 'delegates removal to Set-WUEnvironmentVariable' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME' -Scope Machine
+    AfterEach {
+        if ($script:UserVariableCreated) {
+            [Environment]::SetEnvironmentVariable($script:VariableName, $null, 'User')
+        }
+        [Environment]::SetEnvironmentVariable($script:VariableName, $null, 'Process')
+    }
 
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'PSWINUTIL_TEST_NAME' -and
-            $null -eq $Value -and
-            $Scope -eq 'Machine'
+    It 'removes a variable from the selected environment' {
+        Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process
+
+        [Environment]::GetEnvironmentVariable($script:VariableName, 'Process') | Should -BeNullOrEmpty
+    }
+
+    It 'succeeds when the variable is already absent' {
+        [Environment]::SetEnvironmentVariable($script:VariableName, $null, 'Process')
+
+        { Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process } | Should -Not -Throw
+        [Environment]::GetEnvironmentVariable($script:VariableName, 'Process') | Should -BeNullOrEmpty
+    }
+
+    It 'clears a variable from every selected scope' -Skip:($env:OS -ne 'Windows_NT') {
+        $script:UserVariableCreated = $true
+        [Environment]::SetEnvironmentVariable($script:VariableName, 'persistent value', 'User')
+
+        Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process, User
+
+        foreach ($targetScope in 'Process', 'User') {
+            [Environment]::GetEnvironmentVariable($script:VariableName, $targetScope) | Should -BeNullOrEmpty
         }
     }
 
-    It 'delegates removal even when the variable does not exist' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_MISSING_NAME' -Scope User
+    It 'preserves the variable when previewing removal' {
+        Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process -WhatIf
 
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'PSWINUTIL_MISSING_NAME' -and
-            $null -eq $Value -and
-            $Scope -eq 'User'
-        }
-    }
-
-    It 'delegates every selected scope' {
-        Remove-WUEnvironmentVariable `
-            -Name 'PSWINUTIL_TEST_NAME' `
-            -Scope Process, User
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            @($Scope).Count -eq 2 -and
-            $Scope[0] -eq 'Process' -and
-            $Scope[1] -eq 'User'
-        }
-    }
-
-    It 'forwards WhatIf to Set-WUEnvironmentVariable' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME' -WhatIf
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
-        }
+        [Environment]::GetEnvironmentVariable($script:VariableName, 'Process') | Should -Be 'remove me'
     }
 }
