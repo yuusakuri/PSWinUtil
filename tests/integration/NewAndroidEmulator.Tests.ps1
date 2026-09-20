@@ -63,5 +63,4 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
         New-WUAndroidEmulator -Name preview -WhatIf
         Test-Path -LiteralPath (Join-Path $script:AvdHome 'preview.ini') | Should -BeFalse
     }
-
 }
