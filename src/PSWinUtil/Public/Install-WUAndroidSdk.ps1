@@ -92,7 +92,7 @@ function Install-WUAndroidSdk {
             if (-not $result.Succeeded) {
                 throw "android.exe failed: $($result.ToDebugString())"
             }
-            $availablePlatforms = @($result.StandardOutput -split '\r?\n')
+            $availablePlatforms = @($result.StandardOutput | Split-WUNewLine)
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
                 -InputObject $availablePlatforms
         }
@@ -104,7 +104,7 @@ function Install-WUAndroidSdk {
             if (-not $result.Succeeded) {
                 throw "android.exe failed: $($result.ToDebugString())"
             }
-            $availableBuildTools = @($result.StandardOutput -split '\r?\n')
+            $availableBuildTools = @($result.StandardOutput | Split-WUNewLine)
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
                 -InputObject $availableBuildTools
         }

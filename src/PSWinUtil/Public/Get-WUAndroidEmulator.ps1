@@ -29,7 +29,7 @@ function Get-WUAndroidEmulator {
     }
 
     $avdNames = @(
-        $result.StandardOutput -split '\r?\n' |
+        $result.StandardOutput | Split-WUNewLine |
             ForEach-Object { $_.Trim() } |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     )

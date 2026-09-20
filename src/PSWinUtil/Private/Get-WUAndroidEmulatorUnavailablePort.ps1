@@ -26,7 +26,7 @@ function Get-WUAndroidEmulatorUnavailablePort {
     }
 
     $unavailablePorts = @(
-        foreach ($line in ($result.StandardOutput -split '\r?\n')) {
+        foreach ($line in ($result.StandardOutput | Split-WUNewLine)) {
             if ($line -match '^emulator-([0-9]{4})\s+\S+') {
                 $port = [int]$Matches[1]
                 if ($port -ge 5554 -and $port -le 5682 -and $port % 2 -eq 0) {
