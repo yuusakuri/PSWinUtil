@@ -130,14 +130,12 @@ Describe 'Assert-WUFlutterSdkInstallation' {
     }
 
     It 'displays command output and accepts a zero exit code' {
-        $informationOutput = @(
-            & $script:Module {
-                Assert-WUFlutterSdkInstallation
-            } 6>&1
-        )
+        $modulePath = (Join-Path -Path (Split-Path -Path $script:Module.Path -Parent) -ChildPath 'PSWinUtil.psd1').Replace("'", "''")
+        $command = "Import-Module -Name '$modulePath'; & (Get-Module PSWinUtil) { Assert-WUFlutterSdkInstallation }"
+        $output = @(& $script:PowerShellExecutable -NoProfile -Command $command)
 
-        @($informationOutput | ForEach-Object { [string]$_ }) |
-            Should -Contain 'command-output'
+        $LASTEXITCODE | Should -Be 0
+        $output | Should -Contain 'command-output'
     }
 
     It 'reports a nonzero exit code' {
@@ -146,7 +144,7 @@ Describe 'Assert-WUFlutterSdkInstallation' {
             & $script:Module {
                 Assert-WUFlutterSdkInstallation
             }
-        } | Should -Throw '*exit code 7*'
+        } | Should -Throw '*"exit_code":7*'
     }
 
     It 'can display a report without using its exit code as a success condition' {

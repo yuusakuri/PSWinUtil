@@ -4,16 +4,15 @@ BeforeAll {
 
 Describe 'New-WUSshKey' {
     BeforeEach {
-        InModuleScope -ModuleName PSWinUtil {
-            function script:Invoke-WUTestSshKeygen {
-                $script:CapturedSshArguments = @($args)
-                $fileIndex = [array]::IndexOf([object[]]$args, '-f') + 1
-                $keyPath = [string]$args[$fileIndex]
-                [System.IO.File]::WriteAllText($keyPath, 'private key')
-                [System.IO.File]::WriteAllText("$keyPath.pub", 'public key')
-                $global:LASTEXITCODE = 0
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
+                $script:CapturedSshArguments = @($Arguments)
             }
-            Set-Alias -Name 'ssh-keygen.exe' -Value 'Invoke-WUTestSshKeygen' -Scope Script
+            $fileIndex = [array]::IndexOf([object[]]$ArgumentList, '-f') + 1
+            $keyPath = [string]$ArgumentList[$fileIndex]
+            [System.IO.File]::WriteAllText($keyPath, 'private key')
+            [System.IO.File]::WriteAllText("$keyPath.pub", 'public key')
+            [PSWinUtil.NativeCommandResult]::new($true, 0, '', '')
         }
     }
 
@@ -47,33 +46,29 @@ Describe 'New-WUSshKey' {
 
         $null = New-WUSshKey -Path $keyPath
         $capturedArguments = InModuleScope -ModuleName PSWinUtil { $script:CapturedSshArguments }
-        $expectedArguments = '-q|-t|rsa|-C|""|-N|""|-f|{0}' -f $keyPath
+        $expectedArguments = '-q|-t|rsa|-C||-N||-f|{0}' -f $keyPath
 
         $capturedArguments -join '|' | Should -Be $expectedArguments
     }
 
     It 'reports ssh-keygen failures' {
-        InModuleScope -ModuleName PSWinUtil {
-            function script:Invoke-WUTestSshKeygen {
-                'failure details'
-                $global:LASTEXITCODE = 7
-            }
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            throw 'ssh-keygen.exe failed: failure details'
         }
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'failed-key'
 
         { New-WUSshKey -Path $keyPath } |
-            Should -Throw '*exit code 7*failure details*'
+            Should -Throw '*failure details*'
     }
 }
 
 Describe 'Edit-WUSshKey' {
     BeforeEach {
-        InModuleScope -ModuleName PSWinUtil {
-            function script:Invoke-WUTestSshKeygen {
-                $script:CapturedSshArguments = @($args)
-                $global:LASTEXITCODE = 0
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
+                $script:CapturedSshArguments = @($Arguments)
             }
-            Set-Alias -Name 'ssh-keygen.exe' -Value 'Invoke-WUTestSshKeygen' -Scope Script
+            [PSWinUtil.NativeCommandResult]::new($true, 0, '', '')
         }
     }
 
@@ -103,7 +98,7 @@ Describe 'Edit-WUSshKey' {
 
         $null = Edit-WUSshKey -KeyPath $keyPath -CurrentPassphrase '' -NewPassphrase ''
         $capturedArguments = InModuleScope -ModuleName PSWinUtil { $script:CapturedSshArguments }
-        $expectedArguments = '-q|-p|-P|""|-N|""|-f|{0}' -f $keyPath
+        $expectedArguments = '-q|-p|-P||-N||-f|{0}' -f $keyPath
 
         $capturedArguments -join '|' | Should -Be $expectedArguments
     }
@@ -114,7 +109,7 @@ Describe 'Edit-WUSshKey' {
 
         $null = Edit-WUSshKey -KeyPath $keyPath -CurrentPassphrase 'current value' -Comment ''
         $capturedArguments = InModuleScope -ModuleName PSWinUtil { $script:CapturedSshArguments }
-        $expectedArguments = '-q|-c|-P|current value|-C|""|-f|{0}' -f $keyPath
+        $expectedArguments = '-q|-c|-P|current value|-C||-f|{0}' -f $keyPath
 
         $capturedArguments -join '|' | Should -Be $expectedArguments
     }

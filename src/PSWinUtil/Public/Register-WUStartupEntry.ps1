@@ -68,10 +68,10 @@ function Register-WUStartupEntry {
     $fullPath = ConvertTo-WUFullPath -Path $FilePath
     Assert-WUPathProperty -LiteralPath $fullPath -Leaf
     $commandLineParts = @(
-        ConvertTo-WUWindowsCommandLineArgument -Argument $fullPath -AlwaysQuote
+        ConvertTo-WUCommandLineArgument -Argument $fullPath -AlwaysQuote
     )
     foreach ($argument in $ArgumentList) {
-        $commandLineParts += ConvertTo-WUWindowsCommandLineArgument -Argument $argument
+        $commandLineParts += ConvertTo-WUCommandLineArgument -Argument $argument
     }
     $commandLine = $commandLineParts -join ' '
     if ($commandLine.Length -gt 260) {

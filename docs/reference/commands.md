@@ -9,6 +9,8 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
+| `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
+| `ConvertTo-WUCommandLineArgument` | Quotes an argument for a Windows executable command line. |
 | `ConvertTo-WUFullPath` | Converts file system paths to fully qualified paths. |
 | `ConvertTo-WUNativeCommandArgument` | Converts values for native command arguments. |
 | `ConvertTo-WUPSStringLiteral` | Converts strings to PowerShell string literals. |
@@ -75,7 +77,9 @@ The following table is generated from the exported commands and their comment-ba
 | `Install-WUWingetPackage` | Installs an exact package with Windows Package Manager. |
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
 | `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
+| `Invoke-WUNativeCommand` | Runs a native executable or batch command and returns its exit status. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
+| `New-WUCmdArgument` | Creates a cmd.exe argument string for a Windows batch command. |
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |
@@ -99,6 +103,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Set-WUTaskbarAlignment` | Sets the Windows 11 taskbar alignment. |
 | `Set-WUTaskbarSearchMode` | Sets the Windows 11 taskbar search mode. |
 | `Set-WUWindowsUpdateNotificationLevel` | Sets the Windows Update notification level. |
+| `Split-WUNewLine` | Splits text into lines at LF or CRLF newlines. |
 | `Start-WUAndroidEmulator` | Starts one or more local Android virtual devices. |
 | `Start-WUPSScriptAsAdmin` | Starts a PowerShell script as an administrator. |
 | `Test-WUAndroidEmulatorPort` | Tests whether Android emulator console ports are available. |

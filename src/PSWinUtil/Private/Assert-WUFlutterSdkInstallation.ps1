@@ -4,7 +4,7 @@ function Assert-WUFlutterSdkInstallation {
     Verifies the installed Flutter SDK and reports its diagnostic output.
 
     .DESCRIPTION
-    Runs the installed Flutter and Dart commands directly, writes their output to the information stream, and throws when a version command fails. Flutter doctor output is informational because doctor reports environment issues through its exit code.
+    Displays Flutter and Dart version reports and the Flutter doctor report. Throws when a version command fails. Flutter doctor output is informational because doctor reports environment issues through its exit code.
 
     .EXAMPLE
     Assert-WUFlutterSdkInstallation
@@ -22,33 +22,9 @@ function Assert-WUFlutterSdkInstallation {
 
     Assert-WUCommand -Name 'flutter'
     Assert-WUCommand -Name 'dart'
-    $previousErrorActionPreference = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
+    Invoke-WUNativeCommand -Command 'flutter' -ArgumentList @('--version') -ErrorAction Stop | Out-Null
 
-        $flutterVersionOutput = @(& flutter --version 2>&1)
-        $flutterVersionExitCode = $LASTEXITCODE
-        foreach ($outputItem in $flutterVersionOutput) {
-            Write-Information -MessageData ([string]$outputItem)
-        }
-        if ($flutterVersionExitCode -ne 0) {
-            throw "The Flutter SDK version command failed with exit code $flutterVersionExitCode."
-        }
+    Invoke-WUNativeCommand -Command 'dart' -ArgumentList @('--version') -ErrorAction Stop | Out-Null
 
-        $dartVersionOutput = @(& dart --version 2>&1)
-        $dartVersionExitCode = $LASTEXITCODE
-        foreach ($outputItem in $dartVersionOutput) {
-            Write-Information -MessageData ([string]$outputItem)
-        }
-        if ($dartVersionExitCode -ne 0) {
-            throw "The Dart SDK version command failed with exit code $dartVersionExitCode."
-        }
-
-        $flutterDoctorOutput = @(& flutter doctor 2>&1)
-        foreach ($outputItem in $flutterDoctorOutput) {
-            Write-Information -MessageData ([string]$outputItem)
-        }
-    } finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
+    Invoke-WUNativeCommand -Command 'flutter' -ArgumentList @('doctor') -ErrorAction Ignore | Out-Null
 }

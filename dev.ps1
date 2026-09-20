@@ -696,7 +696,7 @@ function Update-CommandReference {
     }
 }
 
-function Invoke-ExternalCommand {
+function Invoke-NativeCommand {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -1058,21 +1058,21 @@ function Invoke-Bump {
     $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI opens the release pull request.'
 
     $statusLines = @(
-        Invoke-ExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
+        Invoke-NativeCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
     )
     if ($statusLines.Count -gt 0) {
         throw "Commit or revert the working tree before preparing a release: $($statusLines -join ', ')"
     }
 
     $remoteTags = @(
-        Invoke-ExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--tags', 'origin', "refs/tags/$tagName")
+        Invoke-NativeCommand -FilePath $git -ArgumentList @('ls-remote', '--tags', 'origin', "refs/tags/$tagName")
     )
     if ($remoteTags.Count -gt 0) {
         throw "The version was already released: $tagName"
     }
 
     $remoteBranches = @(
-        Invoke-ExternalCommand -FilePath $git -ArgumentList @('ls-remote', '--heads', 'origin', "refs/heads/$branchName")
+        Invoke-NativeCommand -FilePath $git -ArgumentList @('ls-remote', '--heads', 'origin', "refs/heads/$branchName")
     )
     if ($remoteBranches.Count -gt 0) {
         throw "The release branch already exists: $branchName"
@@ -1087,10 +1087,10 @@ function Invoke-Bump {
     $result = Set-ReleaseVersion -Version $Version
     Write-Output -InputObject "Release version $($result.PreviousVersion) -> $($result.Version)"
 
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName) | Out-Null
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath) | Out-Null
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version") | Out-Null
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName) | Out-Null
+    Invoke-NativeCommand -FilePath $git -ArgumentList @('switch', '--create', $branchName) | Out-Null
+    Invoke-NativeCommand -FilePath $git -ArgumentList @('add', '--', $manifestStatusPath) | Out-Null
+    Invoke-NativeCommand -FilePath $git -ArgumentList @('commit', '--message', "chore(release): $Version") | Out-Null
+    Invoke-NativeCommand -FilePath $git -ArgumentList @('push', '--set-upstream', 'origin', $branchName) | Out-Null
 
     $pullRequestBody = @(
         '## Release'
@@ -1101,7 +1101,7 @@ function Invoke-Bump {
     ) -join [Environment]::NewLine
 
     $pullRequestOutput = @(
-        Invoke-ExternalCommand -FilePath $gh -ArgumentList @(
+        Invoke-NativeCommand -FilePath $gh -ArgumentList @(
             'pr'
             'create'
             '--base'
@@ -1133,32 +1133,32 @@ function Invoke-Release {
     )
 
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git inspects the release commit and tags.'
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    Invoke-NativeCommand -FilePath $git -ArgumentList @(
         'fetch', 'origin', '+refs/heads/master:refs/remotes/origin/master', '--tags'
     ) | Out-Null
 
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}") | Out-Null
-    $headOutput = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
+    Invoke-NativeCommand -FilePath $git -ArgumentList @('cat-file', '-e', "$ReleaseCommit^{commit}") | Out-Null
+    $headOutput = @(Invoke-NativeCommand -FilePath $git -ArgumentList @('rev-parse', 'HEAD'))
     $headCommit = ($headOutput -join '').Trim()
     if ($headCommit -ne $ReleaseCommit) {
         throw "Checked out commit $headCommit does not match release commit $ReleaseCommit."
     }
 
     $statusLines = @(
-        Invoke-ExternalCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
-        Invoke-ExternalCommand -FilePath $git -ArgumentList @('ls-files', '--others', '--exclude-standard', '--', 'src')
+        Invoke-NativeCommand -FilePath $git -ArgumentList @('status', '--porcelain', '--untracked-files=no')
+        Invoke-NativeCommand -FilePath $git -ArgumentList @('ls-files', '--others', '--exclude-standard', '--', 'src')
     )
     if ($statusLines.Count -gt 0) {
         throw 'The release checkout contains uncommitted changes. Build and publish the committed source.'
     }
 
-    Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    Invoke-NativeCommand -FilePath $git -ArgumentList @(
         'merge-base', '--is-ancestor', $ReleaseCommit, 'origin/master'
     ) | Out-Null
 
     $manifest = Get-ReleaseManifest -GitPath $git -ReleaseCommit $ReleaseCommit
     $manifestVersion = Get-ReleaseManifestVersion -Manifest $manifest
-    $existingTagNames = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*'))
+    $existingTagNames = @(Invoke-NativeCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*'))
     $identity = Get-ReleaseIdentity `
         -Branch $Branch `
         -ManifestVersion $manifestVersion `
@@ -1186,7 +1186,7 @@ function Get-ReleaseManifest {
         [string]$ReleaseCommit
     )
 
-    $manifestLines = @(Invoke-ExternalCommand -FilePath $GitPath -ArgumentList @(
+    $manifestLines = @(Invoke-NativeCommand -FilePath $GitPath -ArgumentList @(
             'show', "${ReleaseCommit}:src/PSWinUtil/PSWinUtil.psd1"
         ))
     $tokens = $null
@@ -1263,7 +1263,7 @@ function Test-GitHubRelease {
         [switch]$Prerelease
     )
 
-    $releaseJson = @(Invoke-ExternalCommand -FilePath $GhPath -ArgumentList @(
+    $releaseJson = @(Invoke-NativeCommand -FilePath $GhPath -ArgumentList @(
             'api', '--paginate', '--slurp', 'repos/{owner}/{repo}/releases?per_page=100'
         )) -join "`n"
     $releasePages = ConvertFrom-Json -InputObject $releaseJson -ErrorAction Stop
@@ -1303,7 +1303,7 @@ function Get-RemoteReleaseState {
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git reports whether the release tag exists.'
     $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI reports whether the release exists.'
 
-    $remoteTagLines = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+    $remoteTagLines = @(Invoke-NativeCommand -FilePath $git -ArgumentList @(
             'ls-remote', '--tags', 'origin', "refs/tags/$tagName", "refs/tags/$tagName^{}"
         ))
     $tagCommit = ''
@@ -1393,9 +1393,9 @@ function Invoke-ReleasePublish {
 
     $git = Get-RequiredApplication -Name 'git' -Purpose 'Git creates and pushes the release tag.'
     $gh = Get-RequiredApplication -Name 'gh' -Purpose 'The GitHub CLI publishes the GitHub Release.'
-    $localTagNames = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @('tag', '--list', $tagName))
+    $localTagNames = @(Invoke-NativeCommand -FilePath $git -ArgumentList @('tag', '--list', $tagName))
     if ($localTagNames.Count -gt 0) {
-        $localTagCommit = @(Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+        $localTagCommit = @(Invoke-NativeCommand -FilePath $git -ArgumentList @(
                 'rev-parse', '--verify', "$tagName^{commit}"
             )) -join ''
         if ($localTagCommit.Trim() -ne $ReleaseCommit) {
@@ -1416,11 +1416,11 @@ function Invoke-ReleasePublish {
 
     if (-not $State.TagExists) {
         if ($localTagNames.Count -eq 0) {
-            Invoke-ExternalCommand -FilePath $git -ArgumentList @(
+            Invoke-NativeCommand -FilePath $git -ArgumentList @(
                 'tag', '--annotate', $tagName, '--message', "PSWinUtil $Version", $ReleaseCommit
             ) | Out-Null
         }
-        Invoke-ExternalCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName") | Out-Null
+        Invoke-NativeCommand -FilePath $git -ArgumentList @('push', 'origin', "refs/tags/$tagName") | Out-Null
     }
 
     if (-not $State.GalleryExists) {
@@ -1441,7 +1441,7 @@ function Invoke-ReleasePublish {
     if (-not [string]::IsNullOrWhiteSpace($parsedVersion.Prerelease)) {
         $releaseArguments += '--prerelease'
     }
-    Invoke-ExternalCommand -FilePath $gh -ArgumentList $releaseArguments | Out-Null
+    Invoke-NativeCommand -FilePath $gh -ArgumentList $releaseArguments | Out-Null
 
     [pscustomobject]@{
         Version = $Version

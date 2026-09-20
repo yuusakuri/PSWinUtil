@@ -130,23 +130,24 @@ Describe 'Install-WUAndroidSdk' {
 
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
         Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil
-        Mock -CommandName android.exe -ModuleName PSWinUtil -MockWith {
-            $global:LASTEXITCODE = 0
-            $androidArguments = @($args)
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            $androidArguments = @($ArgumentList)
             $script:AndroidCalls += , $androidArguments
             if ($androidArguments -contains 'list') {
                 if ($androidArguments -contains 'platforms/android-*') {
-                    return @(
+                    $output = @(
                         '  platforms/android-35  2.0.0  Android SDK Platform 35'
                         '  platforms/android-36  2.0.0  Android SDK Platform 36'
                         '  platforms/android-37-beta1  1.0.0  Android SDK Platform Preview'
                     )
+                } else {
+                    $output = @(
+                        '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
+                        '  build-tools/36.0.0  36.0.0  Android SDK Build-Tools 36'
+                        '  build-tools/37.0.0-rc1  37.0.0-rc.1  Android SDK Build-Tools 37 rc1'
+                    )
                 }
-                return @(
-                    '  build-tools/35.0.1  35.0.1  Android SDK Build-Tools 35.0.1'
-                    '  build-tools/36.0.0  36.0.0  Android SDK Build-Tools 36'
-                    '  build-tools/37.0.0-rc1  37.0.0-rc.1  Android SDK Build-Tools 37 rc1'
-                )
+                return [PSWinUtil.NativeCommandResult]::new($true, 0, ($output -join [Environment]::NewLine), '')
             }
 
             foreach ($argument in $androidArguments) {
@@ -171,6 +172,7 @@ Describe 'Install-WUAndroidSdk' {
                 New-Item -Path (Split-Path -Path $file -Parent) -ItemType Directory -Force | Out-Null
                 [System.IO.File]::WriteAllText($file, '')
             }
+            [PSWinUtil.NativeCommandResult]::new($true, 0, '', '')
         }
         Mock -CommandName Set-WUAndroidBuildToolsLatest -ModuleName PSWinUtil
         Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil

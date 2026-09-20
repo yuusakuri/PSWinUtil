@@ -81,12 +81,7 @@ function Set-WUJavaExtraCaCertificate {
         '-file'
         $extraCertificatePath
     )
-    $keytoolOutput = @(& 'keytool' @keytoolArguments 2>&1)
-    $keytoolExitCode = $LASTEXITCODE
-    if ($keytoolExitCode -ne 0) {
-        $message = ($keytoolOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-        throw "keytool failed with exit code $keytoolExitCode. $message"
-    }
+    Invoke-WUNativeCommand -Command 'keytool' -ArgumentList $keytoolArguments -CaptureOutput -ErrorAction Stop | Out-Null
 
     Set-WUEnvironmentVariable `
         -Name 'JAVA_TOOL_OPTIONS' `

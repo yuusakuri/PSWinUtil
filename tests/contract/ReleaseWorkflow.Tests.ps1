@@ -9,7 +9,7 @@ Describe 'Release publication queries' {
     BeforeEach {
         Mock Import-RequiredModule {}
         Mock Get-RequiredApplication { $Name }
-        Mock Invoke-ExternalCommand { '[[]]' }
+        Mock Invoke-NativeCommand { '[[]]' }
     }
 
     It 'reports a Gallery version that exists' {
@@ -69,13 +69,13 @@ Describe 'Release publication queries' {
 
     It 'reports an absent GitHub release after a successful complete query' {
         Test-GitHubRelease -GhPath 'gh' -TagName 'v1.2.3' | Should -BeFalse
-        Should -Invoke Invoke-ExternalCommand -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
             $ArgumentList -contains '--paginate' -and $ArgumentList -contains '--slurp'
         }
     }
 
     It 'finds a GitHub release beyond the first page' {
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             '[[{"tag_name":"v1.2.4","draft":false}],[{"tag_name":"v1.2.3","draft":false}]]'
         }
 
@@ -83,7 +83,7 @@ Describe 'Release publication queries' {
     }
 
     It 'finds a matching GitHub prerelease' {
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             '[[{"tag_name":"v2.0.0-preview1","draft":false,"prerelease":true}]]'
         }
 
@@ -94,7 +94,7 @@ Describe 'Release publication queries' {
     }
 
     It 'rejects an incorrect GitHub prerelease state' {
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             '[[{"tag_name":"v2.0.0-preview1","draft":false,"prerelease":false}]]'
         }
 
@@ -107,25 +107,25 @@ Describe 'Release publication queries' {
     }
 
     It 'rejects an unpublished GitHub draft' {
-        Mock Invoke-ExternalCommand { '[[{"tag_name":"v1.2.3","draft":true}]]' }
+        Mock Invoke-NativeCommand { '[[{"tag_name":"v1.2.3","draft":true}]]' }
 
         { Test-GitHubRelease -GhPath 'gh' -TagName 'v1.2.3' } | Should -Throw '*is a draft*'
     }
 
     It 'propagates GitHub authentication and API failures' {
-        Mock Invoke-ExternalCommand { throw 'GitHub query failed.' }
+        Mock Invoke-NativeCommand { throw 'GitHub query failed.' }
 
         { Test-GitHubRelease -GhPath 'gh' -TagName 'v1.2.3' } | Should -Throw '*GitHub query failed*'
     }
 
     It 'rejects malformed GitHub responses' {
-        Mock Invoke-ExternalCommand { 'not JSON' }
+        Mock Invoke-NativeCommand { 'not JSON' }
 
         { Test-GitHubRelease -GhPath 'gh' -TagName 'v1.2.3' } | Should -Throw
     }
 
     It 'uses the remote annotated tag commit to recognize a resumable publication' {
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             "2222222222222222222222222222222222222222`trefs/tags/v1.2.3"
             "$($script:ReleaseCommit)`trefs/tags/v1.2.3^{}"
         }
@@ -135,13 +135,13 @@ Describe 'Release publication queries' {
         $state = Get-RemoteReleaseState -ReleaseCommit $script:ReleaseCommit -Version '1.2.3'
 
         $state.TagExists | Should -BeTrue
-        Should -Invoke Invoke-ExternalCommand -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
             $ArgumentList[0] -eq 'ls-remote' -and $ArgumentList -contains 'origin'
         }
     }
 
     It 'does not treat a local-only tag as a published remote tag' {
-        Mock Invoke-ExternalCommand {}
+        Mock Invoke-NativeCommand {}
         Mock Test-GalleryPublication { $false }
         Mock Test-GitHubRelease { $false }
 
@@ -151,7 +151,7 @@ Describe 'Release publication queries' {
     }
 
     It 'queries a prerelease across Gallery and GitHub' {
-        Mock Invoke-ExternalCommand {}
+        Mock Invoke-NativeCommand {}
         Mock Test-GalleryPublication { $false }
         Mock Test-GitHubRelease { $false }
 
@@ -219,7 +219,7 @@ Describe 'Invoke-ReleasePublish' {
             'publisher output'
         }
         Mock Wait-GalleryPublication { $script:PublicationEvents.Add('wait') }
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             if ($ArgumentList -contains '--list') { return }
             $script:PublicationEvents.Add($ArgumentList[0])
         }
@@ -275,7 +275,7 @@ Describe 'Invoke-ReleasePublish' {
         Should -Invoke Wait-GalleryPublication -Times 1 -Exactly -ParameterFilter {
             $Version -eq '2.0.0-preview1'
         }
-        Should -Invoke Invoke-ExternalCommand -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
             $ArgumentList[0] -eq 'release' -and
             $ArgumentList -contains 'v2.0.0-preview1' -and
             $ArgumentList -contains '--prerelease'
@@ -283,8 +283,8 @@ Describe 'Invoke-ReleasePublish' {
     }
 
     It 'reuses a matching local tag after a failed push' {
-        Mock Invoke-ExternalCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
-        Mock Invoke-ExternalCommand { $script:ReleaseCommit } -ParameterFilter { $ArgumentList[0] -eq 'rev-parse' }
+        Mock Invoke-NativeCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
+        Mock Invoke-NativeCommand { $script:ReleaseCommit } -ParameterFilter { $ArgumentList[0] -eq 'rev-parse' }
 
         $null = Invoke-ReleasePublish @script:PublishArguments
 
@@ -292,8 +292,8 @@ Describe 'Invoke-ReleasePublish' {
     }
 
     It 'rejects a local tag on a different commit even with WhatIf' {
-        Mock Invoke-ExternalCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
-        Mock Invoke-ExternalCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
+        Mock Invoke-NativeCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
+        Mock Invoke-NativeCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
             $ArgumentList[0] -eq 'rev-parse'
         }
 
@@ -302,7 +302,7 @@ Describe 'Invoke-ReleasePublish' {
     }
 
     It 'does not publish to Gallery after a tag push failure' {
-        Mock Invoke-ExternalCommand { throw 'Push failed.' } -ParameterFilter { $ArgumentList[0] -eq 'push' }
+        Mock Invoke-NativeCommand { throw 'Push failed.' } -ParameterFilter { $ArgumentList[0] -eq 'push' }
 
         { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*Push failed*'
         Should -Invoke Publish-PSResource -Times 0 -Exactly
@@ -312,7 +312,7 @@ Describe 'Invoke-ReleasePublish' {
         Mock Wait-GalleryPublication { throw 'Gallery unavailable.' }
 
         { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*Gallery unavailable*'
-        Should -Invoke Invoke-ExternalCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList[0] -eq 'release' }
+        Should -Invoke Invoke-NativeCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList[0] -eq 'release' }
     }
 
     It 'resumes after Gallery publication without a credential or duplicate publish' {
@@ -349,7 +349,7 @@ Describe 'Invoke-ReleasePublish' {
 Describe 'Release checkout validation' {
     BeforeEach {
         Mock Get-RequiredApplication { $Name }
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             if ($ArgumentList[0] -eq 'rev-parse') { $script:ReleaseCommit }
         }
         Mock Get-ReleaseManifest { @{ ModuleVersion = '1.2.3' } }
@@ -365,7 +365,7 @@ Describe 'Release checkout validation' {
         }
         Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' -WhatIf
 
-        Should -Invoke Invoke-ExternalCommand -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
             $ArgumentList[0] -eq 'fetch' -and
             $ArgumentList -contains '+refs/heads/master:refs/remotes/origin/master'
         }
@@ -403,7 +403,7 @@ Describe 'Release checkout validation' {
     }
 
     It 'rejects a checkout on a different commit' {
-        Mock Invoke-ExternalCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
+        Mock Invoke-NativeCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
             $ArgumentList[0] -eq 'rev-parse'
         }
 
@@ -412,14 +412,14 @@ Describe 'Release checkout validation' {
     }
 
     It 'rejects a nonexistent commit object' {
-        Mock Invoke-ExternalCommand { throw 'Unknown commit.' } -ParameterFilter { $ArgumentList[0] -eq 'cat-file' }
+        Mock Invoke-NativeCommand { throw 'Unknown commit.' } -ParameterFilter { $ArgumentList[0] -eq 'cat-file' }
 
         { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' } | Should -Throw '*Unknown commit*'
         Should -Invoke Get-RemoteReleaseState -Times 0 -Exactly
     }
 
     It 'rejects a commit outside origin/master' {
-        Mock Invoke-ExternalCommand { throw 'Not an ancestor.' } -ParameterFilter { $ArgumentList[0] -eq 'merge-base' }
+        Mock Invoke-NativeCommand { throw 'Not an ancestor.' } -ParameterFilter { $ArgumentList[0] -eq 'merge-base' }
 
         { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' } | Should -Throw '*Not an ancestor*'
         Should -Invoke Invoke-ReleasePublish -Times 0 -Exactly
@@ -429,7 +429,7 @@ Describe 'Release checkout validation' {
         @{ GitCommand = 'status' }
         @{ GitCommand = 'ls-files' }
     ) {
-        Mock Invoke-ExternalCommand { 'src/PSWinUtil/Public/Example.ps1' } -ParameterFilter {
+        Mock Invoke-NativeCommand { 'src/PSWinUtil/Public/Example.ps1' } -ParameterFilter {
             $ArgumentList[0] -eq $GitCommand
         }
 
@@ -452,19 +452,19 @@ Describe 'Release checkout validation' {
 
 Describe 'Committed release manifest' {
     It 'reads the version from the requested commit' {
-        Mock Invoke-ExternalCommand { "@{ ModuleVersion = '1.2.3' }" }
+        Mock Invoke-NativeCommand { "@{ ModuleVersion = '1.2.3' }" }
 
         $manifest = Get-ReleaseManifest -GitPath 'git' -ReleaseCommit $script:ReleaseCommit
 
         $manifest.ModuleVersion | Should -Be '1.2.3'
-        Should -Invoke Invoke-ExternalCommand -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
             $ArgumentList[0] -eq 'show' -and
             $ArgumentList[1] -eq "$($script:ReleaseCommit):src/PSWinUtil/PSWinUtil.psd1"
         }
     }
 
     It 'reads a prerelease label from the requested commit' {
-        Mock Invoke-ExternalCommand {
+        Mock Invoke-NativeCommand {
             "@{ ModuleVersion = '2.0.0'; PrivateData = @{ PSData = @{ Prerelease = 'preview1' } } }"
         }
 
@@ -474,13 +474,13 @@ Describe 'Committed release manifest' {
     }
 
     It 'rejects a manifest without a version' {
-        Mock Invoke-ExternalCommand { "@{ Description = 'No version' }" }
+        Mock Invoke-NativeCommand { "@{ Description = 'No version' }" }
 
         { Get-ReleaseManifest -GitPath 'git' -ReleaseCommit $script:ReleaseCommit } | Should -Throw '*does not define ModuleVersion*'
     }
 
     It 'rejects executable manifest contents without running them' {
-        Mock Invoke-ExternalCommand { "@{ ModuleVersion = (Invoke-ReleasePack -ModuleDirectory x -ArtifactPath y) }" }
+        Mock Invoke-NativeCommand { "@{ ModuleVersion = (Invoke-ReleasePack -ModuleDirectory x -ArtifactPath y) }" }
         Mock Invoke-ReleasePack { throw 'Manifest command was executed.' }
 
         { Get-ReleaseManifest -GitPath 'git' -ReleaseCommit $script:ReleaseCommit } | Should -Throw
@@ -488,7 +488,7 @@ Describe 'Committed release manifest' {
     }
 
     It 'rejects more than one data table' {
-        Mock Invoke-ExternalCommand { "@{ ModuleVersion = '1.2.3' }; @{ ModuleVersion = '1.2.4' }" }
+        Mock Invoke-NativeCommand { "@{ ModuleVersion = '1.2.3' }; @{ ModuleVersion = '1.2.4' }" }
 
         { Get-ReleaseManifest -GitPath 'git' -ReleaseCommit $script:ReleaseCommit } | Should -Throw '*one data table*'
     }
@@ -497,7 +497,7 @@ Describe 'Committed release manifest' {
 Describe 'Invoke-Bump WhatIf' {
     BeforeEach {
         Mock Get-RequiredApplication { $Name }
-        Mock Invoke-ExternalCommand {}
+        Mock Invoke-NativeCommand {}
         Mock Set-ReleaseVersion { throw 'Version must not be written.' }
     }
 
@@ -508,7 +508,7 @@ Describe 'Invoke-Bump WhatIf' {
         Invoke-Bump -Version $nextVersion -WhatIf
 
         Should -Invoke Set-ReleaseVersion -Times 0 -Exactly
-        Should -Invoke Invoke-ExternalCommand -Times 0 -Exactly -ParameterFilter {
+        Should -Invoke Invoke-NativeCommand -Times 0 -Exactly -ParameterFilter {
             $ArgumentList[0] -in @('switch', 'add', 'commit', 'push', 'pr')
         }
     }

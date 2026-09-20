@@ -149,17 +149,35 @@ Describe 'Android virtual devices' {
             $script:TestAdbDevices = @('List of devices attached', '')
             $script:TestAdbExitCode = 0
             $script:TestAndroidEvents = [System.Collections.Generic.List[string]]::new()
+        }
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            InModuleScope -ModuleName PSWinUtil -Parameters @{
+                NativeCommand = $Command
+                NativeArguments = $ArgumentList
+            } {
+                if ($NativeCommand -eq 'emulator.exe') {
+                    $script:CapturedAndroidArguments = @($NativeArguments)
+                    if ($script:TestAndroidExitCode -ne 0) {
+                        throw "emulator.exe failed: $($script:TestAndroidAvds -join [Environment]::NewLine)"
+                    }
+                    return [PSWinUtil.NativeCommandResult]::new(
+                        ($script:TestAndroidExitCode -eq 0),
+                        $script:TestAndroidExitCode,
+                        ($script:TestAndroidAvds -join [Environment]::NewLine),
+                        ''
+                    )
+                }
 
-            function script:emulator.exe {
-                $script:CapturedAndroidArguments = @($args)
-                $global:LASTEXITCODE = $script:TestAndroidExitCode
-                $script:TestAndroidAvds
-            }
-
-            function script:adb.exe {
-                $script:TestAndroidEvents.Add(($args -join ' '))
-                $global:LASTEXITCODE = $script:TestAdbExitCode
-                $script:TestAdbDevices
+                $script:TestAndroidEvents.Add(($NativeArguments -join ' '))
+                if ($script:TestAdbExitCode -ne 0) {
+                    throw "adb.exe failed: $($script:TestAdbDevices -join [Environment]::NewLine)"
+                }
+                [PSWinUtil.NativeCommandResult]::new(
+                    ($script:TestAdbExitCode -eq 0),
+                    $script:TestAdbExitCode,
+                    ($script:TestAdbDevices -join [Environment]::NewLine),
+                    ''
+                )
             }
         }
         Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
@@ -231,7 +249,7 @@ Describe 'Android virtual devices' {
         }
         $names = @()
 
-        { $names += Get-WUAndroidEmulator } | Should -Throw '*exit code 1*list error*'
+        { $names += Get-WUAndroidEmulator } | Should -Throw '*list error*'
         $names | Should -HaveCount 0
     }
 
@@ -247,7 +265,7 @@ Describe 'Android virtual devices' {
             $script:TestAndroidAvds = @('list error')
         }
 
-        { Start-WUAndroidEmulator } | Should -Throw '*exit code 1*'
+        { Start-WUAndroidEmulator } | Should -Throw '*list error*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
@@ -441,8 +459,8 @@ Describe 'Android virtual devices' {
             $script:TestAdbDevices = @('cannot connect to daemon')
         }
 
-        { Get-WUAndroidEmulatorPort } | Should -Throw '*exit code 1*cannot connect to daemon*'
-        { Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5554 } | Should -Throw '*exit code 1*'
+        { Get-WUAndroidEmulatorPort } | Should -Throw '*cannot connect to daemon*'
+        { Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5554 } | Should -Throw '*cannot connect to daemon*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
@@ -558,24 +576,13 @@ Describe 'Android virtual devices' {
     }
 
     It 'handles native adb devices stderr under Windows PowerShell ErrorAction Stop' -Skip:($PSVersionTable.PSEdition -ne 'Desktop') {
-        $script:TestAdbCommandPath = Join-Path -Path $TestDrive -ChildPath 'adb.cmd'
-        $commandText = @'
-@echo off
-if "%~1"=="devices" (
-    echo * daemon started successfully 1>&2
-    echo List of devices attached
-    echo emulator-5554 offline
-    exit /b 0
-)
-echo unexpected adb command 1>&2
-exit /b 1
-'@
-        [IO.File]::WriteAllText($script:TestAdbCommandPath, $commandText.Replace("`n", "`r`n"), [Text.Encoding]::ASCII)
-        InModuleScope -ModuleName PSWinUtil -Parameters @{ CommandPath = $script:TestAdbCommandPath } {
-            $script:TestNativeAdbPath = $CommandPath
-            function script:adb.exe {
-                & $script:TestNativeAdbPath @args
-            }
+        Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
+            [PSWinUtil.NativeCommandResult]::new(
+                $true,
+                0,
+                "List of devices attached`nemulator-5554 offline",
+                '* daemon started successfully'
+            )
         }
 
         Get-WUAndroidEmulatorPort -ErrorAction Stop | Should -Be 5556
