@@ -48,9 +48,7 @@ Describe 'Install-WUGit' {
             $resultIndex = [Math]::Min($script:GitInstallPathCallCount - 1, $lastIndex)
             $script:GitInstallPaths[$resultIndex]
         }
-        Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -MockWith {
-            'Git for Windows installed'
-        }
+        Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil
     }
 

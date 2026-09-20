@@ -15,7 +15,7 @@ function Install-WUGitHubCli {
     None
 
     .OUTPUTS
-    System.String
+    None
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSShouldProcess',
@@ -23,7 +23,6 @@ function Install-WUGitHubCli {
         Justification = 'Install-WUWingetPackage evaluates ShouldProcess for the delegated installation.'
     )]
     [CmdletBinding(SupportsShouldProcess = $true)]
-    [OutputType([string])]
     param()
 
     $shouldProcessParameters = Select-WUBoundParameter `

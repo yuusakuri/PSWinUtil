@@ -18,10 +18,9 @@ function Install-WUWingetPackage {
     None
 
     .OUTPUTS
-    System.String
+    None
     #>
     [CmdletBinding(SupportsShouldProcess = $true)]
-    [OutputType([string])]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -42,15 +41,8 @@ function Install-WUWingetPackage {
         '--accept-package-agreements'
     )
 
-    $result = Invoke-WUExternalCommand -Command 'winget.exe' -ArgumentList $arguments -CaptureOutput
-    $textOutput = @(
-        foreach ($stream in @($result.StandardOutput, $result.StandardError)) {
-            $stream -split '\r?\n' | Where-Object { $_ -ne '' }
-        }
-    )
+    $result = Invoke-WUExternalCommand -Command 'winget.exe' -ArgumentList $arguments
     if (-not $result.Succeeded) {
         throw "winget.exe failed: $($result.ToDebugString())"
     }
-
-    $textOutput
 }

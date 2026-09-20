@@ -8,17 +8,16 @@ Describe 'Install-WUWingetPackage' {
             InModuleScope -ModuleName PSWinUtil -Parameters @{ Arguments = $ArgumentList } {
                 $script:CapturedWingetArguments = @($Arguments)
             }
-            [PSWinUtil.ExternalCommandResult]::new($true, 0, 'Package installed', '')
+            [PSWinUtil.ExternalCommandResult]::new($true, 0, $null, $null)
         }
     }
 
     It 'installs an exact package and accepts both agreements' {
-        $result = Install-WUWingetPackage -Id 'Microsoft.PowerShell'
+        Install-WUWingetPackage -Id 'Microsoft.PowerShell'
         $capturedArguments = InModuleScope -ModuleName PSWinUtil {
             $script:CapturedWingetArguments
         }
 
-        $result | Should -Be 'Package installed'
         $capturedArguments -join '|' | Should -Be (
             'install|--id|Microsoft.PowerShell|--exact|' +
             '--accept-source-agreements|--accept-package-agreements'
@@ -29,13 +28,13 @@ Describe 'Install-WUWingetPackage' {
         Install-WUWingetPackage -Id 'Microsoft.PowerShell' -WhatIf
     }
 
-    It 'reports the exit code and output when winget fails' {
+    It 'reports the exit code when winget fails' {
         Mock -CommandName Invoke-WUExternalCommand -ModuleName PSWinUtil -MockWith {
-            [PSWinUtil.ExternalCommandResult]::new($false, 42, '', 'Installation failed')
+            [PSWinUtil.ExternalCommandResult]::new($false, 42, $null, $null)
         }
 
         {
             Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-        } | Should -Throw '*"exit_code":42*"message":"Installation failed"*'
+        } | Should -Throw '*"exit_code":42*'
     }
 }

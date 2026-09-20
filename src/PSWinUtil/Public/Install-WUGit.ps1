@@ -41,11 +41,7 @@ function Install-WUGit {
 
     $installPath = Get-WUGitInstallPath
     if ([string]::IsNullOrEmpty($installPath)) {
-        $installOutput = @(Install-WUWingetPackage -Id 'Git.Git' @shouldProcessParameters)
-        $installMessage = $installOutput -join [Environment]::NewLine
-        if (-not [string]::IsNullOrEmpty($installMessage)) {
-            Write-Verbose -Message $installMessage
-        }
+        Install-WUWingetPackage -Id 'Git.Git' @shouldProcessParameters
 
         $installPath = Get-WUGitInstallPath
     }
