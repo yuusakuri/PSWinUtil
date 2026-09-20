@@ -17,16 +17,17 @@ function Install-WUGit {
     .OUTPUTS
     None
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSShouldProcess',
+        '',
+        Justification = 'Install-WUWingetPackage evaluates ShouldProcess for the delegated installation.'
+    )]
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
     $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     if (Test-WUCommand -Name 'git.exe') {
-        return
-    }
-
-    if (-not $PSCmdlet.ShouldProcess('Git for Windows', 'Install with Windows Package Manager')) {
         return
     }
 

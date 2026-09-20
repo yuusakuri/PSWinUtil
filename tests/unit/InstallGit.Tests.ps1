@@ -40,7 +40,9 @@ Describe 'Install-WUGit' {
     It 'does not install or refresh the process during WhatIf' {
         Install-WUGit -WhatIf
 
-        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Install-WUWingetPackage -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
+            $Id -eq 'Git.Git' -and $WhatIf
+        }
         Should -Invoke -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -Times 0 -Exactly
         $script:GitAvailable | Should -BeFalse
     }
