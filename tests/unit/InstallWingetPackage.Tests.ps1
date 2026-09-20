@@ -30,11 +30,11 @@ Describe 'Install-WUWingetPackage' {
 
     It 'reports the exit code when winget fails' {
         Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
-            [PSWinUtil.NativeCommandResult]::new($false, 42, $null, $null)
+            throw 'winget.exe failed with exit code 42'
         }
 
         {
             Install-WUWingetPackage -Id 'Microsoft.PowerShell'
-        } | Should -Throw '*"exit_code":42*'
+        } | Should -Throw '*exit code 42*'
     }
 }

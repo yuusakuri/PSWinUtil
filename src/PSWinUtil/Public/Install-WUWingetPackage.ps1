@@ -41,8 +41,5 @@ function Install-WUWingetPackage {
         '--accept-package-agreements'
     )
 
-    $result = Invoke-WUNativeCommand -Command 'winget.exe' -ArgumentList $arguments -ErrorAction Ignore
-    if (-not $result.Succeeded) {
-        throw "winget.exe failed: $($result.ToDebugString())"
-    }
+    Invoke-WUNativeCommand -Command 'winget.exe' -ArgumentList $arguments -ErrorAction Stop | Out-Null
 }

@@ -22,15 +22,9 @@ function Assert-WUFlutterSdkInstallation {
 
     Assert-WUCommand -Name 'flutter'
     Assert-WUCommand -Name 'dart'
-    $flutterVersion = Invoke-WUNativeCommand -Command 'flutter' -ArgumentList @('--version') -ErrorAction Ignore
-    if (-not $flutterVersion.Succeeded) {
-        throw "The Flutter SDK version command failed with exit code $($flutterVersion.ExitCode)."
-    }
+    Invoke-WUNativeCommand -Command 'flutter' -ArgumentList @('--version') -ErrorAction Stop | Out-Null
 
-    $dartVersion = Invoke-WUNativeCommand -Command 'dart' -ArgumentList @('--version') -ErrorAction Ignore
-    if (-not $dartVersion.Succeeded) {
-        throw "The Dart SDK version command failed with exit code $($dartVersion.ExitCode)."
-    }
+    Invoke-WUNativeCommand -Command 'dart' -ArgumentList @('--version') -ErrorAction Stop | Out-Null
 
     Invoke-WUNativeCommand -Command 'flutter' -ArgumentList @('doctor') -ErrorAction Ignore | Out-Null
 }

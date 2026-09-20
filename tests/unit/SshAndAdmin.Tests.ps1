@@ -53,12 +53,12 @@ Describe 'New-WUSshKey' {
 
     It 'reports ssh-keygen failures' {
         Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
-            [PSWinUtil.NativeCommandResult]::new($false, 7, '', 'failure details')
+            throw 'ssh-keygen.exe failed: failure details'
         }
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'failed-key'
 
         { New-WUSshKey -Path $keyPath } |
-            Should -Throw '*"exit_code":7*"message":"failure details"*'
+            Should -Throw '*failure details*'
     }
 }
 

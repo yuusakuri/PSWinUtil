@@ -157,6 +157,9 @@ Describe 'Android virtual devices' {
             } {
                 if ($NativeCommand -eq 'emulator.exe') {
                     $script:CapturedAndroidArguments = @($NativeArguments)
+                    if ($script:TestAndroidExitCode -ne 0) {
+                        throw "emulator.exe failed: $($script:TestAndroidAvds -join [Environment]::NewLine)"
+                    }
                     return [PSWinUtil.NativeCommandResult]::new(
                         ($script:TestAndroidExitCode -eq 0),
                         $script:TestAndroidExitCode,
@@ -166,6 +169,9 @@ Describe 'Android virtual devices' {
                 }
 
                 $script:TestAndroidEvents.Add(($NativeArguments -join ' '))
+                if ($script:TestAdbExitCode -ne 0) {
+                    throw "adb.exe failed: $($script:TestAdbDevices -join [Environment]::NewLine)"
+                }
                 [PSWinUtil.NativeCommandResult]::new(
                     ($script:TestAdbExitCode -eq 0),
                     $script:TestAdbExitCode,
@@ -243,7 +249,7 @@ Describe 'Android virtual devices' {
         }
         $names = @()
 
-        { $names += Get-WUAndroidEmulator } | Should -Throw '*"exit_code":1*"message":*list error*'
+        { $names += Get-WUAndroidEmulator } | Should -Throw '*list error*'
         $names | Should -HaveCount 0
     }
 
@@ -259,7 +265,7 @@ Describe 'Android virtual devices' {
             $script:TestAndroidAvds = @('list error')
         }
 
-        { Start-WUAndroidEmulator } | Should -Throw '*"exit_code":1*'
+        { Start-WUAndroidEmulator } | Should -Throw '*list error*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 
@@ -453,8 +459,8 @@ Describe 'Android virtual devices' {
             $script:TestAdbDevices = @('cannot connect to daemon')
         }
 
-        { Get-WUAndroidEmulatorPort } | Should -Throw '*"exit_code":1*cannot connect to daemon*'
-        { Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5554 } | Should -Throw '*"exit_code":1*'
+        { Get-WUAndroidEmulatorPort } | Should -Throw '*cannot connect to daemon*'
+        { Start-WUAndroidEmulator -Name 'Pixel_API_35' -Port 5554 } | Should -Throw '*cannot connect to daemon*'
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
 

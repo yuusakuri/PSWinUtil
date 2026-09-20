@@ -88,10 +88,7 @@ function Install-WUAndroidSdk {
             $commandArguments = $androidArguments + @(
                 'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
             )
-            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
-            if (-not $result.Succeeded) {
-                throw "android.exe failed: $($result.ToDebugString())"
-            }
+            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Stop
             $availablePlatforms = @($result.StandardOutput | Split-WUNewLine)
             $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
                 -InputObject $availablePlatforms
@@ -100,10 +97,7 @@ function Install-WUAndroidSdk {
             $commandArguments = $androidArguments + @(
                 'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
             )
-            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
-            if (-not $result.Succeeded) {
-                throw "android.exe failed: $($result.ToDebugString())"
-            }
+            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Stop
             $availableBuildTools = @($result.StandardOutput | Split-WUNewLine)
             $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
                 -InputObject $availableBuildTools
@@ -142,10 +136,7 @@ function Install-WUAndroidSdk {
     if ($packages.Count -gt 0) {
         $installArguments = @('sdk', 'install') + $packages
         $commandArguments = $androidArguments + $installArguments
-        $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Ignore
-        if (-not $result.Succeeded) {
-            throw "android.exe failed: $($result.ToDebugString())"
-        }
+        Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ErrorAction Stop | Out-Null
     }
 
     $requiredFiles = @(

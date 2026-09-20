@@ -81,10 +81,7 @@ function Set-WUJavaExtraCaCertificate {
         '-file'
         $extraCertificatePath
     )
-    $result = Invoke-WUNativeCommand -Command 'keytool' -ArgumentList $keytoolArguments -CaptureOutput -ErrorAction Ignore
-    if (-not $result.Succeeded) {
-        throw "keytool failed: $($result.ToDebugString())"
-    }
+    Invoke-WUNativeCommand -Command 'keytool' -ArgumentList $keytoolArguments -CaptureOutput -ErrorAction Stop | Out-Null
 
     Set-WUEnvironmentVariable `
         -Name 'JAVA_TOOL_OPTIONS' `
