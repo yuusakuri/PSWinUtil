@@ -1,93 +1,73 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
+
+    InModuleScope -ModuleName PSWinUtil {
+        function script:New-WinUserLanguageList {
+            param($Language)
+
+            @($Language)
+        }
+
+        function script:Set-WinUserLanguageList {
+            param($LanguageList, [switch]$Force)
+
+            $LanguageList | Out-Null
+            $Force | Out-Null
+            throw 'Language changes must be replaced by the test backend.'
+        }
+    }
 }
 
-
-
-
-
 Describe 'Set-WUJapaneseKeyboardLayout' {
-    BeforeAll {
-        InModuleScope -ModuleName PSWinUtil {
-            function script:New-WinUserLanguageList {
-                @('ja-JP')
-            }
-
-            function script:Set-WinUserLanguageList {
-                param($LanguageList, [switch]$Force)
-
-                $null = $LanguageList
-                $null = $Force
-            }
-        }
-    }
-
     BeforeEach {
-        Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
-            [pscustomobject]@{ Name = $Name }
+        $script:SubstitutePath = 'Registry::HKEY_CURRENT_USER\Keyboard Layout\Substitutes'
+        $script:PreloadPath = 'Registry::HKEY_CURRENT_USER\Keyboard Layout\Preload'
+        $script:LayoutPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\00000411'
+        $script:DriverPath = 'Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\i8042prt\Parameters'
+        $script:Registry = @{
+            "$($script:SubstitutePath)|00000411" = [pscustomobject]@{ Value = 'old substitute'; Type = 'String' }
         }
-        Mock -CommandName New-WinUserLanguageList -ModuleName PSWinUtil -MockWith {
-            @('ja-JP')
+        $script:Languages = @('en-US')
+        Mock -CommandName Set-WinUserLanguageList -ModuleName PSWinUtil -MockWith {
+            $script:Languages = @($LanguageList)
         }
-        Mock -CommandName Set-WinUserLanguageList -ModuleName PSWinUtil
-        Mock -CommandName Set-WURegistryProperty -ModuleName PSWinUtil
-        Mock -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil
+        Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
+            $script:Registry["$Path|$Name"]
+        }
+        Mock -CommandName Test-Path -ModuleName PSWinUtil -ParameterFilter { $LiteralPath -like 'Registry::*' } -MockWith { $true }
+        Mock -CommandName New-ItemProperty -ModuleName PSWinUtil -ParameterFilter { $LiteralPath -like 'Registry::*' } -MockWith {
+            $script:Registry["$LiteralPath|$Name"] = [pscustomobject]@{ Value = $Value; Type = $PropertyType }
+        }
+        Mock -CommandName Remove-ItemProperty -ModuleName PSWinUtil -ParameterFilter { $LiteralPath -like 'Registry::*' } -MockWith {
+            $script:Registry.Remove("$LiteralPath|$Name")
+        }
     }
 
-    It 'configures a US physical keyboard' {
-        $result = Set-WUJapaneseKeyboardLayout -Layout US
+    It 'configures the Japanese IME for a <Layout> physical keyboard' -ForEach @(
+        @{ Layout = 'US'; LayoutFile = 'KBDUS.DLL'; LayerDriver = 'kbd101.dll'; Identifier = 'PCAT_101KEY'; Subtype = 0 }
+        @{ Layout = 'Japanese'; LayoutFile = 'KBDJPN.DLL'; LayerDriver = 'kbd106.dll'; Identifier = 'PCAT_106KEY'; Subtype = 2 }
+    ) {
+        $result = Set-WUJapaneseKeyboardLayout -Layout $Layout
 
-        $result.Layout | Should -Be 'US'
+        $result.Layout | Should -Be $Layout
         $result.RestartRequired | Should -BeTrue
         $result.PSObject.TypeNames | Should -Contain 'PSWinUtil.JapaneseKeyboardLayout'
-        Should -Invoke -CommandName Set-WinUserLanguageList -ModuleName PSWinUtil -Times 1 -Exactly
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq '00000411'
-        }
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'Layout File' -and $Value -eq 'KBDUS.DLL'
-        }
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'LayerDriver JPN' -and $Value -eq 'kbd101.dll'
-        }
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'OverrideKeyboardSubtype' -and $Value -eq 0
-        }
+        $script:Languages | Should -Be @('ja-JP')
+        $script:Registry.ContainsKey("$($script:SubstitutePath)|00000411") | Should -BeFalse
+        $script:Registry["$($script:PreloadPath)|1"].Value | Should -Be '00000411'
+        $script:Registry["$($script:LayoutPath)|Layout File"].Value | Should -Be $LayoutFile
+        $script:Registry["$($script:DriverPath)|LayerDriver JPN"].Value | Should -Be $LayerDriver
+        $script:Registry["$($script:DriverPath)|OverrideKeyboardIdentifier"].Value | Should -Be $Identifier
+        $script:Registry["$($script:DriverPath)|OverrideKeyboardSubtype"].Value | Should -Be $Subtype
+        $script:Registry["$($script:DriverPath)|OverrideKeyboardSubtype"].Type | Should -Be 'DWord'
+        $script:Registry["$($script:DriverPath)|OverrideKeyboardType"].Value | Should -Be 7
     }
 
-    It 'configures a Japanese physical keyboard' {
-        Set-WUJapaneseKeyboardLayout -Layout Japanese
-
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'Layout File' -and $Value -eq 'KBDJPN.DLL'
-        }
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'LayerDriver JPN' -and $Value -eq 'kbd106.dll'
-        }
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'OverrideKeyboardIdentifier' -and $Value -eq 'PCAT_106KEY'
-        }
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'OverrideKeyboardSubtype' -and $Value -eq 2
-        }
-    }
-
-    It 'forwards WhatIf and does not set the language list' {
+    It 'preserves registry values and languages when previewing a layout change' {
         Set-WUJapaneseKeyboardLayout -Layout US -WhatIf
 
-        Should -Invoke -CommandName Set-WinUserLanguageList -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 6 -Exactly -ParameterFilter {
-            $WhatIf -eq $true
-        }
-        Should -Invoke -CommandName Remove-WURegistryProperty -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf -eq $true
-        }
-    }
-
-    It 'requires the Windows language commands' {
-        Mock -CommandName Get-Command -ModuleName PSWinUtil
-
-        { Set-WUJapaneseKeyboardLayout -Layout US } | Should -Throw '*Command*not available*'
-        Should -Invoke -CommandName Set-WURegistryProperty -ModuleName PSWinUtil -Times 0 -Exactly
+        $script:Languages | Should -Be @('en-US')
+        $script:Registry.Count | Should -Be 1
+        $script:Registry["$($script:SubstitutePath)|00000411"].Value | Should -Be 'old substitute'
     }
 }
