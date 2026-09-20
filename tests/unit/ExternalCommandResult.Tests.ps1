@@ -21,7 +21,18 @@ Describe 'ExternalCommandResult.ToDebugString' {
 
         $debugResult = $result.ToDebugString() | ConvertFrom-Json
 
+        $result.StandardOutput | Should -BeExactly ''
+        $result.StandardError | Should -BeExactly ''
+        $result.Message() | Should -BeExactly ''
         $debugResult.exit_code | Should -Be 3
         $debugResult.message | Should -BeExactly ''
+    }
+
+    It 'combines stderr and stdout without adding a newline before CRLF' {
+        $result = [PSWinUtil.ExternalCommandResult]::new($false, 7, "`r`noutput", 'error')
+
+        $result.Message() | Should -BeExactly "error`r`noutput"
+        ($result.ToDebugString() | ConvertFrom-Json).message |
+            Should -BeExactly $result.Message()
     }
 }

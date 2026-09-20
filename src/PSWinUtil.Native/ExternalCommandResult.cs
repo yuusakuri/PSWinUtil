@@ -30,33 +30,34 @@ namespace PSWinUtil
         {
             Succeeded = succeeded;
             ExitCode = exitCode;
-            StandardOutput = standardOutput;
-            StandardError = standardError;
+            StandardOutput = standardOutput ?? string.Empty;
+            StandardError = standardError ?? string.Empty;
+        }
+
+        public string Message()
+        {
+            if (StandardError.Length == 0)
+            {
+                return StandardOutput;
+            }
+            if (StandardOutput.Length == 0)
+            {
+                return StandardError;
+            }
+
+            bool hasBoundaryNewline = StandardError.EndsWith("\n", StringComparison.Ordinal) ||
+                StandardError.EndsWith("\r", StringComparison.Ordinal) ||
+                StandardOutput.StartsWith("\n", StringComparison.Ordinal) ||
+                StandardOutput.StartsWith("\r", StringComparison.Ordinal);
+            return StandardError + (hasBoundaryNewline ? string.Empty : Environment.NewLine) + StandardOutput;
         }
 
         public string ToDebugString()
         {
-            string message = StandardError ?? string.Empty;
-            if (!string.IsNullOrEmpty(StandardOutput))
-            {
-                if (message.Length == 0)
-                {
-                    message = StandardOutput;
-                }
-                else
-                {
-                    string separator = StandardError.EndsWith("\n", StringComparison.Ordinal) ||
-                        StandardOutput.StartsWith("\n", StringComparison.Ordinal)
-                        ? string.Empty
-                        : Environment.NewLine;
-                    message = StandardError + separator + StandardOutput;
-                }
-            }
-
             var serializer = new DataContractJsonSerializer(typeof(DebugResult));
             using (var stream = new MemoryStream())
             {
-                serializer.WriteObject(stream, new DebugResult { ExitCode = ExitCode, Message = message });
+                serializer.WriteObject(stream, new DebugResult { ExitCode = ExitCode, Message = Message() });
                 return Encoding.UTF8.GetString(stream.ToArray());
             }
         }
