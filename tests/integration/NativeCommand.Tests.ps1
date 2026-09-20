@@ -184,7 +184,7 @@ Describe 'Invoke-WUNativeCommand' {
     It 'evaluates ShouldProcess with the command and arguments immediately before execution' {
         $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath
-        ) -CaptureOutput -WhatIf
+        ) -CaptureOutput -WhatIf 2>&1 | Out-String
 
         $result | Should -BeNullOrEmpty
     }
