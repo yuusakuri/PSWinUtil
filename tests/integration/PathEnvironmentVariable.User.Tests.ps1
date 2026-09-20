@@ -20,7 +20,11 @@ Describe 'User PATH integration' {
                     $null,
                     [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
                 )
-                $script:OriginalPathValueKind = $registryKey.GetValueKind('Path')
+                if ($null -eq $script:OriginalPathRawValue) {
+                    $script:OriginalPathValueKind = $null
+                } else {
+                    $script:OriginalPathValueKind = $registryKey.GetValueKind('Path')
+                }
             }
         } finally {
             if ($null -ne $registryKey) {
@@ -103,16 +107,18 @@ Describe 'User PATH integration' {
             Add-WUPathEnvironmentVariable -Path "%$variableName%\bin" -Scope User
 
             $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User -NoExpand
-            @($rawPath -split ';' | Where-Object { $_.TrimEnd([char]'\') -ieq $targetPath }) |
-                Should -HaveCount 1
+            $entries = @($rawPath -split ';')
+            $entries | Should -Contain $targetPath
+            $entries | Should -Not -Contain "%$variableName%\bin"
 
             Remove-WUPathEnvironmentVariable -Path $targetPath -Scope User
             Add-WUPathEnvironmentVariable -Path "%$variableName%\bin" -Scope User
             Add-WUPathEnvironmentVariable -Path $targetPath -Scope User
 
             $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User -NoExpand
-            @($rawPath -split ';' | Where-Object { $_ -ieq "%$variableName%\bin" }) |
-                Should -HaveCount 1
+            $entries = @($rawPath -split ';')
+            $entries | Should -Contain "%$variableName%\bin"
+            $entries | Should -Not -Contain $targetPath
         } finally {
             Remove-WUEnvironmentVariable -Name $variableName -Scope User
         }
