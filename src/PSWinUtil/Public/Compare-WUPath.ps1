@@ -41,8 +41,8 @@ function Compare-WUPath {
 
     $scopes = switch ($Scope) {
         'Process' { @('Process') }
-        'User' { @('User', 'Machine', 'Process') }
-        'Machine' { @('Machine', 'Process') }
+        'User' { @('User', 'Machine') }
+        'Machine' { @('Machine') }
     }
 
     $normalize = {
@@ -65,10 +65,12 @@ function Compare-WUPath {
             }
         )
         $expandedValue = $expandedValue.Replace('/', '\')
-        try {
-            $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
-        } catch {
-            $expandedValue = $expandedValue.TrimEnd([char]'\')
+        if ($expandedValue -notmatch '%[^%]+%') {
+            try {
+                $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
+            } catch {
+                $expandedValue = $expandedValue.TrimEnd([char]'\')
+            }
         }
         if ($expandedValue.Length -gt 3) {
             $expandedValue = $expandedValue.TrimEnd([char]'\')

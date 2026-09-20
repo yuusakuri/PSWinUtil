@@ -182,6 +182,7 @@ function Set-WUEnvironmentVariable {
                 } finally {
                     $registryKey.Dispose()
                 }
+                [PSWinUtil.EnvironmentChangeNotification]::Broadcast()
             }
             if ($PassThru) {
                 [pscustomobject]@{

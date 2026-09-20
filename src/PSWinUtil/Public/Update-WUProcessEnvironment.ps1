@@ -70,7 +70,7 @@ function Update-WUProcessEnvironment {
             [System.EnvironmentVariableTarget]::Machine,
             [System.EnvironmentVariableTarget]::User
         )) {
-        $pathValue = Get-WUEnvironmentVariable -Name 'Path' -Scope ([string]$target)
+        $pathValue = Get-WUEnvironmentVariable -Name 'Path' -Scope ([string]$target) -NoExpand
         if (-not [string]::IsNullOrEmpty($pathValue)) {
             $pathValues += & $expandPath $pathValue
         }

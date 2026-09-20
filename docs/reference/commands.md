@@ -8,6 +8,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUCommand` | Throws when a named command is unavailable on PATH. |
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
+| `Compare-WUPath` | Compares two PATH entries using the selected environment-variable scope. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
 | `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
 | `ConvertTo-WUCommandLineArgument` | Quotes an argument for a Windows executable command line. |

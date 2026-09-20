@@ -12,6 +12,9 @@ function Get-WUEnvironmentVariable {
     .PARAMETER Scope
     Specifies one or more of Process, User, and Machine. The default value is Process.
 
+    .PARAMETER NoExpand
+    Returns persistent User or Machine values without expanding environment variable references. Process values are unchanged.
+
     .EXAMPLE
     Get-WUEnvironmentVariable -Name 'JAVA_HOME' -Scope User
 
@@ -43,13 +46,16 @@ function Get-WUEnvironmentVariable {
 
         [Parameter()]
         [ValidateSet('Process', 'User', 'Machine')]
-        [string[]]$Scope = 'Process'
+        [string[]]$Scope = 'Process',
+
+        [Parameter()]
+        [switch]$NoExpand
     )
 
     process {
         foreach ($inputName in $Name) {
             foreach ($targetScope in $Scope) {
-                if ($targetScope -eq 'Process' -or $inputName -ine 'Path') {
+                if ($targetScope -eq 'Process' -or -not $NoExpand) {
                     [System.Environment]::GetEnvironmentVariable(
                         $inputName,
                         [System.EnvironmentVariableTarget]$targetScope

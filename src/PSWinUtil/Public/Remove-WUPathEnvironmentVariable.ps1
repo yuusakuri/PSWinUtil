@@ -61,7 +61,7 @@ function Remove-WUPathEnvironmentVariable {
 
     end {
         foreach ($targetScope in $Scope) {
-            $currentValue = Get-WUEnvironmentVariable -Name 'Path' -Scope $targetScope
+            $currentValue = Get-WUEnvironmentVariable -Name 'Path' -Scope $targetScope -NoExpand
             $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
             $remainingPaths = @()
             $removedPath = $false
