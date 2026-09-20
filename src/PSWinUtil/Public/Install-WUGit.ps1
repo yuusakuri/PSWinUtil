@@ -26,6 +26,10 @@ function Install-WUGit {
         return
     }
 
+    if (-not $PSCmdlet.ShouldProcess('Git for Windows', 'Install with Windows Package Manager')) {
+        return
+    }
+
     Install-WUWingetPackage -Id 'Git.Git' @shouldProcessParameters
     if ($WhatIfPreference) {
         return
