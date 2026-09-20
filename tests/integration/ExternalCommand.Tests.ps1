@@ -121,6 +121,10 @@ Describe 'Invoke-WUExternalCommand' {
         $result.ExitCode | Should -Be 7
         $result.StandardOutput.TrimEnd() | Should -Be 'stdout-result'
         $result.StandardError.TrimEnd() | Should -Be 'stderr-result'
+
+        $debugResult = $result.ToDebugString() | ConvertFrom-Json
+        $debugResult.exit_code | Should -Be 7
+        $debugResult.message | Should -Match '^stderr-result\r?\nstdout-result\r?\n$'
     }
 
     It 'treats a selected exit code as success without changing the actual exit code' {
