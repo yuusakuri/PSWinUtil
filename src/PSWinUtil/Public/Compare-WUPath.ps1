@@ -43,10 +43,11 @@ function Compare-WUPath {
         [string[]]$Scope = 'Process'
     )
 
+    $scopeName = $Scope[0]
     $normalize = {
         param([string]$Value)
 
-        $expandedValue = [PSWinUtil.EnvironmentVariableExpander]::Expand($Value.Trim(), $Scope[0])
+        $expandedValue = [PSWinUtil.EnvironmentVariableExpander]::Expand($Value.Trim(), $scopeName)
         $expandedValue = $expandedValue.Replace('/', '\')
         $isFullyQualified = $expandedValue -match '^(?:[A-Za-z]:[\\/]|\\\\)'
         if ($isFullyQualified) {
