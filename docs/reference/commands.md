@@ -63,6 +63,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WUAndroidDevice` | Gets Android hardware profile IDs that can be used to create virtual devices. |
 | `Get-WUAndroidEmulator` | Lists Android virtual device names that the emulator can start. |
 | `Get-WUAndroidEmulatorPort` | Gets available Android emulator console ports. |
+| `Get-WUAndroidSystemImage` | Gets available Android system image packages. |
 | `Get-WUEnvironmentVariable` | Reads environment variable values from Process, User, or Machine scope. |
 | `Get-WUFileTreeWithContent` | Lists a file tree and reads UTF-8 text content for each file. |
 | `Get-WUFlutterSdkUrl` | Gets a Flutter SDK download URL for Windows. |

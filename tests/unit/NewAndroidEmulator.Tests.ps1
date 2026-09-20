@@ -17,6 +17,7 @@ Describe 'Android AVD selection and errors' -Tag Android {
         $script:AvdManagerDirectory = Join-Path -Path $script:ToolRoot -ChildPath 'cmdline-tools/latest/bin'
         New-Item -Path $script:AvdManagerDirectory -ItemType Directory -Force | Out-Null
         New-Item -Path $script:ToolDirectory -ItemType Directory -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path $script:ToolDirectory 'emulator.exe'), '')
         $script:DeviceCatalog = @('pixel_9', 'pixel_10', 'pixel_10_pro', 'pixel_tablet', 'pixel_8')
         $script:PackageCatalog = @(
             'system-images/android-9/google_apis/x86_64 1.0.0 older'
@@ -134,6 +135,16 @@ exit /b 23
         $devices | Should -Not -Contain 'custom'
     }
 
+    It 'lists stable system images with their package coordinates' {
+        $images = @(Get-WUAndroidSystemImage -PlatformVersion 36 -SystemImageTag google_apis -Abi x86_64)
+
+        $images | Should -HaveCount 3
+        $images[0].PlatformVersion | Should -Be 36
+        $images[0].SystemImageTag | Should -Be 'google_apis'
+        $images[0].Abi | Should -Be 'x86_64'
+        $images[0].Version | Should -Be '1.0.0'
+    }
+
     It 'returns no profile IDs for an empty catalog' {
         $script:DeviceCatalog = @()
         Write-TestAndroidTool
@@ -203,9 +214,10 @@ exit /b 23
         $env:ANDROID_SDK_ROOT | Should -Be $beforeSdkRoot
     }
 
-    It 'does not require installed SDK tools with WhatIf' {
-        $env:Path = $script:ToolDirectory
+    It 'reads available state before previewing changes with WhatIf' {
+        $env:Path = "$($script:AvdManagerDirectory);$($script:ToolDirectory)"
         @(New-WUAndroidEmulator -WhatIf) | Should -HaveCount 0
+        Test-Path -LiteralPath $script:InstallArgumentsPath | Should -BeFalse
         @(Get-ChildItem -LiteralPath $script:AvdHome) | Should -HaveCount 0
     }
 }
