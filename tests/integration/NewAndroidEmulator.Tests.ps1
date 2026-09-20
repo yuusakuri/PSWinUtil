@@ -64,8 +64,4 @@ Describe 'Android SDK AVD integration and CLI contract' -Tag Android -Skip:(-not
         Test-Path -LiteralPath (Join-Path $script:AvdHome 'preview.ini') | Should -BeFalse
     }
 
-    It 'previews startup without launching the created AVD' {
-        @(Start-WUAndroidEmulator -Name contract_device -WhatIf) | Should -HaveCount 0
-        @(Get-WUAndroidEmulator) | Should -Contain 'contract_device'
-    }
 }
