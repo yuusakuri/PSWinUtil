@@ -95,10 +95,6 @@ function Install-WUAndroidSdk {
     Install-WUWingetPackage -Id 'Google.AndroidCLI'
     Update-WUProcessEnvironment
     Assert-WUCommand -Name 'android.exe'
-    $androidArguments = @(
-        '--no-metrics'
-    )
-
     $resolvedPlatformVersion = if ($PSBoundParameters.ContainsKey('PlatformVersion')) {
         [string]$PlatformVersion
     } else {
@@ -111,22 +107,10 @@ function Install-WUAndroidSdk {
     }
     if ($null -eq $resolvedPlatformVersion -or $null -eq $resolvedBuildToolsVersion) {
         if ($null -eq $resolvedPlatformVersion) {
-            $commandArguments = $androidArguments + @(
-                'sdk', 'list', 'platforms/android-*', '--all', '--all-versions'
-            )
-            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop
-            $availablePlatforms = @($result.StandardOutput | Split-WUNewLine)
-            $resolvedPlatformVersion = Get-WUAndroidPlatformVersion `
-                -InputObject $availablePlatforms
+            $resolvedPlatformVersion = Get-WUAndroidSdkPackageVersion -Component Platform -Latest
         }
         if ($null -eq $resolvedBuildToolsVersion) {
-            $commandArguments = $androidArguments + @(
-                'sdk', 'list', 'build-tools/*', '--all', '--all-versions'
-            )
-            $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $commandArguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop
-            $availableBuildTools = @($result.StandardOutput | Split-WUNewLine)
-            $resolvedBuildToolsVersion = Get-WUAndroidBuildToolsVersion `
-                -InputObject $availableBuildTools
+            $resolvedBuildToolsVersion = Get-WUAndroidSdkPackageVersion -Component BuildTools -Latest
         }
     }
 
