@@ -353,7 +353,7 @@ Describe 'Install-WUFlutterSdk' {
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*exit code 7*'
+        } | Should -Throw '*exit_code*7*'
 
         Test-Path -LiteralPath $oldFilePath -PathType Leaf | Should -BeTrue
     }
@@ -373,7 +373,7 @@ Describe 'Install-WUFlutterSdk' {
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*exit code 8*'
+        } | Should -Throw '*exit_code*8*'
 
         Test-Path -LiteralPath $oldFilePath -PathType Leaf | Should -BeTrue
     }
