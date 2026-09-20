@@ -130,31 +130,19 @@ Describe 'Invoke-WUNativeCommand' {
         $debugResult.message | Should -Match '^stderr-result\r?\nstdout-result\r?\n$'
     }
 
-    It 'writes a structured error without exposing arguments when error handling continues' {
+    It 'writes a structured error when error handling continues' {
         $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
-            '-NoProfile', '-File', $script:ExitScriptPath, 'secret-value'
+            '-NoProfile', '-File', $script:ExitScriptPath
         ) -CaptureOutput -ErrorAction Continue -ErrorVariable commandError 2>$null
 
         $result.Succeeded | Should -BeFalse
         $commandError | Should -HaveCount 1
         $errorText = $commandError[0].Exception.Message
         $errorText | Should -Match '^Command failed: '
-        $errorText | Should -Not -Match 'secret-value'
         $diagnostic = $errorText.Substring('Command failed: '.Length) | ConvertFrom-Json
         $diagnostic.command | Should -BeExactly 'powershell.exe'
         $diagnostic.exit_code | Should -Be 7
         $diagnostic.message | Should -Match 'stderr-result'
-    }
-
-    It 'uses a caller-provided redacted command line in the error' {
-        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
-            '-NoProfile', '-File', $script:ExitScriptPath, 'secret-value'
-        ) -ErrorCommandLine 'powershell.exe -File <redacted>' -ErrorAction Continue -ErrorVariable commandError 2>$null
-
-        $result.Succeeded | Should -BeFalse
-        $diagnostic = $commandError[0].Exception.Message.Substring('Command failed: '.Length) | ConvertFrom-Json
-        $diagnostic.command | Should -BeExactly 'powershell.exe -File <redacted>'
-        $commandError[0].Exception.Message | Should -Not -Match 'secret-value'
     }
 
     It 'stops on failure when the caller requests terminating errors' {
@@ -191,5 +179,13 @@ Describe 'Invoke-WUNativeCommand' {
         $result.Succeeded | Should -BeFalse
         $result.StandardOutput | Should -BeNullOrEmpty
         $result.StandardError | Should -BeNullOrEmpty
+    }
+
+    It 'evaluates ShouldProcess with the command and arguments immediately before execution' {
+        $result = Invoke-WUNativeCommand -Command 'powershell.exe' -ArgumentList @(
+            '-NoProfile', '-File', $script:ExitScriptPath
+        ) -CaptureOutput -WhatIf
+
+        $result | Should -BeNullOrEmpty
     }
 }

@@ -18,9 +18,6 @@ function Invoke-WUNativeCommand {
     .PARAMETER ContinueExitCodes
     Specifies additional exit codes treated as successful.
 
-    .PARAMETER ErrorCommandLine
-    Specifies a display-only command line for failure errors. Omit secrets before providing it. By default, the error contains only the command name, not its arguments.
-
     .EXAMPLE
     Invoke-WUNativeCommand -Command 'git' -ArgumentList @('status', '--short') -CaptureOutput
 
@@ -34,7 +31,7 @@ function Invoke-WUNativeCommand {
     .OUTPUTS
     PSWinUtil.NativeCommandResult
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType([PSWinUtil.NativeCommandResult])]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
@@ -50,11 +47,8 @@ function Invoke-WUNativeCommand {
         [switch]$CaptureOutput,
 
         [Parameter()]
-        [int[]]$ContinueExitCodes = @(),
+        [int[]]$ContinueExitCodes = @()
 
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$ErrorCommandLine
     )
 
     $commandInfo = $ExecutionContext.InvokeCommand.GetCommand(
@@ -83,6 +77,14 @@ function Invoke-WUNativeCommand {
 
         $process.StartInfo.RedirectStandardOutput = [bool]$CaptureOutput
         $process.StartInfo.RedirectStandardError = [bool]$CaptureOutput
+        $commandLine = if ([string]::IsNullOrEmpty($process.StartInfo.Arguments)) {
+            $process.StartInfo.FileName
+        } else {
+            "$($process.StartInfo.FileName) $($process.StartInfo.Arguments)"
+        }
+        if (-not $PSCmdlet.ShouldProcess($commandLine, 'Run native command')) {
+            return
+        }
         [void]$process.Start()
         if ($CaptureOutput) {
             $standardOutputTask = $process.StandardOutput.ReadToEndAsync()
@@ -105,13 +107,8 @@ function Invoke-WUNativeCommand {
             $standardError
         )
         if (-not $result.Succeeded) {
-            $displayCommand = if ($PSBoundParameters.ContainsKey('ErrorCommandLine')) {
-                $ErrorCommandLine
-            } else {
-                $Command
-            }
             $diagnostic = [ordered]@{
-                command = $displayCommand
+                command = $Command
                 exit_code = $result.ExitCode
                 message = $result.Message()
             } | ConvertTo-Json -Compress
