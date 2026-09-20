@@ -29,10 +29,10 @@ function Get-WUAndroidSystemImage {
     None
 
     .OUTPUTS
-    System.Management.Automation.PSCustomObject
+    PSWinUtil.AndroidSystemImage
     #>
     [CmdletBinding()]
-    [OutputType([pscustomobject])]
+    [OutputType([PSWinUtil.AndroidSystemImage])]
     param(
         [Parameter()]
         [ValidateRange(1, 2147483647)]
@@ -62,12 +62,12 @@ function Get-WUAndroidSystemImage {
             continue
         }
 
-        $image = [pscustomobject]@{
-            PlatformVersion = [int]$Matches[1]
-            SystemImageTag = $Matches[2]
-            Abi = $Matches[3]
-            Version = $Matches[4]
-        }
+        $image = [PSWinUtil.AndroidSystemImage]::new(
+            [int]$Matches[1],
+            $Matches[2],
+            $Matches[3],
+            $Matches[4]
+        )
         if ($PSBoundParameters.ContainsKey('PlatformVersion') -and
             $image.PlatformVersion -ne $PlatformVersion) {
             continue

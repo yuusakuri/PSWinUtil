@@ -139,6 +139,7 @@ exit /b 23
         $images = @(Get-WUAndroidSystemImage -PlatformVersion 36 -SystemImageTag google_apis -Abi x86_64)
 
         $images | Should -HaveCount 3
+        $images[0] | Should -BeOfType ([PSWinUtil.AndroidSystemImage])
         $images[0].PlatformVersion | Should -Be 36
         $images[0].SystemImageTag | Should -Be 'google_apis'
         $images[0].Abi | Should -Be 'x86_64'
