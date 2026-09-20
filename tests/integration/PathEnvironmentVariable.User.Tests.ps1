@@ -102,7 +102,7 @@ Describe 'User PATH integration' {
             Add-WUPathEnvironmentVariable -Path $targetPath -Scope User
             Add-WUPathEnvironmentVariable -Path "%$variableName%\bin" -Scope User
 
-            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User
+            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User -NoExpand
             @($rawPath -split ';' | Where-Object { $_.TrimEnd([char]'\') -ieq $targetPath }) |
                 Should -HaveCount 1
 
@@ -110,7 +110,7 @@ Describe 'User PATH integration' {
             Add-WUPathEnvironmentVariable -Path "%$variableName%\bin" -Scope User
             Add-WUPathEnvironmentVariable -Path $targetPath -Scope User
 
-            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User
+            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User -NoExpand
             @($rawPath -split ';' | Where-Object { $_ -ieq "%$variableName%\bin" }) |
                 Should -HaveCount 1
         } finally {
