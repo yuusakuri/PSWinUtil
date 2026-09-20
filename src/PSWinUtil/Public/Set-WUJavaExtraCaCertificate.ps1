@@ -81,7 +81,7 @@ function Set-WUJavaExtraCaCertificate {
         '-file'
         $extraCertificatePath
     )
-    $result = Invoke-WUExternalCommand -Command 'keytool' -ArgumentList $keytoolArguments -CaptureOutput
+    $result = Invoke-WUExternalCommand -Command 'keytool' -ArgumentList $keytoolArguments -CaptureOutput -ErrorAction Ignore
     if (-not $result.Succeeded) {
         throw "keytool failed: $($result.ToDebugString())"
     }

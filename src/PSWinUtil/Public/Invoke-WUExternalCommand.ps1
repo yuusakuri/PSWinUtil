@@ -4,7 +4,7 @@ function Invoke-WUExternalCommand {
     Runs an external command and returns its exit status.
 
     .DESCRIPTION
-    Runs an executable or Windows batch command with separate argument values. Batch commands run through cmd.exe and reject values that cmd.exe cannot reliably preserve. Output appears in the console by default; CaptureOutput instead returns standard output and standard error in the result. ContinueExitCodes marks additional exit codes as successful.
+    Runs an executable or Windows batch command with separate argument values. Batch commands run through cmd.exe and reject values that cmd.exe cannot reliably preserve. Output appears in the console by default; CaptureOutput instead returns standard output and standard error in the result. A failed exit writes an error according to the caller's ErrorAction setting and still returns the result unless error handling stops execution. ContinueExitCodes marks additional exit codes as successful.
 
     .PARAMETER Command
     Specifies the external command name or path.
@@ -17,6 +17,9 @@ function Invoke-WUExternalCommand {
 
     .PARAMETER ContinueExitCodes
     Specifies additional exit codes treated as successful.
+
+    .PARAMETER ErrorCommandLine
+    Specifies a display-only command line for failure errors. Omit secrets before providing it. By default, the error contains only the command name, not its arguments.
 
     .EXAMPLE
     Invoke-WUExternalCommand -Command 'git' -ArgumentList @('status', '--short') -CaptureOutput
@@ -47,7 +50,11 @@ function Invoke-WUExternalCommand {
         [switch]$CaptureOutput,
 
         [Parameter()]
-        [int[]]$ContinueExitCodes = @()
+        [int[]]$ContinueExitCodes = @(),
+
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string]$ErrorCommandLine
     )
 
     $commandInfo = $ExecutionContext.InvokeCommand.GetCommand(
@@ -91,12 +98,32 @@ function Invoke-WUExternalCommand {
         }
 
         $exitCode = $process.ExitCode
-        [PSWinUtil.ExternalCommandResult]::new(
+        $result = [PSWinUtil.ExternalCommandResult]::new(
             ($exitCode -eq 0 -or $ContinueExitCodes -contains $exitCode),
             $exitCode,
             $standardOutput,
             $standardError
         )
+        if (-not $result.Succeeded) {
+            $displayCommand = if ($PSBoundParameters.ContainsKey('ErrorCommandLine')) {
+                $ErrorCommandLine
+            } else {
+                $Command
+            }
+            $diagnostic = [ordered]@{
+                command = $displayCommand
+                exit_code = $result.ExitCode
+                message = $result.Message()
+            } | ConvertTo-Json -Compress
+            $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+                [System.InvalidOperationException]::new("Command failed: $diagnostic"),
+                'ExternalCommandFailed',
+                [System.Management.Automation.ErrorCategory]::NotSpecified,
+                $result
+            )
+            $PSCmdlet.WriteError($errorRecord)
+        }
+        $result
     } finally {
         $process.Dispose()
     }

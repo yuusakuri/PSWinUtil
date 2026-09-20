@@ -14,6 +14,8 @@ Describe 'Invoke-WUExternalCommand' {
         )
         $script:BatPath = Join-Path -Path $script:CommandDirectory -ChildPath 'echo arguments.bat'
         Copy-Item -LiteralPath $script:BatchPath -Destination $script:BatPath
+        $script:FailBatchPath = Join-Path -Path $script:CommandDirectory -ChildPath 'fail command.cmd'
+        [IO.File]::WriteAllText($script:FailBatchPath, "@echo off`r`nexit /b 9`r`n", [Text.Encoding]::ASCII)
         $script:TwoArgumentPath = Join-Path -Path $script:CommandDirectory -ChildPath 'echo two arguments.cmd'
         [IO.File]::WriteAllText(
             $script:TwoArgumentPath,
@@ -112,19 +114,64 @@ Describe 'Invoke-WUExternalCommand' {
         }
     }
 
-    It 'reports a nonzero exit and separate output streams' {
+    It 'returns a failed result when the error is ignored' {
         $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath
-        ) -CaptureOutput
+        ) -CaptureOutput -ErrorAction Ignore -ErrorVariable ignoredErrors
 
         $result.Succeeded | Should -BeFalse
         $result.ExitCode | Should -Be 7
+        $ignoredErrors | Should -BeNullOrEmpty
         $result.StandardOutput.TrimEnd() | Should -Be 'stdout-result'
         $result.StandardError.TrimEnd() | Should -Be 'stderr-result'
 
         $debugResult = $result.ToDebugString() | ConvertFrom-Json
         $debugResult.exit_code | Should -Be 7
         $debugResult.message | Should -Match '^stderr-result\r?\nstdout-result\r?\n$'
+    }
+
+    It 'writes a structured error without exposing arguments when error handling continues' {
+        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+            '-NoProfile', '-File', $script:ExitScriptPath, 'secret-value'
+        ) -CaptureOutput -ErrorAction Continue -ErrorVariable commandError 2>$null
+
+        $result.Succeeded | Should -BeFalse
+        $commandError | Should -HaveCount 1
+        $errorText = $commandError[0].Exception.Message
+        $errorText | Should -Match '^Command failed: '
+        $errorText | Should -Not -Match 'secret-value'
+        $diagnostic = $errorText.Substring('Command failed: '.Length) | ConvertFrom-Json
+        $diagnostic.command | Should -BeExactly 'powershell.exe'
+        $diagnostic.exit_code | Should -Be 7
+        $diagnostic.message | Should -Match 'stderr-result'
+    }
+
+    It 'uses a caller-provided redacted command line in the error' {
+        $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+            '-NoProfile', '-File', $script:ExitScriptPath, 'secret-value'
+        ) -ErrorCommandLine 'powershell.exe -File <redacted>' -ErrorAction Continue -ErrorVariable commandError 2>$null
+
+        $result.Succeeded | Should -BeFalse
+        $diagnostic = $commandError[0].Exception.Message.Substring('Command failed: '.Length) | ConvertFrom-Json
+        $diagnostic.command | Should -BeExactly 'powershell.exe -File <redacted>'
+        $commandError[0].Exception.Message | Should -Not -Match 'secret-value'
+    }
+
+    It 'stops on failure when the caller requests terminating errors' {
+        {
+            Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
+                '-NoProfile', '-File', $script:ExitScriptPath
+            ) -CaptureOutput -ErrorAction Stop
+        } | Should -Throw '*Command failed:*'
+    }
+
+    It 'reports a failing batch command with its exit code' {
+        $result = Invoke-WUExternalCommand -Command $script:FailBatchPath -ErrorAction Continue -ErrorVariable commandError 2>$null
+
+        $result.Succeeded | Should -BeFalse
+        $diagnostic = $commandError[0].Exception.Message.Substring('Command failed: '.Length) | ConvertFrom-Json
+        $diagnostic.command | Should -BeExactly $script:FailBatchPath
+        $diagnostic.exit_code | Should -Be 9
     }
 
     It 'treats a selected exit code as success without changing the actual exit code' {
@@ -139,7 +186,7 @@ Describe 'Invoke-WUExternalCommand' {
     It 'does not capture output unless requested' {
         $result = Invoke-WUExternalCommand -Command 'powershell.exe' -ArgumentList @(
             '-NoProfile', '-File', $script:ExitScriptPath
-        )
+        ) -ErrorAction Ignore
 
         $result.Succeeded | Should -BeFalse
         $result.StandardOutput | Should -BeNullOrEmpty
