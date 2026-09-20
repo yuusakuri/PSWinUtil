@@ -4,10 +4,10 @@ function Test-WUCommand {
     Tests whether a command is available.
 
     .DESCRIPTION
-    Returns whether PowerShell can resolve the specified command name.
+    Returns whether PowerShell can resolve each specified command name.
 
     .PARAMETER Name
-    Specifies the command name to find.
+    Specifies one or more command names to find.
 
     .EXAMPLE
     Test-WUCommand -Name 'git'
@@ -19,8 +19,10 @@ function Test-WUCommand {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$Name
+        [string[]]$Name
     )
 
-    $null -ne (Get-Command -Name $Name -ErrorAction Ignore)
+    foreach ($commandName in $Name) {
+        $null -ne (Get-Command -Name $commandName -ErrorAction Ignore)
+    }
 }
