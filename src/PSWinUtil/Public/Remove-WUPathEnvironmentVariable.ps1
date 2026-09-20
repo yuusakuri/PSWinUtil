@@ -61,8 +61,7 @@ function Remove-WUPathEnvironmentVariable {
 
     end {
         foreach ($targetScope in $Scope) {
-            $target = [System.EnvironmentVariableTarget]$targetScope
-            $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
+            $currentValue = Get-WUEnvironmentVariable -Name 'Path' -Scope $targetScope
             $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
             $remainingPaths = @()
             $removedPath = $false
@@ -70,7 +69,7 @@ function Remove-WUPathEnvironmentVariable {
             foreach ($existingPath in $existingPaths) {
                 $isMatch = $false
                 foreach ($inputPath in $paths) {
-                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $inputPath) {
+                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $inputPath -Scope $targetScope) {
                         $isMatch = $true
                         $removedPath = $true
                         break

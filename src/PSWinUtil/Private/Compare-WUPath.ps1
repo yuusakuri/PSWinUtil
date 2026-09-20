@@ -4,7 +4,7 @@ function Compare-WUPath {
     Compares two PATH environment variable items.
 
     .DESCRIPTION
-    Compares two paths without case sensitivity after trimming surrounding spaces and a trailing backslash. Drive roots keep their trailing backslash.
+    Compares two PATH entries after expanding environment variables and normalizing Windows path syntax. The stored text is not changed.
 
     .PARAMETER ReferencePath
     Specifies the first path to compare.
@@ -32,18 +32,53 @@ function Compare-WUPath {
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$DifferencePath
+        [string]$DifferencePath,
+
+        [Parameter()]
+        [ValidateSet('Process', 'User', 'Machine')]
+        [string]$Scope = 'Process'
     )
 
-    $normalizedReferencePath = $ReferencePath.Trim()
-    $normalizedDifferencePath = $DifferencePath.Trim()
+    $scopes = switch ($Scope) {
+        'Process' { @('Process') }
+        'User' { @('User', 'Machine', 'Process') }
+        'Machine' { @('Machine', 'Process') }
+    }
 
-    if ($normalizedReferencePath.Length -gt 3) {
-        $normalizedReferencePath = $normalizedReferencePath.TrimEnd([char]'\')
+    $normalize = {
+        param([string]$Value)
+
+        $expandedValue = [System.Text.RegularExpressions.Regex]::Replace(
+            $Value.Trim(),
+            '%([^%]+)%',
+            {
+                param($Match)
+
+                foreach ($lookupScope in $scopes) {
+                    $lookupValues = @(Get-WUEnvironmentVariable -Name $Match.Groups[1].Value -Scope $lookupScope)
+                    if ($lookupValues.Count -gt 0) {
+                        return [string]$lookupValues[0]
+                    }
+                }
+
+                $Match.Value
+            }
+        )
+        $expandedValue = $expandedValue.Replace('/', '\')
+        try {
+            $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
+        } catch {
+            $expandedValue = $expandedValue.TrimEnd([char]'\')
+        }
+        if ($expandedValue.Length -gt 3) {
+            $expandedValue = $expandedValue.TrimEnd([char]'\')
+        }
+
+        $expandedValue
     }
-    if ($normalizedDifferencePath.Length -gt 3) {
-        $normalizedDifferencePath = $normalizedDifferencePath.TrimEnd([char]'\')
-    }
+
+    $normalizedReferencePath = & $normalize $ReferencePath
+    $normalizedDifferencePath = & $normalize $DifferencePath
 
     [string]::Equals(
         $normalizedReferencePath,

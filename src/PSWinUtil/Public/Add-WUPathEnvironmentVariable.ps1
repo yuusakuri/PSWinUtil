@@ -72,8 +72,7 @@ function Add-WUPathEnvironmentVariable {
 
     end {
         foreach ($targetScope in $Scope) {
-            $target = [System.EnvironmentVariableTarget]$targetScope
-            $currentValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
+            $currentValue = Get-WUEnvironmentVariable -Name 'Path' -Scope $targetScope
             $existingPaths = @(Split-WUPathEnvironmentVariable -Value $currentValue)
             $newPaths = @()
 
@@ -81,7 +80,7 @@ function Add-WUPathEnvironmentVariable {
                 $trimmedPath = $inputPath.Trim()
                 $isDuplicate = $false
                 foreach ($existingPath in @($existingPaths + $newPaths)) {
-                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $trimmedPath) {
+                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $trimmedPath -Scope $targetScope) {
                         $isDuplicate = $true
                         break
                     }

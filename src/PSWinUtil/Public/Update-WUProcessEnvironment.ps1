@@ -26,6 +26,11 @@ function Update-WUProcessEnvironment {
     param()
 
     $environmentValues = @{}
+    $environmentLookup = @{}
+    foreach ($environmentEntry in [System.Environment]::GetEnvironmentVariables(
+            [System.EnvironmentVariableTarget]::Process).GetEnumerator()) {
+        $environmentLookup[[string]$environmentEntry.Key] = [string]$environmentEntry.Value
+    }
     foreach ($target in @(
             [System.EnvironmentVariableTarget]::Machine,
             [System.EnvironmentVariableTarget]::User
@@ -37,7 +42,27 @@ function Update-WUProcessEnvironment {
             }
 
             $environmentValues[[string]$environmentName] = [string]$targetEnvironment[$environmentName]
+            $environmentLookup[[string]$environmentName] = [string]$targetEnvironment[$environmentName]
         }
+    }
+
+    $expandPath = {
+        param([string]$Value)
+
+        [System.Text.RegularExpressions.Regex]::Replace(
+            $Value,
+            '%([^%]+)%',
+            {
+                param($Match)
+
+                $name = $Match.Groups[1].Value
+                if ($environmentLookup.ContainsKey($name)) {
+                    return $environmentLookup[$name]
+                }
+
+                $Match.Value
+            }
+        )
     }
 
     $pathValues = @()
@@ -45,9 +70,9 @@ function Update-WUProcessEnvironment {
             [System.EnvironmentVariableTarget]::Machine,
             [System.EnvironmentVariableTarget]::User
         )) {
-        $pathValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
+        $pathValue = Get-WUEnvironmentVariable -Name 'Path' -Scope ([string]$target)
         if (-not [string]::IsNullOrEmpty($pathValue)) {
-            $pathValues += $pathValue
+            $pathValues += & $expandPath $pathValue
         }
     }
     $environmentValues['Path'] = $pathValues -join ';'

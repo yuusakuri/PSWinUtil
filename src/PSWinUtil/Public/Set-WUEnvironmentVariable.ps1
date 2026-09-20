@@ -151,12 +151,42 @@ function Set-WUEnvironmentVariable {
                 continue
             }
 
-            $target = [System.EnvironmentVariableTarget]$setting.Scope
-            [System.Environment]::SetEnvironmentVariable($setting.Name, $setting.Value, $target)
+            if ($setting.Scope -eq 'Process' -or $setting.Name -ine 'Path') {
+                [System.Environment]::SetEnvironmentVariable(
+                    $setting.Name,
+                    $setting.Value,
+                    [System.EnvironmentVariableTarget]$setting.Scope
+                )
+            } else {
+                $registryPath = if ($setting.Scope -eq 'User') {
+                    'Environment'
+                } else {
+                    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+                }
+                $baseKey = if ($setting.Scope -eq 'User') {
+                    [Microsoft.Win32.Registry]::CurrentUser
+                } else {
+                    [Microsoft.Win32.Registry]::LocalMachine
+                }
+                $registryKey = $baseKey.CreateSubKey($registryPath)
+                try {
+                    if ($null -eq $setting.Value) {
+                        $registryKey.DeleteValue($setting.Name, $false)
+                    } else {
+                        $registryKey.SetValue(
+                            $setting.Name,
+                            $setting.Value,
+                            [Microsoft.Win32.RegistryValueKind]::ExpandString
+                        )
+                    }
+                } finally {
+                    $registryKey.Dispose()
+                }
+            }
             if ($PassThru) {
                 [pscustomobject]@{
                     Name = $setting.Name
-                    Value = [System.Environment]::GetEnvironmentVariable($setting.Name, $target)
+                    Value = Get-WUEnvironmentVariable -Name $setting.Name -Scope $setting.Scope
                     Scope = $setting.Scope
                 }
             }

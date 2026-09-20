@@ -49,8 +49,38 @@ function Get-WUEnvironmentVariable {
     process {
         foreach ($inputName in $Name) {
             foreach ($targetScope in $Scope) {
-                $target = [System.EnvironmentVariableTarget]$targetScope
-                [System.Environment]::GetEnvironmentVariable($inputName, $target)
+                if ($targetScope -eq 'Process' -or $inputName -ine 'Path') {
+                    [System.Environment]::GetEnvironmentVariable(
+                        $inputName,
+                        [System.EnvironmentVariableTarget]$targetScope
+                    )
+                    continue
+                }
+
+                $registryPath = if ($targetScope -eq 'User') {
+                    'Environment'
+                } else {
+                    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+                }
+                $baseKey = if ($targetScope -eq 'User') {
+                    [Microsoft.Win32.Registry]::CurrentUser
+                } else {
+                    [Microsoft.Win32.Registry]::LocalMachine
+                }
+                $registryKey = $baseKey.OpenSubKey($registryPath, $false)
+                if ($null -eq $registryKey) {
+                    continue
+                }
+
+                try {
+                    $registryKey.GetValue(
+                        $inputName,
+                        $null,
+                        [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+                    )
+                } finally {
+                    $registryKey.Dispose()
+                }
             }
         }
     }
