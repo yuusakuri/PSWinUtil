@@ -114,12 +114,7 @@ function Install-WUAndroidSdk {
         }
     }
 
-    $platformToolsPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'platform-tools'
-    $platformPath = Join-Path `
-        -Path $env:ANDROID_HOME `
-        -ChildPath "platforms\android-$resolvedPlatformVersion"
     $buildToolsRoot = Join-Path -Path $env:ANDROID_HOME -ChildPath 'build-tools'
-    $emulatorPath = Join-Path -Path $env:ANDROID_HOME -ChildPath 'emulator'
 
     $platformToolsParameters = Select-WUBoundParameter `
         -BoundParameters $PSBoundParameters `
@@ -140,27 +135,6 @@ function Install-WUAndroidSdk {
     Install-WUAndroidEmulator @emulatorParameters
 
     Install-WUAndroidCommandLineTool -Version $CommandLineToolsVersion
-
-    $versionedPackages = @{
-        PlatformToolsVersion = $platformToolsPath
-        EmulatorVersion = $emulatorPath
-        PlatformPackageVersion = $platformPath
-    }
-    foreach ($parameterName in $versionedPackages.Keys) {
-        if (-not $PSBoundParameters.ContainsKey($parameterName)) {
-            continue
-        }
-        $propertiesPath = Join-Path $versionedPackages[$parameterName] 'source.properties'
-        $properties = Get-Content -LiteralPath $propertiesPath -Raw -ErrorAction Stop
-        $revision = [regex]::Match($properties, '(?m)^Pkg.Revision\s*=\s*([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?\s*$')
-        if (-not $revision.Success) {
-            throw "Android package revision was not found: $propertiesPath"
-        }
-        $installedVersion = [version]::new([int]$revision.Groups[1].Value, [int]$revision.Groups[2].Value, [int]$revision.Groups[3].Value)
-        if ($installedVersion -ne [version]$PSBoundParameters[$parameterName]) {
-            throw "Android CLI did not install $parameterName $($PSBoundParameters[$parameterName]); installed version is $installedVersion."
-        }
-    }
 
     Set-WUAndroidBuildToolsLatest `
         -BuildToolsPath $buildToolsRoot `

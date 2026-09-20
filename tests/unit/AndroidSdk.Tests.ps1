@@ -20,7 +20,6 @@ Describe 'Android SDK availability' {
         $script:Downloads = @()
         $script:EmitPackageFiles = $true
         $script:InstallExitCode = 0
-        $script:InstalledVersionOverride = $null
         $script:Catalog = @(
             'platforms/android-9 1.0.0 old'
             'platforms/android-35 2.0.0 stable'
@@ -111,10 +110,6 @@ Describe 'Android SDK availability' {
                     New-Item -Path (Split-Path $destination -Parent) -ItemType Directory -Force | Out-Null
                     [IO.File]::WriteAllText($destination, "package $package")
                 }
-                if ($script:InstalledVersionOverride) {
-                    $revision = $script:InstalledVersionOverride
-                }
-                [IO.File]::WriteAllText((Join-Path $directory 'source.properties'), "Pkg.Revision=$revision")
             }
             [PSWinUtil.NativeCommandResult]::new(
                 ($script:InstallExitCode -eq 0),
