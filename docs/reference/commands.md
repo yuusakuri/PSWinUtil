@@ -94,7 +94,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Set-WUEnvironmentVariable` | Sets environment variables in selected Process, User, or Machine scopes. |
 | `Set-WUJapaneseImeHalfWidthInput` | Sets Microsoft IME space, number, and alphabet input to half width. |
 | `Set-WUJapaneseKeyboardLayout` | Sets the physical layout used with the Japanese Microsoft IME. |
-| `Set-WUJavaExtraCaCertificate` | Copies a CA certificate into a Java trust store and configures JAVA_TOOL_OPTIONS to use it. |
+| `Set-WUJavaExtraCaCertificate` | Imports an additional CA certificate into JAVA_HOME&#39;s trust store and configures JAVA_TOOL_OPTIONS. |
 | `Set-WUKeyboardRemapping` | Sets a Windows keyboard scan code mapping. |
 | `Set-WUNativeCommandEncoding` | Sets native command input and output encoding to UTF-8. |
 | `Set-WUNodeExtraCaCertificate` | Sets the Node.js extra CA certificate environment variable. |
