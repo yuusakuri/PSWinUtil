@@ -144,7 +144,7 @@ Describe 'Assert-WUFlutterSdkInstallation' {
             & $script:Module {
                 Assert-WUFlutterSdkInstallation
             }
-        } | Should -Throw '*exit code 7*'
+        } | Should -Throw '*"exit_code":7*'
     }
 
     It 'can display a report without using its exit code as a success condition' {
