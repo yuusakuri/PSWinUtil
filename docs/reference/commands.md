@@ -5,6 +5,7 @@ The following table is generated from the exported commands and their comment-ba
 | Command | Synopsis |
 | --- | --- |
 | `Add-WUPathEnvironmentVariable` | Adds paths to the PATH environment variable. |
+| `Assert-WUCommand` | Throws when a named command is unavailable on PATH. |
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
@@ -16,6 +17,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Disable-WUAppLaunchTracking` | Disables application launch tracking. |
 | `Disable-WUAppSuggestions` | Disables application suggestions. |
 | `Disable-WUClassicContextMenu` | Disables the classic Windows 11 Explorer context menu. |
+| `Disable-WUCommandOverride` | Disables command overrides. |
 | `Disable-WUDarkMode` | Disables dark mode. |
 | `Disable-WUDeviceSetupSuggestions` | Disables device setup suggestions. |
 | `Disable-WUEdgeFirstRunExperience` | Disables the Microsoft Edge first-run experience. |
@@ -38,6 +40,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Enable-WUAppLaunchTracking` | Enables application launch tracking. |
 | `Enable-WUAppSuggestions` | Enables application suggestions. |
 | `Enable-WUClassicContextMenu` | Enables the classic Windows 11 Explorer context menu. |
+| `Enable-WUCommandOverride` | Enables command overrides. |
 | `Enable-WUDarkMode` | Enables dark mode. |
 | `Enable-WUDeviceSetupSuggestions` | Enables device setup suggestions. |
 | `Enable-WUEdgeFirstRunExperience` | Enables the Microsoft Edge first-run experience. |
@@ -104,6 +107,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Start-WUAndroidEmulator` | Starts one or more local Android virtual devices. |
 | `Start-WUPSScriptAsAdmin` | Starts a PowerShell script as an administrator. |
 | `Test-WUAndroidEmulatorPort` | Tests whether Android emulator console ports are available. |
+| `Test-WUCommand` | Tests whether a command is available. |
 | `Test-WUPSScript` | Tests PowerShell script syntax. |
 | `Test-WUPathProperty` | Tests whether PowerShell paths exist and match optional item type requirements. |
 | `Unregister-WUStartupEntry` | Unregisters a Windows startup entry. |
