@@ -45,7 +45,7 @@ function New-WUAndroidEmulator {
     .EXAMPLE
     New-WUAndroidEmulator -Name 'Preview' -PlatformVersion 35 -WhatIf
 
-    Previews creation without invoking SDK tools or downloading packages.
+    Previews creation without installing a system image or creating an AVD.
 
     .INPUTS
     None
@@ -84,12 +84,6 @@ function New-WUAndroidEmulator {
         [switch]$Force
     )
 
-    if (-not $PSCmdlet.ShouldProcess("Android AVD '$Name'", 'Install system image and create')) {
-        return
-    }
-
-    Assert-WUCommand -Name 'android'
-
     $devices = @(Get-WUAndroidDevice -ErrorAction Stop)
     if (-not $PSBoundParameters.ContainsKey('Device')) {
         $latestDevice = $devices | Where-Object { $_ -match '^pixel_[0-9]+$' } |
@@ -103,20 +97,10 @@ function New-WUAndroidEmulator {
         throw "Android device profile was not found: $Device"
     }
 
-    $listArguments = @('--no-metrics', 'sdk', 'list', 'system-images/*', '--all', '--all-versions')
-    $packageResult = Invoke-WUNativeCommand -Command 'android' -ArgumentList $listArguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop
-    $packages = @($packageResult.StandardOutput | Split-WUNewLine)
-    $imagePattern = '^\s*system-images/android-([0-9]+)/' + [regex]::Escape($SystemImageTag) + '/' + [regex]::Escape($Abi) + '\s+([0-9]+\.[0-9]+\.[0-9]+)\s+'
-    $availableImages = @(
-        foreach ($line in $packages) {
-            if ($line -match $imagePattern) {
-                [pscustomobject]@{
-                    PlatformVersion = [int]$Matches[1]
-                    Version = $Matches[2]
-                }
-            }
-        }
-    )
+    $availableImages = @(Get-WUAndroidSystemImage `
+            -SystemImageTag $SystemImageTag `
+            -Abi $Abi `
+            -ErrorAction Stop)
     $availableVersions = @($availableImages | ForEach-Object { $_.PlatformVersion })
     if (-not $PSBoundParameters.ContainsKey('PlatformVersion')) {
         if ($availableVersions.Count -eq 0) {
@@ -143,13 +127,18 @@ function New-WUAndroidEmulator {
         throw "Android AVD already exists: $Name. Choose another name or specify Force to replace it."
     }
 
-    $package = "system-images;android-$PlatformVersion;${SystemImageTag};$Abi"
-    $installArguments = @('--no-metrics', 'sdk', 'install', ($package.Replace(';', '/') + "@$SystemImageVersion"))
+    if (-not $PSCmdlet.ShouldProcess("Android AVD '$Name'", 'Install system image and create')) {
+        return
+    }
+
+    $sdkPackage = "system-images/android-$PlatformVersion/$SystemImageTag/$Abi"
+    $avdPackage = "system-images;android-$PlatformVersion;$SystemImageTag;$Abi"
+    $installArguments = @('--no-metrics', 'sdk', 'install', "$sdkPackage@$SystemImageVersion")
     if ($PSBoundParameters.ContainsKey('SystemImageVersion')) {
         $installArguments += '--force'
     }
     Invoke-WUNativeCommand -Command 'android' -ArgumentList $installArguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop | Out-Null
-    $createArguments = @('create', 'avd', '--name', $Name, '--package', $package, '--device', $Device)
+    $createArguments = @('create', 'avd', '--name', $Name, '--package', $avdPackage, '--device', $Device)
     if ($Force) {
         $createArguments += '--force'
     }
@@ -160,6 +149,6 @@ function New-WUAndroidEmulator {
         Device = $Device
         PlatformVersion = $PlatformVersion
         SystemImageVersion = $SystemImageVersion
-        SystemImage = $package
+        SystemImage = $avdPackage
     }
 }

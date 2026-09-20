@@ -23,7 +23,12 @@ function Get-WUAndroidDevice {
 
     Assert-WUCommand -Name 'avdmanager.bat'
 
-    $result = Invoke-WUNativeCommand -Command 'avdmanager.bat' -ArgumentList @('list', 'device', '-c') -CaptureOutput -ErrorAction Stop
+    $result = Invoke-WUNativeCommand `
+        -Command 'avdmanager.bat' `
+        -ArgumentList @('list', 'device', '-c') `
+        -CaptureOutput `
+        -WhatIf:$false `
+        -ErrorAction Stop
 
     $result.StandardOutput | Split-WUNewLine | ForEach-Object { $_.Trim() } |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) }

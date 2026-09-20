@@ -23,7 +23,12 @@ function Get-WUAndroidEmulator {
 
     Assert-WUCommand -Name 'emulator.exe'
 
-    $result = Invoke-WUNativeCommand -Command 'emulator.exe' -ArgumentList @('-list-avds') -CaptureOutput -ErrorAction Stop
+    $result = Invoke-WUNativeCommand `
+        -Command 'emulator.exe' `
+        -ArgumentList @('-list-avds') `
+        -CaptureOutput `
+        -WhatIf:$false `
+        -ErrorAction Stop
 
     $avdNames = @(
         $result.StandardOutput | Split-WUNewLine |
