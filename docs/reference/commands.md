@@ -84,7 +84,7 @@ The following table is generated from the exported commands and their comment-ba
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |
-| `Remove-WUEnvironmentVariable` | Removes an environment variable from selected Process, User, or Machine scopes. |
+| `Remove-WUEnvironmentVariable` | Removes environment variables from selected Process, User, or Machine scopes. |
 | `Remove-WUKeyboardRemapping` | Removes Windows keyboard scan code mappings. |
 | `Remove-WUPathEnvironmentVariable` | Removes selected entries from Process, User, or Machine PATH values. |
 | `Remove-WURegistryProperty` | Removes a registry property. |

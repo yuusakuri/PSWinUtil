@@ -149,6 +149,35 @@ Describe 'User PATH integration' {
         $matchingPaths.Count | Should -Be 0
     }
 
+    It 'reloads a <Kind> user PATH with USERPROFILE absent from Process' -ForEach @(
+        @{ Kind = 'ExpandString'; Expand = $true }
+        @{ Kind = 'String'; Expand = $false }
+    ) {
+        $expected = if ($Expand) { Join-Path $env:USERPROFILE 'bin' } else { '%USERPROFILE%\bin' }
+        $registryKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+        try {
+            $registryKey.SetValue('Path', '%USERPROFILE%\bin', [Microsoft.Win32.RegistryValueKind]$Kind)
+        } finally {
+            $registryKey.Dispose()
+        }
+        [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
+        [Environment]::SetEnvironmentVariable('USERPROFILE', $null, 'Process')
+
+        Update-WUProcessEnvironment
+
+        @($env:Path -split ';')[-1] | Should -Be $expected
+    }
+
+    It 'preserves unresolved references to process-only variables when reloading user PATH' {
+        $name = 'PSWINUTIL_PROCESS_ONLY_' + [guid]::NewGuid().ToString('N')
+        [Environment]::SetEnvironmentVariable($name, 'C:\ProcessOnly', 'Process')
+        Set-WUEnvironmentVariable -Name Path -Value "%$name%\bin" -Scope User
+
+        Update-WUProcessEnvironment
+
+        @($env:Path -split ';')[-1] | Should -Be "%$name%\bin"
+    }
+
     It 'preserves expandable references in the persistent user PATH' {
         $variableName = 'PSWINUTIL_PATH_ROOT_' + [guid]::NewGuid().ToString('N')
         try {

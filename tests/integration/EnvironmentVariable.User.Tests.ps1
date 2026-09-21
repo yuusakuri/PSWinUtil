@@ -105,6 +105,40 @@ Describe 'User environment variable integration' {
 
         Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User | Should -Be 'C:\CurrentUser\bin'
         Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User -NoExpand | Should -Be $reference
+        Update-WUProcessEnvironment
+        [Environment]::GetEnvironmentVariable($script:EnvironmentName, 'Process') | Should -Be 'C:\CurrentUser\bin'
+    }
+
+    It 'removes multiple variables from Process and User with <InputKind> input' -ForEach @(
+        @{ InputKind = 'array' }
+        @{ InputKind = 'pipeline' }
+    ) {
+        $names = @($script:EnvironmentName, $script:ReferenceName)
+        $names | ForEach-Object { [pscustomobject]@{ Name = $_; Value = 'value to remove' } } |
+            Set-WUEnvironmentVariable -Scope Process, User
+
+        if ($InputKind -eq 'array') {
+            Remove-WUEnvironmentVariable -Name $names -Scope Process, User
+        } else {
+            $names | Remove-WUEnvironmentVariable -Scope Process, User
+        }
+        foreach ($name in $names) {
+            foreach ($scope in @('Process', 'User')) {
+                [Environment]::GetEnvironmentVariable($name, $scope) | Should -BeNullOrEmpty
+            }
+        }
+    }
+
+    It 'previews persistent removal of multiple variables' {
+        $names = @($script:EnvironmentName, $script:ReferenceName)
+        $names | ForEach-Object { [pscustomobject]@{ Name = $_; Value = 'saved value' } } |
+            Set-WUEnvironmentVariable -Scope User
+
+        $names | Remove-WUEnvironmentVariable -Scope User -WhatIf
+
+        foreach ($name in $names) {
+            [Environment]::GetEnvironmentVariable($name, 'User') | Should -Be 'saved value'
+        }
     }
 
     It 'does not write persistent state with WhatIf' {
