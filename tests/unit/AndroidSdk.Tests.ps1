@@ -124,14 +124,16 @@ Describe 'Set-WUAndroidBuildToolsLatest' {
 
 Describe 'Install-WUAndroidSdk' {
     BeforeEach {
-        $script:SavedAndroidHome = $env:ANDROID_HOME
         $script:SdkPath = Join-Path -Path $TestDrive -ChildPath 'AndroidSdk'
+        $script:OriginalAndroidHome = $env:ANDROID_HOME
         $env:ANDROID_HOME = $script:SdkPath
         $script:AndroidCalls = @()
         Remove-Item -LiteralPath $script:SdkPath -Recurse -Force -ErrorAction Ignore
 
         Mock -CommandName Install-WUWingetPackage -ModuleName PSWinUtil
         Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil
+        Mock -CommandName Remove-WUEnvironmentVariable -ModuleName PSWinUtil
+        Mock -CommandName Assert-WUCommand -ModuleName PSWinUtil
         Mock -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -MockWith {
             $androidArguments = @($ArgumentList)
             $script:AndroidCalls += , $androidArguments
@@ -179,11 +181,10 @@ Describe 'Install-WUAndroidSdk' {
         Mock -CommandName Set-WUAndroidBuildToolsLatest -ModuleName PSWinUtil
         Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil
-        Mock -CommandName Assert-WUCommand -ModuleName PSWinUtil
     }
 
     AfterEach {
-        $env:ANDROID_HOME = $script:SavedAndroidHome
+        $env:ANDROID_HOME = $script:OriginalAndroidHome
     }
 
     It 'resolves and installs the latest stable package versions' {
@@ -284,7 +285,7 @@ Describe 'Install-WUAndroidSdk' {
         Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Name -eq 'ANDROID_HOME' -and
             $Value -eq $script:SdkPath -and
-            $Scope -eq 'User'
+            $Scope -contains 'User' -and $Scope -contains 'Process'
         }
         Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $Scope -eq 'User' -and
