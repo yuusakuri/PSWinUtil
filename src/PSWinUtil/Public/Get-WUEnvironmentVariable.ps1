@@ -4,7 +4,7 @@ function Get-WUEnvironmentVariable {
     Reads environment variable values from Process, User, or Machine scope.
 
     .DESCRIPTION
-    Gets environment variable values from one or more Process, User, or Machine scopes. A missing variable produces no output.
+    Gets environment variable values from one or more Process, User, or Machine scopes. Persistent expandable values are expanded using the selected scope's Windows environment block. A missing variable produces no output.
 
     .PARAMETER Name
     Specifies one or more environment variable names.
@@ -55,7 +55,7 @@ function Get-WUEnvironmentVariable {
     process {
         foreach ($inputName in $Name) {
             foreach ($targetScope in $Scope) {
-                if ($targetScope -eq 'Process' -or -not $NoExpand) {
+                if ($targetScope -eq 'Process') {
                     [System.Environment]::GetEnvironmentVariable(
                         $inputName,
                         [System.EnvironmentVariableTarget]$targetScope
@@ -79,11 +79,20 @@ function Get-WUEnvironmentVariable {
                 }
 
                 try {
-                    $registryKey.GetValue(
+                    $storedValue = $registryKey.GetValue(
                         $inputName,
                         $null,
                         [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
                     )
+                    if ($null -eq $storedValue) {
+                        continue
+                    }
+
+                    if (-not $NoExpand -and $registryKey.GetValueKind($inputName) -eq [Microsoft.Win32.RegistryValueKind]::ExpandString) {
+                        [PSWinUtil.EnvironmentVariableExpander]::Expand($storedValue, $targetScope)
+                    } else {
+                        $storedValue
+                    }
                 } finally {
                     $registryKey.Dispose()
                 }

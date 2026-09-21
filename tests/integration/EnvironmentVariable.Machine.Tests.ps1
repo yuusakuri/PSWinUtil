@@ -35,6 +35,24 @@ Describe 'Machine environment variable integration' -Skip:(-not $runMachineInteg
         ) | Should -Be 'machine value'
     }
 
+    It 'stores and reads a <Kind> Machine value' -ForEach @(
+        @{ Value = '%SystemRoot%\System32'; Kind = 'ExpandString'; Expand = $true }
+        @{ Value = '100%'; Kind = 'String'; Expand = $false }
+    ) {
+        $result = Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value $Value -Scope Machine -PassThru
+        $result.Value | Should -Be $Value
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine -NoExpand | Should -Be $Value
+        $expected = if ($Expand) { Join-Path $env:SystemRoot 'System32' } else { $Value }
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine | Should -Be $expected
+
+        $registryKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment')
+        try {
+            $registryKey.GetValueKind($script:EnvironmentName) | Should -Be ([Microsoft.Win32.RegistryValueKind]$Kind)
+        } finally {
+            $registryKey.Dispose()
+        }
+    }
+
     It 'gets a Machine environment variable' {
         Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value 'machine value' -Scope Machine
 

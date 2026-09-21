@@ -6,6 +6,7 @@ Describe 'User environment variable integration' {
 
         $script:EnvironmentTarget = [System.EnvironmentVariableTarget]::User
         $script:EnvironmentName = 'PSWINUTIL_TEST_' + [guid]::NewGuid().ToString('N')
+        $script:ReferenceName = $script:EnvironmentName + '_ROOT'
         $script:OriginalValue = [System.Environment]::GetEnvironmentVariable(
             $script:EnvironmentName,
             $script:EnvironmentTarget
@@ -20,6 +21,7 @@ Describe 'User environment variable integration' {
         $registryKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
         try {
             $registryKey.DeleteValue($script:EnvironmentName, $false)
+            $registryKey.DeleteValue($script:ReferenceName, $false)
         } finally {
             $registryKey.Dispose()
         }
@@ -46,6 +48,8 @@ Describe 'User environment variable integration' {
         }
         [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
         $expected = if ($Expand) { Join-Path $env:USERPROFILE 'bin' } else { '%USERPROFILE%\bin' }
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User | Should -Be $expected
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User -NoExpand | Should -Be '%USERPROFILE%\bin'
         Update-WUProcessEnvironment
         [Environment]::GetEnvironmentVariable($script:EnvironmentName, 'Process') | Should -Be $expected
     }
@@ -59,18 +63,48 @@ Describe 'User environment variable integration' {
         ) | Should -Be 'user value'
     }
 
-    It 'stores literal percent references as REG_SZ and returns only the saved state' {
+    It 'stores references as expandable values and returns the unexpanded saved state' {
         $result = @(Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value '%USERPROFILE%\bin' -Scope User -PassThru)
         $result | Should -HaveCount 1
         $result[0].Value | Should -Be '%USERPROFILE%\bin'
         $registryKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
         try {
-            $registryKey.GetValue($script:EnvironmentName) | Should -Be '%USERPROFILE%\bin'
-            $registryKey.GetValueKind($script:EnvironmentName) | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+            $registryKey.GetValue($script:EnvironmentName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) | Should -Be '%USERPROFILE%\bin'
+            $registryKey.GetValueKind($script:EnvironmentName) | Should -Be ([Microsoft.Win32.RegistryValueKind]::ExpandString)
         } finally {
             $registryKey.Dispose()
         }
         [Environment]::GetEnvironmentVariable($script:EnvironmentName, 'Process') | Should -BeNullOrEmpty
+    }
+
+    It 'replaces an expandable value with a plain <Value> value' -ForEach @(
+        @{ Value = '100%' }
+        @{ Value = 'C:\Tools' }
+    ) {
+        @(
+            [pscustomobject]@{ Name = $script:EnvironmentName; Value = '%USERPROFILE%\bin' }
+            [pscustomobject]@{ Name = $script:EnvironmentName; Value = $Value }
+        ) | Set-WUEnvironmentVariable -Scope User
+
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User | Should -Be $Value
+        $registryKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
+        try {
+            $registryKey.GetValueKind($script:EnvironmentName) | Should -Be ([Microsoft.Win32.RegistryValueKind]::String)
+        } finally {
+            $registryKey.Dispose()
+        }
+    }
+
+    It 'expands a persistent reference using the saved user value instead of a stale process value' {
+        [Environment]::SetEnvironmentVariable($script:ReferenceName, 'C:\StaleProcess', 'Process')
+        $reference = "%$($script:ReferenceName)%\bin"
+        @(
+            [pscustomobject]@{ Name = $script:ReferenceName; Value = 'C:\CurrentUser' }
+            [pscustomobject]@{ Name = $script:EnvironmentName; Value = $reference }
+        ) | Set-WUEnvironmentVariable -Scope User
+
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User | Should -Be 'C:\CurrentUser\bin'
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope User -NoExpand | Should -Be $reference
     }
 
     It 'does not write persistent state with WhatIf' {

@@ -10,7 +10,7 @@ function Set-WUEnvironmentVariable {
     Specifies the environment variable name.
 
     .PARAMETER Value
-    Specifies the environment variable value. A null or empty value removes the variable.
+    Specifies the environment variable value. User and Machine values containing %NAME% references are stored as expandable strings; other values are stored as plain strings. A null or empty value removes the variable.
 
     .PARAMETER Path
     Specifies one or more .psd1 files. Each file must contain a Hashtable with environment variable names as keys and strings as values. Wildcards are supported.
@@ -178,7 +178,7 @@ function Set-WUEnvironmentVariable {
                                 $persistentChanged = $true
                             }
                         } else {
-                            $valueKind = if ($setting.Name -ieq 'Path') {
+                            $valueKind = if ($setting.Value -match '%[^%]+%') {
                                 [Microsoft.Win32.RegistryValueKind]::ExpandString
                             } else {
                                 [Microsoft.Win32.RegistryValueKind]::String

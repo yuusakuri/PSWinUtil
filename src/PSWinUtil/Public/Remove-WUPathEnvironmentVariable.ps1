@@ -4,7 +4,7 @@ function Remove-WUPathEnvironmentVariable {
     Removes selected entries from Process, User, or Machine PATH values.
 
     .DESCRIPTION
-    Removes matching paths from one or more Process, User, or Machine PATH values. Matching trims whitespace, expands environment variables for the selected scope, normalizes fully qualified paths, ignores a trailing backslash, and ignores character case. Existing nonmatching item text and order are preserved.
+    Removes matching paths from one or more Process, User, or Machine PATH values. Matching uses Compare-WUPath to expand references in the selected scope, trim whitespace, normalize separators and fully resolved absolute paths, preserve roots, and ignore case and non-root trailing separators. Existing nonmatching item text and order are preserved.
 
     .PARAMETER Path
     Specifies one or more paths to remove. The paths do not need to exist.
