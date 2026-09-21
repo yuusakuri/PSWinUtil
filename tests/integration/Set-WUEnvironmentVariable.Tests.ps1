@@ -29,11 +29,7 @@ Describe 'Set-WUEnvironmentVariable' {
             $null,
             $script:EnvironmentTarget
         )
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            $null,
-            $script:UserEnvironmentTarget
-        )
+        Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value $null -Scope User
         [System.Environment]::SetEnvironmentVariable(
             $script:FileEnvironmentName,
             $script:OriginalFileValue,

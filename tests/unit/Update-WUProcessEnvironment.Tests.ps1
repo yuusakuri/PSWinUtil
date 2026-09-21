@@ -6,18 +6,18 @@ BeforeAll {
 
 Describe 'Update-WUProcessEnvironment' {
     BeforeEach {
-        $script:OriginalPathValue = [System.Environment]::GetEnvironmentVariable(
-            'Path',
-            $script:EnvironmentTarget
-        )
+        $script:OriginalProcessEnvironment = [Environment]::GetEnvironmentVariables('Process')
     }
 
     AfterEach {
-        [System.Environment]::SetEnvironmentVariable(
-            'Path',
-            $script:OriginalPathValue,
-            $script:EnvironmentTarget
-        )
+        foreach ($name in [Environment]::GetEnvironmentVariables('Process').Keys) {
+            if (-not $script:OriginalProcessEnvironment.Contains($name)) {
+                [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+            }
+        }
+        foreach ($name in $script:OriginalProcessEnvironment.Keys) {
+            [Environment]::SetEnvironmentVariable($name, $script:OriginalProcessEnvironment[$name], 'Process')
+        }
     }
 
     It 'supports WhatIf and Confirm' {
@@ -42,7 +42,7 @@ Describe 'Update-WUProcessEnvironment' {
         ) | Should -Be 'PSWINUTIL_WHATIF_PATH'
     }
 
-    It 'expands process environment variables in persistent paths' {
+    It 'preserves unresolved references to process-only variables in persistent paths' {
         $variableName = 'PSWINUTIL_PROCESS_ONLY'
         $originalValue = [Environment]::GetEnvironmentVariable($variableName, $script:EnvironmentTarget)
         $originalPath = [Environment]::GetEnvironmentVariable('Path', $script:EnvironmentTarget)
@@ -59,9 +59,9 @@ Describe 'Update-WUProcessEnvironment' {
             Update-WUProcessEnvironment
 
             [Environment]::GetEnvironmentVariable('Path', $script:EnvironmentTarget) |
-                Should -Match ([regex]::Escape("C:\ProcessOnly\bin"))
+                Should -Not -Match ([regex]::Escape("C:\ProcessOnly\bin"))
             [Environment]::GetEnvironmentVariable('Path', $script:EnvironmentTarget) |
-                Should -Not -Match ([regex]::Escape("%$variableName%\bin"))
+                Should -Be "%$variableName%\bin"
         } finally {
             [Environment]::SetEnvironmentVariable('Path', $originalPath, $script:EnvironmentTarget)
             [Environment]::SetEnvironmentVariable($variableName, $originalValue, $script:EnvironmentTarget)

@@ -7,7 +7,10 @@ namespace PSWinUtil
 {
     public static class EnvironmentVariableExpander
     {
-        private const uint TokenAccess = 0x000e;
+        private const uint TokenDuplicate = 0x0002;
+        private const uint TokenImpersonate = 0x0004;
+        private const uint TokenQuery = 0x0008;
+        private const uint TokenAccess = TokenDuplicate | TokenImpersonate | TokenQuery;
         private const int ErrorInsufficientBuffer = 122;
 
         [DllImport("kernel32.dll")]

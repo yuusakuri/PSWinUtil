@@ -4,7 +4,7 @@ function Update-WUProcessEnvironment {
     Reloads Machine and User environment variables into the current PowerShell process.
 
     .DESCRIPTION
-    Updates the current PowerShell process from Machine and User environment variables. User values override Machine values with the same name. Machine and User PATH values are combined in that order. Variables that exist only in the current process are preserved.
+    Updates the current PowerShell process from Machine and User environment variables. User values override Machine values with the same name. Machine and User PATH values are expanded using their respective Windows environment blocks and combined in that order. Variables that exist only in the current process are preserved.
 
     .EXAMPLE
     Update-WUProcessEnvironment
@@ -26,11 +26,6 @@ function Update-WUProcessEnvironment {
     param()
 
     $environmentValues = @{}
-    $environmentLookup = @{}
-    foreach ($environmentEntry in [System.Environment]::GetEnvironmentVariables(
-            [System.EnvironmentVariableTarget]::Process).GetEnumerator()) {
-        $environmentLookup[[string]$environmentEntry.Key] = [string]$environmentEntry.Value
-    }
     foreach ($target in @(
             [System.EnvironmentVariableTarget]::Machine,
             [System.EnvironmentVariableTarget]::User
@@ -41,28 +36,11 @@ function Update-WUProcessEnvironment {
                 continue
             }
 
-            $environmentValues[[string]$environmentName] = [string]$targetEnvironment[$environmentName]
-            $environmentLookup[[string]$environmentName] = [string]$targetEnvironment[$environmentName]
+            $environmentValues[[string]$environmentName] = [PSWinUtil.EnvironmentVariableExpander]::Expand(
+                "%$environmentName%",
+                [string]$target
+            )
         }
-    }
-
-    $expandPath = {
-        param([string]$Value)
-
-        [System.Text.RegularExpressions.Regex]::Replace(
-            $Value,
-            '%([^%]+)%',
-            {
-                param($Match)
-
-                $name = $Match.Groups[1].Value
-                if ($environmentLookup.ContainsKey($name)) {
-                    return $environmentLookup[$name]
-                }
-
-                $Match.Value
-            }
-        )
     }
 
     $pathValues = @()
@@ -72,8 +50,7 @@ function Update-WUProcessEnvironment {
         )) {
         $pathValue = Get-WUEnvironmentVariable -Name 'Path' -Scope ([string]$target) -NoExpand
         if (-not [string]::IsNullOrEmpty($pathValue)) {
-            $scopedPath = [PSWinUtil.EnvironmentVariableExpander]::Expand($pathValue, [string]$target)
-            $pathValues += & $expandPath $scopedPath
+            $pathValues += [PSWinUtil.EnvironmentVariableExpander]::Expand($pathValue, [string]$target)
         }
     }
     $environmentValues['Path'] = $pathValues -join ';'

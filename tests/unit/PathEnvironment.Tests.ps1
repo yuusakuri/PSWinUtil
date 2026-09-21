@@ -8,14 +8,17 @@ Describe 'Compare-WUPath' {
             Should -BeTrue
     }
 
-    It 'does not use process-only variables for persistent scopes' {
+    It 'does not use process-only variables for <Scope> scope' -ForEach @(
+        @{ Scope = 'User' }
+        @{ Scope = 'Machine' }
+    ) {
         $name = 'PSWINUTIL_COMPARE_' + [guid]::NewGuid().ToString('N')
         [Environment]::SetEnvironmentVariable($name, 'C:\Tools', 'Process')
         try {
             Compare-WUPath `
                 -ReferencePath "%$name%\bin" `
                 -DifferencePath 'C:\Tools\bin' `
-                -Scope User |
+                -Scope $Scope |
                 Should -BeFalse
         } finally {
             [Environment]::SetEnvironmentVariable($name, $null, 'Process')
@@ -57,6 +60,12 @@ Describe 'Compare-WUPath' {
             -ReferencePath 'C:relative' `
             -DifferencePath 'C:\relative' `
             -Scope Process |
+            Should -BeFalse
+    }
+
+    It 'does not collapse unresolved variables in fully qualified paths' {
+        $name = 'PSWINUTIL_UNKNOWN_' + [guid]::NewGuid().ToString('N')
+        Compare-WUPath -ReferencePath "C:\%$name%\..\Tools" -DifferencePath 'C:\Tools' |
             Should -BeFalse
     }
 

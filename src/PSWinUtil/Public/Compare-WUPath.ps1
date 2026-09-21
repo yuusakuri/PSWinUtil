@@ -50,7 +50,7 @@ function Compare-WUPath {
         $expandedValue = $expandedValue.Replace('/', '\')
         $isFullyQualified = $expandedValue -match '^(?:[A-Za-z]:[\\/]|\\\\)'
         $rootLength = 0
-        if ($isFullyQualified) {
+        if ($isFullyQualified -and $expandedValue -notmatch '%[^%]+%') {
             try {
                 $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
                 $rootLength = [System.IO.Path]::GetPathRoot($expandedValue).Length

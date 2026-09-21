@@ -8,6 +8,8 @@ namespace PSWinUtil
         private static readonly IntPtr HwndBroadcast = new IntPtr(0xffff);
         private const uint WmSettingChange = 0x001a;
         private const uint SmtoAbortIfHung = 0x0002;
+        // HWND_BROADCAST applies this timeout to each receiving window, not the entire call.
+        private const uint ReceiverTimeoutMilliseconds = 100;
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr SendMessageTimeout(
@@ -28,7 +30,7 @@ namespace PSWinUtil
                 IntPtr.Zero,
                 "Environment",
                 SmtoAbortIfHung,
-                1000,
+                ReceiverTimeoutMilliseconds,
                 out result) != IntPtr.Zero;
         }
     }

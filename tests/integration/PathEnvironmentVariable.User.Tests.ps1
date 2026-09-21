@@ -58,15 +58,25 @@ Describe 'User PATH integration' {
                     $registryKey.Dispose()
                 }
             }
+            [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
         }
     }
 
     BeforeEach {
+        $script:OriginalProcessEnvironment = [Environment]::GetEnvironmentVariables('Process')
         & $script:RestoreUserPath
     }
 
     AfterEach {
         & $script:RestoreUserPath
+        foreach ($name in [Environment]::GetEnvironmentVariables('Process').Keys) {
+            if (-not $script:OriginalProcessEnvironment.Contains($name)) {
+                [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+            }
+        }
+        foreach ($name in $script:OriginalProcessEnvironment.Keys) {
+            [Environment]::SetEnvironmentVariable($name, $script:OriginalProcessEnvironment[$name], 'Process')
+        }
     }
 
     AfterAll {
