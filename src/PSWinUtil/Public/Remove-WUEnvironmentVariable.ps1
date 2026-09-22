@@ -1,13 +1,13 @@
 function Remove-WUEnvironmentVariable {
     <#
     .SYNOPSIS
-    Removes an environment variable from selected Process, User, or Machine scopes.
+    Removes environment variables from selected Process, User, or Machine scopes.
 
     .DESCRIPTION
-    Removes an environment variable from one or more Process, User, or Machine scopes. If the variable does not exist, the command makes no change. Machine changes do not start an elevated process.
+    Removes one or more environment variables from Process, User, or Machine scopes. Missing variables are ignored. When persistent User or Machine values change, one Windows environment-change notification is sent after all names have been processed. Supports WhatIf and Confirm for each selected name and scope.
 
     .PARAMETER Name
-    Specifies the environment variable name.
+    Specifies one or more environment variable names.
 
     .PARAMETER Scope
     Specifies one or more of Process, User, and Machine. The default value is Process.
@@ -51,17 +51,20 @@ function Remove-WUEnvironmentVariable {
     )
 
     begin {
+        $settings = @()
         $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
     }
 
     process {
         foreach ($inputName in $Name) {
-            $setParameters = @{
+            $settings += [pscustomobject]@{
                 Name = $inputName
                 Value = $null
-                Scope = $Scope
             }
-            Set-WUEnvironmentVariable @setParameters @shouldProcessParameters
         }
+    }
+
+    end {
+        $settings | Set-WUEnvironmentVariable -Scope $Scope @shouldProcessParameters
     }
 }

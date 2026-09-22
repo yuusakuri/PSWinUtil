@@ -4,13 +4,13 @@ function Set-WUEnvironmentVariable {
     Sets environment variables in selected Process, User, or Machine scopes.
 
     .DESCRIPTION
-    Sets an environment variable from a name and value, or reads variables from a PowerShell data file. A null value removes a named variable. The data file root must be a Hashtable. Each key is an environment variable name, and each value must be a string. Process changes affect only the current PowerShell process. User and Machine changes are persistent. Machine changes do not start an elevated process.
+    Sets an environment variable from a name and value, or reads variables from a PowerShell data file. A null or empty value removes a named variable. The data file root must be a Hashtable. Each key is an environment variable name, and each value must be a string. Process changes affect only the current PowerShell process. User and Machine changes are persistent. Machine changes do not start an elevated process.
 
     .PARAMETER Name
     Specifies the environment variable name.
 
     .PARAMETER Value
-    Specifies the environment variable value. A null value removes the variable.
+    Specifies the environment variable value. User and Machine values containing %NAME% references are stored as expandable strings; other values are stored as plain strings. A null or empty value removes the variable.
 
     .PARAMETER Path
     Specifies one or more .psd1 files. Each file must contain a Hashtable with environment variable names as keys and strings as values. Wildcards are supported.
@@ -140,55 +140,78 @@ function Set-WUEnvironmentVariable {
             $settings = @(Import-WUEnvironmentVariableSetting @importParameters)
         }
 
-        foreach ($setting in $settings) {
-            $targetDescription = "$($setting.Scope) environment variable '$($setting.Name)'"
-            $actionDescription = 'Set environment variable'
-            if ($null -eq $setting.Value) {
-                $actionDescription = 'Remove environment variable'
-            }
-
-            if (-not $PSCmdlet.ShouldProcess($targetDescription, $actionDescription)) {
-                continue
-            }
-
-            if ($setting.Scope -eq 'Process' -or $setting.Name -ine 'Path') {
-                [System.Environment]::SetEnvironmentVariable(
-                    $setting.Name,
-                    $setting.Value,
-                    [System.EnvironmentVariableTarget]$setting.Scope
-                )
-            } else {
-                $registryPath = if ($setting.Scope -eq 'User') {
-                    'Environment'
-                } else {
-                    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+        $persistentChanged = $false
+        try {
+            foreach ($setting in $settings) {
+                $targetDescription = "$($setting.Scope) environment variable '$($setting.Name)'"
+                $actionDescription = 'Set environment variable'
+                if ([string]::IsNullOrEmpty($setting.Value)) {
+                    $actionDescription = 'Remove environment variable'
                 }
-                $baseKey = if ($setting.Scope -eq 'User') {
-                    [Microsoft.Win32.Registry]::CurrentUser
-                } else {
-                    [Microsoft.Win32.Registry]::LocalMachine
+
+                if (-not $PSCmdlet.ShouldProcess($targetDescription, $actionDescription)) {
+                    continue
                 }
-                $registryKey = $baseKey.CreateSubKey($registryPath)
-                try {
-                    if ($null -eq $setting.Value) {
-                        $registryKey.DeleteValue($setting.Name, $false)
+
+                if ($setting.Scope -eq 'Process') {
+                    [System.Environment]::SetEnvironmentVariable(
+                        $setting.Name,
+                        $setting.Value,
+                        [System.EnvironmentVariableTarget]$setting.Scope
+                    )
+                } else {
+                    $registryPath = if ($setting.Scope -eq 'User') {
+                        'Environment'
                     } else {
-                        $registryKey.SetValue(
-                            $setting.Name,
-                            $setting.Value,
-                            [Microsoft.Win32.RegistryValueKind]::ExpandString
-                        )
+                        'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
                     }
-                } finally {
-                    $registryKey.Dispose()
+                    $baseKey = if ($setting.Scope -eq 'User') {
+                        [Microsoft.Win32.Registry]::CurrentUser
+                    } else {
+                        [Microsoft.Win32.Registry]::LocalMachine
+                    }
+                    $registryKey = $baseKey.CreateSubKey($registryPath)
+                    try {
+                        if ([string]::IsNullOrEmpty($setting.Value)) {
+                            if ($null -ne $registryKey.GetValue($setting.Name)) {
+                                $registryKey.DeleteValue($setting.Name, $false)
+                                $persistentChanged = $true
+                            }
+                        } else {
+                            $valueKind = if ($setting.Value -match '%[^%]+%') {
+                                [Microsoft.Win32.RegistryValueKind]::ExpandString
+                            } else {
+                                [Microsoft.Win32.RegistryValueKind]::String
+                            }
+                            $registryKey.SetValue(
+                                $setting.Name,
+                                $setting.Value,
+                                $valueKind
+                            )
+                            $persistentChanged = $true
+                        }
+                    } finally {
+                        $registryKey.Dispose()
+                    }
+                }
+                if ($PassThru) {
+                    $getParameters = @{
+                        Name = $setting.Name
+                        Scope = $setting.Scope
+                    }
+                    if ($setting.Scope -ne 'Process') {
+                        $getParameters.NoExpand = $true
+                    }
+                    [pscustomobject]@{
+                        Name = $setting.Name
+                        Value = Get-WUEnvironmentVariable @getParameters
+                        Scope = $setting.Scope
+                    }
                 }
             }
-            if ($PassThru) {
-                [pscustomobject]@{
-                    Name = $setting.Name
-                    Value = Get-WUEnvironmentVariable -Name $setting.Name -Scope $setting.Scope
-                    Scope = $setting.Scope
-                }
+        } finally {
+            if ($persistentChanged) {
+                [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
             }
         }
     }

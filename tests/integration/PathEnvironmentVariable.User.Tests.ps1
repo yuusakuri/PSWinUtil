@@ -20,7 +20,11 @@ Describe 'User PATH integration' {
                     $null,
                     [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
                 )
-                $script:OriginalPathValueKind = $registryKey.GetValueKind('Path')
+                if ($null -eq $script:OriginalPathRawValue) {
+                    $script:OriginalPathValueKind = $null
+                } else {
+                    $script:OriginalPathValueKind = $registryKey.GetValueKind('Path')
+                }
             }
         } finally {
             if ($null -ne $registryKey) {
@@ -54,15 +58,25 @@ Describe 'User PATH integration' {
                     $registryKey.Dispose()
                 }
             }
+            [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
         }
     }
 
     BeforeEach {
+        $script:OriginalProcessEnvironment = [Environment]::GetEnvironmentVariables('Process')
         & $script:RestoreUserPath
     }
 
     AfterEach {
         & $script:RestoreUserPath
+        foreach ($name in [Environment]::GetEnvironmentVariables('Process').Keys) {
+            if (-not $script:OriginalProcessEnvironment.Contains($name)) {
+                [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+            }
+        }
+        foreach ($name in $script:OriginalProcessEnvironment.Keys) {
+            [Environment]::SetEnvironmentVariable($name, $script:OriginalProcessEnvironment[$name], 'Process')
+        }
     }
 
     AfterAll {
@@ -102,17 +116,19 @@ Describe 'User PATH integration' {
             Add-WUPathEnvironmentVariable -Path $targetPath -Scope User
             Add-WUPathEnvironmentVariable -Path "%$variableName%\bin" -Scope User
 
-            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User
-            @($rawPath -split ';' | Where-Object { $_.TrimEnd([char]'\') -ieq $targetPath }) |
-                Should -HaveCount 1
+            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User -NoExpand
+            $entries = @($rawPath -split ';')
+            $entries | Should -Contain $targetPath
+            $entries | Should -Not -Contain "%$variableName%\bin"
 
             Remove-WUPathEnvironmentVariable -Path $targetPath -Scope User
             Add-WUPathEnvironmentVariable -Path "%$variableName%\bin" -Scope User
             Add-WUPathEnvironmentVariable -Path $targetPath -Scope User
 
-            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User
-            @($rawPath -split ';' | Where-Object { $_ -ieq "%$variableName%\bin" }) |
-                Should -HaveCount 1
+            $rawPath = Get-WUEnvironmentVariable -Name 'Path' -Scope User -NoExpand
+            $entries = @($rawPath -split ';')
+            $entries | Should -Contain "%$variableName%\bin"
+            $entries | Should -Not -Contain $targetPath
         } finally {
             Remove-WUEnvironmentVariable -Name $variableName -Scope User
         }
@@ -131,6 +147,35 @@ Describe 'User PATH integration' {
                 }
         )
         $matchingPaths.Count | Should -Be 0
+    }
+
+    It 'reloads a <Kind> user PATH with USERPROFILE absent from Process' -ForEach @(
+        @{ Kind = 'ExpandString'; Expand = $true }
+        @{ Kind = 'String'; Expand = $false }
+    ) {
+        $expected = if ($Expand) { Join-Path $env:USERPROFILE 'bin' } else { '%USERPROFILE%\bin' }
+        $registryKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+        try {
+            $registryKey.SetValue('Path', '%USERPROFILE%\bin', [Microsoft.Win32.RegistryValueKind]$Kind)
+        } finally {
+            $registryKey.Dispose()
+        }
+        [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
+        [Environment]::SetEnvironmentVariable('USERPROFILE', $null, 'Process')
+
+        Update-WUProcessEnvironment
+
+        @($env:Path -split ';')[-1] | Should -Be $expected
+    }
+
+    It 'preserves unresolved references to process-only variables when reloading user PATH' {
+        $name = 'PSWINUTIL_PROCESS_ONLY_' + [guid]::NewGuid().ToString('N')
+        [Environment]::SetEnvironmentVariable($name, 'C:\ProcessOnly', 'Process')
+        Set-WUEnvironmentVariable -Name Path -Value "%$name%\bin" -Scope User
+
+        Update-WUProcessEnvironment
+
+        @($env:Path -split ';')[-1] | Should -Be "%$name%\bin"
     }
 
     It 'preserves expandable references in the persistent user PATH' {

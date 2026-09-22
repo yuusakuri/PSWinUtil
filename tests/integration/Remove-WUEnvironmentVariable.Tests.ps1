@@ -4,46 +4,49 @@ BeforeAll {
 
 Describe 'Remove-WUEnvironmentVariable' {
     BeforeEach {
-        Mock -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -MockWith {}
-    }
-
-    It 'delegates removal to Set-WUEnvironmentVariable' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME' -Scope Machine
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'PSWINUTIL_TEST_NAME' -and
-            $null -eq $Value -and
-            $Scope -eq 'Machine'
+        $script:Names = @(
+            'PSWINUTIL_REMOVE_' + [guid]::NewGuid().ToString('N')
+            'PSWINUTIL_REMOVE_' + [guid]::NewGuid().ToString('N')
+        )
+        foreach ($name in $script:Names) {
+            [Environment]::SetEnvironmentVariable($name, 'value to remove', 'Process')
         }
     }
 
-    It 'delegates removal even when the variable does not exist' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_MISSING_NAME' -Scope User
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Name -eq 'PSWINUTIL_MISSING_NAME' -and
-            $null -eq $Value -and
-            $Scope -eq 'User'
+    AfterEach {
+        foreach ($name in $script:Names) {
+            [Environment]::SetEnvironmentVariable($name, $null, 'Process')
         }
     }
 
-    It 'delegates every selected scope' {
-        Remove-WUEnvironmentVariable `
-            -Name 'PSWINUTIL_TEST_NAME' `
-            -Scope Process, User
-
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            @($Scope).Count -eq 2 -and
-            $Scope[0] -eq 'Process' -and
-            $Scope[1] -eq 'User'
+    It 'removes all names supplied by <InputKind>' -ForEach @(
+        @{ InputKind = 'array' }
+        @{ InputKind = 'pipeline' }
+        @{ InputKind = 'property pipeline' }
+    ) {
+        switch ($InputKind) {
+            'array' { Remove-WUEnvironmentVariable -Name $script:Names }
+            'pipeline' { $script:Names | Remove-WUEnvironmentVariable }
+            'property pipeline' {
+                $script:Names | ForEach-Object { [pscustomobject]@{ Name = $_ } } | Remove-WUEnvironmentVariable
+            }
+        }
+        foreach ($name in $script:Names) {
+            [Environment]::GetEnvironmentVariable($name, 'Process') | Should -BeNullOrEmpty
         }
     }
 
-    It 'forwards WhatIf to Set-WUEnvironmentVariable' {
-        Remove-WUEnvironmentVariable -Name 'PSWINUTIL_TEST_NAME' -WhatIf
+    It 'previews removal of all names without deleting their values' {
+        $script:Names | Remove-WUEnvironmentVariable -WhatIf
+        foreach ($name in $script:Names) {
+            [Environment]::GetEnvironmentVariable($name, 'Process') | Should -Be 'value to remove'
+        }
+    }
 
-        Should -Invoke -CommandName Set-WUEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $WhatIf
+    It 'accepts an empty pipeline without removing a value' {
+        @() | Remove-WUEnvironmentVariable
+        foreach ($name in $script:Names) {
+            [Environment]::GetEnvironmentVariable($name, 'Process') | Should -Be 'value to remove'
         }
     }
 }

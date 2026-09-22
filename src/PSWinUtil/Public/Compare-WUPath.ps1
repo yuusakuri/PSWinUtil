@@ -12,6 +12,9 @@ function Compare-WUPath {
     .PARAMETER DifferencePath
     Specifies the second path to compare.
 
+    .PARAMETER Scope
+    Specifies the environment-variable scope used to resolve references in the paths.
+
     .EXAMPLE
     Compare-WUPath -ReferencePath 'C:\Tools' -DifferencePath 'c:\tools\'
 
@@ -39,38 +42,23 @@ function Compare-WUPath {
         [string]$Scope = 'Process'
     )
 
-    $scopes = switch ($Scope) {
-        'Process' { @('Process') }
-        'User' { @('User', 'Machine', 'Process') }
-        'Machine' { @('Machine', 'Process') }
-    }
-
+    $scopeName = $Scope
     $normalize = {
         param([string]$Value)
 
-        $expandedValue = [System.Text.RegularExpressions.Regex]::Replace(
-            $Value.Trim(),
-            '%([^%]+)%',
-            {
-                param($Match)
-
-                foreach ($lookupScope in $scopes) {
-                    $lookupValues = @(Get-WUEnvironmentVariable -Name $Match.Groups[1].Value -Scope $lookupScope)
-                    if ($lookupValues.Count -gt 0) {
-                        return [string]$lookupValues[0]
-                    }
-                }
-
-                $Match.Value
-            }
-        )
+        $expandedValue = [PSWinUtil.EnvironmentVariableExpander]::Expand($Value.Trim(), $scopeName)
         $expandedValue = $expandedValue.Replace('/', '\')
-        try {
-            $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
-        } catch {
-            $expandedValue = $expandedValue.TrimEnd([char]'\')
+        $isFullyQualified = $expandedValue -match '^(?:[A-Za-z]:[\\/]|\\\\)'
+        $rootLength = 0
+        if ($isFullyQualified -and $expandedValue -notmatch '%[^%]+%') {
+            try {
+                $expandedValue = [System.IO.Path]::GetFullPath($expandedValue)
+                $rootLength = [System.IO.Path]::GetPathRoot($expandedValue).Length
+            } catch {
+                return $expandedValue.TrimEnd([char]'\')
+            }
         }
-        if ($expandedValue.Length -gt 3) {
+        if ($expandedValue.Length -gt $rootLength) {
             $expandedValue = $expandedValue.TrimEnd([char]'\')
         }
 

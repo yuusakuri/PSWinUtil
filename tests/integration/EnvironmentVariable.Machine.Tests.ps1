@@ -16,28 +16,14 @@ Describe 'Machine environment variable integration' -Skip:(-not $runMachineInteg
         )
     }
 
-    BeforeEach {
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            $script:OriginalValue,
-            $script:EnvironmentTarget
-        )
-    }
-
     AfterEach {
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            $script:OriginalValue,
-            $script:EnvironmentTarget
-        )
-    }
-
-    AfterAll {
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            $script:OriginalValue,
-            $script:EnvironmentTarget
-        )
+        $registryKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment', $true)
+        try {
+            $registryKey.DeleteValue($script:EnvironmentName, $false)
+        } finally {
+            $registryKey.Dispose()
+        }
+        [PSWinUtil.EnvironmentChangeNotification]::Broadcast() | Out-Null
     }
 
     It 'sets a Machine environment variable' {
@@ -49,23 +35,33 @@ Describe 'Machine environment variable integration' -Skip:(-not $runMachineInteg
         ) | Should -Be 'machine value'
     }
 
+    It 'stores and reads a <Kind> Machine value' -ForEach @(
+        @{ Value = '%SystemRoot%\System32'; Kind = 'ExpandString'; Expand = $true }
+        @{ Value = '100%'; Kind = 'String'; Expand = $false }
+    ) {
+        $result = Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value $Value -Scope Machine -PassThru
+        $result.Value | Should -Be $Value
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine -NoExpand | Should -Be $Value
+        $expected = if ($Expand) { Join-Path $env:SystemRoot 'System32' } else { $Value }
+        Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine | Should -Be $expected
+
+        $registryKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment')
+        try {
+            $registryKey.GetValueKind($script:EnvironmentName) | Should -Be ([Microsoft.Win32.RegistryValueKind]$Kind)
+        } finally {
+            $registryKey.Dispose()
+        }
+    }
+
     It 'gets a Machine environment variable' {
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            'machine value',
-            $script:EnvironmentTarget
-        )
+        Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value 'machine value' -Scope Machine
 
         Get-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine |
             Should -Be 'machine value'
     }
 
     It 'removes a Machine environment variable' {
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            'value to remove',
-            $script:EnvironmentTarget
-        )
+        Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value 'value to remove' -Scope Machine
 
         Remove-WUEnvironmentVariable -Name $script:EnvironmentName -Scope Machine
 
@@ -77,11 +73,7 @@ Describe 'Machine environment variable integration' -Skip:(-not $runMachineInteg
     }
 
     It 'removes a Machine environment variable with a null value' {
-        [System.Environment]::SetEnvironmentVariable(
-            $script:EnvironmentName,
-            'value to remove',
-            $script:EnvironmentTarget
-        )
+        Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value 'value to remove' -Scope Machine
 
         Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value $null -Scope Machine
 

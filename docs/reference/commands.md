@@ -8,6 +8,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUCommand` | Throws when a named command is unavailable on PATH. |
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
+| `Compare-WUPath` | Compares two PATH environment variable items. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
 | `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
 | `ConvertTo-WUCommandLineArgument` | Quotes an argument for a Windows executable command line. |
@@ -88,7 +89,7 @@ The following table is generated from the exported commands and their comment-ba
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |
-| `Remove-WUEnvironmentVariable` | Removes an environment variable from selected Process, User, or Machine scopes. |
+| `Remove-WUEnvironmentVariable` | Removes environment variables from selected Process, User, or Machine scopes. |
 | `Remove-WUKeyboardRemapping` | Removes Windows keyboard scan code mappings. |
 | `Remove-WUPathEnvironmentVariable` | Removes selected entries from Process, User, or Machine PATH values. |
 | `Remove-WURegistryProperty` | Removes a registry property. |
@@ -99,7 +100,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Set-WUEnvironmentVariable` | Sets environment variables in selected Process, User, or Machine scopes. |
 | `Set-WUJapaneseImeHalfWidthInput` | Sets Microsoft IME space, number, and alphabet input to half width. |
 | `Set-WUJapaneseKeyboardLayout` | Sets the physical layout used with the Japanese Microsoft IME. |
-| `Set-WUJavaExtraCaCertificate` | Copies a CA certificate into a Java trust store and configures JAVA_TOOL_OPTIONS to use it. |
+| `Set-WUJavaExtraCaCertificate` | Imports an additional CA certificate into JAVA_HOME&#39;s trust store and configures JAVA_TOOL_OPTIONS. |
 | `Set-WUKeyboardRemapping` | Sets a Windows keyboard scan code mapping. |
 | `Set-WUNativeCommandEncoding` | Sets native command input and output encoding to UTF-8. |
 | `Set-WUNodeExtraCaCertificate` | Sets the Node.js extra CA certificate environment variable. |
