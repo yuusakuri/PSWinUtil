@@ -134,7 +134,7 @@ Describe 'Android SDK availability' {
         [IO.File]::ReadAllText((Join-Path $script:Sdk 'platforms/android-36/android.jar')) | Should -Be 'package platforms/android-36'
         [IO.File]::ReadAllText((Join-Path $script:Sdk 'build-tools/latest/aapt2.exe')) | Should -Be 'package build-tools/36.0.0'
         $script:UserEnvironment.ANDROID_HOME | Should -Be $script:Sdk
-        foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
+        foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'avdmanager.bat')) {
             Test-WUCommand -Name $command | Should -BeTrue
         }
     }
@@ -234,21 +234,21 @@ Describe 'Android SDK availability' {
 
     It 'uses available tools from another SDK without requiring duplicate executables' {
         $script:EmitPackageFiles = $false
-        foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
+        foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'avdmanager.bat')) {
             [IO.File]::WriteAllText((Join-Path $script:OtherTools $command), 'existing tools')
         }
 
         $result = Install-WUAndroidSdk -PlatformVersion 36 -BuildToolsVersion '36.0.0'
 
         $result.FullName | Should -Be $script:Sdk
-        foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
+        foreach ($command in @('adb.exe', 'aapt2.exe', 'emulator.exe', 'avdmanager.bat')) {
             Test-WUCommand -Name $command | Should -BeTrue
         }
     }
 
     It 'reports an unavailable emulator instead of returning a usable SDK' {
         $script:EmitPackageFiles = $false
-        foreach ($command in @('adb.exe', 'aapt2.exe', 'sdkmanager.bat', 'avdmanager.bat')) {
+        foreach ($command in @('adb.exe', 'aapt2.exe', 'avdmanager.bat')) {
             [IO.File]::WriteAllText((Join-Path $script:OtherTools $command), 'existing tools')
         }
 
