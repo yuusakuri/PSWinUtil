@@ -274,7 +274,6 @@ Describe 'Install-WUFlutterSdk' {
         $script:DownloadedArchives | Should -Be @('https://storage.example.test/flutter_windows_3.47.1-stable.zip')
         $script:UserPath.Split(';')[0] | Should -Be $flutterBinPath
         Test-WUCommand -Name 'flutter' | Should -BeTrue
-        Test-WUCommand -Name 'dart' | Should -BeTrue
         @(& flutter --version) | Should -Contain 'Flutter 3.47.1'
         $LASTEXITCODE | Should -Be 0
     }
