@@ -4,7 +4,7 @@ function Remove-WUEnvironmentVariable {
     Removes environment variables from selected Process, User, or Machine scopes.
 
     .DESCRIPTION
-    Removes one or more environment variables from Process, User, or Machine scopes. Persistent changes send one Windows environment-change notification after all selected variables have been processed.
+    Removes one or more environment variables from Process, User, or Machine scopes. Missing variables are ignored. When persistent User or Machine values change, one Windows environment-change notification is sent after all names have been processed. Supports WhatIf and Confirm for each selected name and scope.
 
     .PARAMETER Name
     Specifies one or more environment variable names.
