@@ -151,7 +151,7 @@ function Install-WUAndroidSdk {
         -Prepend
     Update-WUProcessEnvironment
 
-    Assert-WUCommand -Name @('adb.exe', 'aapt2.exe', 'emulator.exe', 'sdkmanager.bat', 'avdmanager.bat')
+    Assert-WUCommand -Name @('adb.exe', 'aapt2.exe', 'emulator.exe', 'avdmanager.bat')
 
     return [System.IO.DirectoryInfo]::new($env:ANDROID_HOME)
 }
