@@ -71,7 +71,12 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WURegistrySetting` | Gets a Windows registry setting state. |
 | `Get-WUStartupEntry` | Gets Windows startup entries. |
 | `Get-WUWindowsAutoLogon` | Reads the Windows automatic logon configuration. |
+| `Install-WUAndroidBuildTool` | Installs an Android SDK Build Tools package. |
+| `Install-WUAndroidCommandLineTool` | Installs the Android SDK Command-Line Tools package. |
+| `Install-WUAndroidEmulator` | Installs the Android Emulator package when it is missing or a version is requested. |
+| `Install-WUAndroidPlatformTool` | Installs the Android Platform Tools package when it is missing or a version is requested. |
 | `Install-WUAndroidSdk` | Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools. |
+| `Install-WUAndroidSdkPlatform` | Installs an Android SDK Platform package for an API level. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
 | `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
