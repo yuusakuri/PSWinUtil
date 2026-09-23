@@ -23,8 +23,31 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Remove PSGallery registration to verify bootstrap recovery
+        run: |
+          Import-Module PowerShellGet -MaximumVersion '2.2.5' -ErrorAction Stop
+          if (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore) {
+              Unregister-PSRepository -Name 'PSGallery' -ErrorAction Stop
+          }
+
       - name: Install development modules
-        run: .\install.ps1
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Verbose
+
+      - name: Verify repeated development module installation
+        run: |
+          $requirements = Import-PowerShellDataFile .\build.requirements.psd1
+          Import-Module Microsoft.PowerShell.PSResourceGet -RequiredVersion $requirements['Microsoft.PowerShell.PSResourceGet'] -ErrorAction Stop
+          $psGallery = Get-PSRepository -Name 'PSGallery' -ErrorAction Stop
+          if ($psGallery.InstallationPolicy -ne 'Trusted') {
+              throw 'PSGallery must be trusted after development module installation.'
+          }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+              throw "The repeated installation script failed with exit code $LASTEXITCODE."
+          }
+          foreach ($name in $requirements.Keys) {
+              Import-Module -Name $name -RequiredVersion $requirements[$name] -ErrorAction Stop
+          }
 
       - name: Run verification
         run: powershell.exe -ExecutionPolicy Bypass -File .\dev.ps1 verify
