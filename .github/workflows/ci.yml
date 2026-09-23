@@ -31,7 +31,21 @@ jobs:
           }
 
       - name: Install development modules
-        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+        run: |
+          $requiredPowerShellGetVersion = [version]'2.2.5'
+          $newerPowerShellGetRoots = @(
+              Get-Module -Name 'PowerShellGet' -ListAvailable |
+                  Where-Object { $_.Version -ge $requiredPowerShellGetVersion } |
+                  ForEach-Object { Split-Path -Path (Split-Path -Path $_.ModuleBase -Parent) -Parent } |
+                  Select-Object -Unique
+          )
+          $env:PSModulePath = ($env:PSModulePath -split [IO.Path]::PathSeparator | Where-Object { $_ -notin $newerPowerShellGetRoots }) -join [IO.Path]::PathSeparator
+          $olderPowerShellGet = Get-Module -Name 'PowerShellGet' -ListAvailable |
+              Where-Object { $_.Version -lt $requiredPowerShellGetVersion }
+          if (-not $olderPowerShellGet) {
+              throw 'The CI image must provide an older inbox PowerShellGet for the bootstrap test.'
+          }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
       - name: Verify repeated development module installation
         run: |

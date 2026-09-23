@@ -28,9 +28,6 @@ function Install-PowerShellGet {
 
     if ($availablePowerShellGet) {
         Import-Module -Name 'PowerShellGet' -RequiredVersion $Version -Force -ErrorAction Stop
-    } else {
-        # Use the inbox or an installed 2.x module to bootstrap the pinned release.
-        Import-Module -Name 'PowerShellGet' -MaximumVersion $Version -Force -ErrorAction Stop
     }
 
     if ($null -eq (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore)) {
