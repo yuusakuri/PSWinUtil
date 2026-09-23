@@ -56,12 +56,12 @@ function Install-PSResourceGet {
     $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
         Where-Object { $_.Version -eq [version]$Version }
 
-    if ($availablePSResourceGet) {
-        return
+    if (-not $availablePSResourceGet) {
+        Install-PowerShellGet -Version '2.2.5'
+        PowerShellGet\Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Version -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
     }
 
-    Install-PowerShellGet -Version '2.2.5'
-    PowerShellGet\Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Version -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
+    Import-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Version -Force -ErrorAction Stop
 }
 
 function Install-DevelopmentDependency {
@@ -80,12 +80,4 @@ function Install-DevelopmentDependency {
 }
 
 Install-PSResourceGet -Version $requirements['Microsoft.PowerShell.PSResourceGet']
-
-$availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
-    Where-Object { $_.Version -eq [version]$requirements['Microsoft.PowerShell.PSResourceGet'] }
-if (-not $availablePSResourceGet) {
-    throw "Required module Microsoft.PowerShell.PSResourceGet $($requirements['Microsoft.PowerShell.PSResourceGet']) was not found."
-}
-
-Import-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $requirements['Microsoft.PowerShell.PSResourceGet'] -Force -ErrorAction Stop
 Install-DevelopmentDependency -Requirements $requirements
