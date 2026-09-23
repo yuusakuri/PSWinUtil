@@ -53,7 +53,6 @@ function Install-PSResourceGet {
         [string]$Version
     )
 
-    Write-Verbose ("PSModulePath: {0}" -f $env:PSModulePath)
     $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
         Where-Object { $_.Version -eq [version]$Version }
 
@@ -84,11 +83,8 @@ Install-PSResourceGet -Version $requirements['Microsoft.PowerShell.PSResourceGet
 
 $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
     Where-Object { $_.Version -eq [version]$requirements['Microsoft.PowerShell.PSResourceGet'] }
-foreach ($module in Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable) {
-    Write-Verbose ("Detected {0} {1}: {2}" -f $module.Name, $module.Version, $module.ModuleBase)
-}
 if (-not $availablePSResourceGet) {
-    throw "Required module Microsoft.PowerShell.PSResourceGet $($requirements['Microsoft.PowerShell.PSResourceGet']) was not found. PSModulePath: $env:PSModulePath"
+    throw "Required module Microsoft.PowerShell.PSResourceGet $($requirements['Microsoft.PowerShell.PSResourceGet']) was not found."
 }
 
 Import-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $requirements['Microsoft.PowerShell.PSResourceGet'] -Force -ErrorAction Stop
