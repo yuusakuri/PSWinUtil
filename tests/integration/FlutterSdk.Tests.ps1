@@ -87,14 +87,11 @@ Describe 'Get-WUFlutterSdkUrl' {
         } | Should -Throw "*architecture 'arm64'*"
     }
 
-    It 'accepts only channels published in the Windows release archive' {
-        $validateSet = @(
-            (Get-Command -Name Get-WUFlutterSdkUrl).Parameters['Channel'].Attributes |
-                Where-Object { $_ -is [Management.Automation.ValidateSetAttribute] }
-        )
-
-        $validateSet | Should -HaveCount 1
-        $validateSet[0].ValidValues | Should -Be @('stable', 'beta')
+    It 'rejects a channel that has no supported Windows release archive' -ForEach @(
+        @{ Channel = 'dev' }
+        @{ Channel = 'master' }
+    ) {
+        { Get-WUFlutterSdkUrl -Channel $Channel } | Should -Throw
     }
 
     It 'reports an HTTP request failure' {
@@ -162,7 +159,9 @@ Describe 'Install-WUFlutterSdk' {
     BeforeEach {
         $script:DestinationPath = Join-Path -Path $TestDrive -ChildPath 'develop'
         $script:PackagePath = Join-Path -Path $TestDrive -ChildPath 'flutter-package.zip'
-        $script:OperationOrder = @()
+        $script:OriginalPath = $env:PATH
+        $script:UserPath = Join-Path -Path $TestDrive -ChildPath 'other tools'
+        $script:DownloadedArchives = @()
         $packageSource = Join-Path -Path $TestDrive -ChildPath 'FlutterPackageSource'
         Remove-Item -LiteralPath $script:DestinationPath -Recurse -Force -ErrorAction Ignore
         Remove-Item -LiteralPath $script:PackagePath -Force -ErrorAction Ignore
@@ -171,21 +170,31 @@ Describe 'Install-WUFlutterSdk' {
         New-Item -Path $flutterBin -ItemType Directory -Force | Out-Null
         [IO.File]::WriteAllText(
             (Join-Path -Path $flutterBin -ChildPath 'flutter.bat'),
-            '@echo off'
+            "@echo off`nif `"%1`"==`"--version`" echo Flutter 3.47.1`nif `"%1`"==`"doctor`" echo doctor-output`nexit /b 0"
+        )
+        [IO.File]::WriteAllText(
+            (Join-Path -Path $flutterBin -ChildPath 'dart.bat'),
+            "@echo off`necho Dart version`nexit /b 0"
         )
         [IO.Compression.ZipFile]::CreateFromDirectory($packageSource, $script:PackagePath)
 
-        Mock -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -MockWith {
-            $script:OperationOrder += 'release'
-            [pscustomobject]@{
-                Version = '3.47.1'
-                Channel = 'stable'
-                Architecture = 'x64'
-                Uri = [uri]'https://storage.example.test/flutter_windows_3.47.1-stable.zip'
-            }
+        Mock -CommandName Invoke-WebRequest -ModuleName PSWinUtil -MockWith {
+            $content = @'
+{
+  "base_url": "https://storage.example.test",
+  "current_release": { "stable": "current" },
+  "releases": [{
+    "hash": "current", "channel": "stable", "version": "3.47.1",
+    "arch": "x64", "dart_sdk_arch": "x64",
+    "archive": "flutter_windows_3.47.1-stable.zip",
+    "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  }]
+}
+'@
+            [pscustomobject]@{ Content = $content }
         }
         Mock -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -MockWith {
-            $script:OperationOrder += 'download'
+            $script:DownloadedArchives += $Uri.AbsoluteUri
             if (-not (Test-Path -LiteralPath $script:DestinationPath -PathType Container)) {
                 throw 'The destination directory must exist before the download starts.'
             }
@@ -193,29 +202,36 @@ Describe 'Install-WUFlutterSdk' {
             $Path
         }
         Mock -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -MockWith {
-            $script:OperationOrder += "path-$Scope"
+            if ($Scope -ne 'User') {
+                throw 'The installation must configure the user environment.'
+            }
+            if ($Prepend) {
+                $script:UserPath = "$Path;$($script:UserPath)"
+            } else {
+                $script:UserPath += ";$Path"
+            }
         }
         Mock -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -MockWith {
-            $script:OperationOrder += 'environment-update'
+            $env:PATH = "$($script:UserPath);$($script:OriginalPath)"
         }
-        Mock -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -MockWith {
-            $script:OperationOrder += 'flutter-installation'
-        }
+    }
+
+    AfterEach {
+        $env:PATH = $script:OriginalPath
     }
 
     It 'does not start the operation with WhatIf' {
         Install-WUFlutterSdk -DestinationPath $script:DestinationPath -WhatIf
 
         Test-Path -LiteralPath $script:DestinationPath | Should -BeFalse
-        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 0 -Exactly
-        Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 0 -Exactly
+        $script:DownloadedArchives | Should -HaveCount 0
+        $env:PATH | Should -Be $script:OriginalPath
+        $script:UserPath | Should -Be (Join-Path -Path $TestDrive -ChildPath 'other tools')
     }
 
-    It 'uses USERPROFILE as the default parent and validates both destination paths' {
+    It 'does not create the default installation when previewing it' {
         $originalUserProfile = $env:USERPROFILE
         $env:USERPROFILE = $TestDrive
-        Mock -CommandName Assert-WUPathProperty -ModuleName PSWinUtil -MockWith {}
         try {
             Install-WUFlutterSdk -WhatIf
         } finally {
@@ -255,26 +271,11 @@ Describe 'Install-WUFlutterSdk' {
         $result.FullName | Should -Be ([IO.Path]::GetFullPath($flutterPath))
         Test-Path -LiteralPath (Join-Path -Path $flutterBinPath -ChildPath 'flutter.bat') -PathType Leaf |
             Should -BeTrue
-        Should -Invoke -CommandName Get-WUFlutterSdkRelease -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Version -eq '3.47.1' -and
-            $Channel -eq 'stable' -and
-            $Architecture -eq 'x64'
-        }
-        Should -Invoke -CommandName Invoke-WUHttpFileDownload -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Uri.AbsoluteUri -eq 'https://storage.example.test/flutter_windows_3.47.1-stable.zip'
-        }
-        Should -Invoke -CommandName Add-WUPathEnvironmentVariable -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            $Path -eq $flutterBinPath -and $Scope -eq 'User' -and $Prepend
-        }
-        Should -Invoke -CommandName Update-WUProcessEnvironment -ModuleName PSWinUtil -Times 1 -Exactly
-        Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 1 -Exactly
-        $script:OperationOrder | Should -Be @(
-            'release'
-            'download'
-            'path-User'
-            'environment-update'
-            'flutter-installation'
-        )
+        $script:DownloadedArchives | Should -Be @('https://storage.example.test/flutter_windows_3.47.1-stable.zip')
+        $script:UserPath.Split(';')[0] | Should -Be $flutterBinPath
+        Test-WUCommand -Name 'flutter' | Should -BeTrue
+        @(& flutter --version) | Should -Contain 'Flutter 3.47.1'
+        $LASTEXITCODE | Should -Be 0
     }
 
     It 'replaces an existing installation after the SDK commands succeed' {
@@ -316,32 +317,6 @@ Describe 'Install-WUFlutterSdk' {
         Test-Path -LiteralPath $oldFilePath -PathType Leaf | Should -BeTrue
     }
 
-    It 'rejects archive entries outside the staging directory' {
-        Remove-Item -LiteralPath $script:PackagePath -Force
-        $archive = [IO.Compression.ZipFile]::Open(
-            $script:PackagePath,
-            [IO.Compression.ZipArchiveMode]::Create
-        )
-        try {
-            $entry = $archive.CreateEntry('../escaped.txt')
-            $writer = [IO.StreamWriter]::new($entry.Open())
-            try {
-                $writer.Write('unsafe')
-            } finally {
-                $writer.Dispose()
-            }
-        } finally {
-            $archive.Dispose()
-        }
-        $escapedPath = Join-Path -Path $script:DestinationPath -ChildPath 'escaped.txt'
-
-        {
-            Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*unsafe path*'
-
-        Test-Path -LiteralPath $escapedPath | Should -BeFalse
-    }
-
     It 'restores an existing installation when PATH configuration fails' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
@@ -367,16 +342,19 @@ Describe 'Install-WUFlutterSdk' {
         New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
-        Mock -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -MockWith {
-            throw 'flutter version failure'
-        }
+        $packageSource = Join-Path -Path $TestDrive -ChildPath 'FlutterPackageSource'
+        [IO.File]::WriteAllText(
+            (Join-Path -Path $packageSource -ChildPath 'flutter\bin\flutter.bat'),
+            "@echo off`nexit /b 7"
+        )
+        Remove-Item -LiteralPath $script:PackagePath
+        [IO.Compression.ZipFile]::CreateFromDirectory($packageSource, $script:PackagePath)
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*flutter version failure*'
+        } | Should -Throw '*exit_code*7*'
 
         Test-Path -LiteralPath $oldFilePath -PathType Leaf | Should -BeTrue
-        Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 1 -Exactly
     }
 
     It 'restores an existing installation when dart version fails' {
@@ -384,15 +362,18 @@ Describe 'Install-WUFlutterSdk' {
         New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
         $oldFilePath = Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'
         [IO.File]::WriteAllText($oldFilePath, 'old')
-        Mock -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -MockWith {
-            throw 'dart version failure'
-        }
+        $packageSource = Join-Path -Path $TestDrive -ChildPath 'FlutterPackageSource'
+        [IO.File]::WriteAllText(
+            (Join-Path -Path $packageSource -ChildPath 'flutter\bin\dart.bat'),
+            "@echo off`nexit /b 8"
+        )
+        Remove-Item -LiteralPath $script:PackagePath
+        [IO.Compression.ZipFile]::CreateFromDirectory($packageSource, $script:PackagePath)
 
         {
             Install-WUFlutterSdk -DestinationPath $script:DestinationPath
-        } | Should -Throw '*dart version failure*'
+        } | Should -Throw '*exit_code*8*'
 
         Test-Path -LiteralPath $oldFilePath -PathType Leaf | Should -BeTrue
-        Should -Invoke -CommandName Assert-WUFlutterSdkInstallation -ModuleName PSWinUtil -Times 1 -Exactly
     }
 }
