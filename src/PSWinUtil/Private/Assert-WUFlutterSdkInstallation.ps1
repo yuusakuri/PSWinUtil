@@ -20,8 +20,7 @@ function Assert-WUFlutterSdkInstallation {
     [CmdletBinding()]
     param()
 
-    Assert-WUCommand -Name 'flutter'
-    Assert-WUCommand -Name 'dart'
+    Assert-WUCommand -Name @('flutter', 'dart')
     Invoke-WUNativeCommand -Command 'flutter' -ArgumentList @('--version') -ErrorAction Stop | Out-Null
 
     Invoke-WUNativeCommand -Command 'dart' -ArgumentList @('--version') -ErrorAction Stop | Out-Null

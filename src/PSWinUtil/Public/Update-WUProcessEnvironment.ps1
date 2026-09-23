@@ -4,7 +4,7 @@ function Update-WUProcessEnvironment {
     Reloads Machine and User environment variables into the current PowerShell process.
 
     .DESCRIPTION
-    Updates the current PowerShell process from Machine and User environment variables. User values override Machine values with the same name. Machine and User PATH values are combined in that order. Variables that exist only in the current process are preserved.
+    Updates the current PowerShell process from Machine and User environment variables. User values override Machine values with the same name. Expandable values use their respective Windows environment blocks. Machine and User PATH values are combined in that order. Variables that exist only in the current process are preserved.
 
     .EXAMPLE
     Update-WUProcessEnvironment
@@ -26,28 +26,36 @@ function Update-WUProcessEnvironment {
     param()
 
     $environmentValues = @{}
-    foreach ($target in @(
-            [System.EnvironmentVariableTarget]::Machine,
-            [System.EnvironmentVariableTarget]::User
-        )) {
-        $targetEnvironment = [System.Environment]::GetEnvironmentVariables($target)
-        foreach ($environmentName in $targetEnvironment.Keys) {
-            if ([string]$environmentName -ieq 'Path') {
-                continue
-            }
-
-            $environmentValues[[string]$environmentName] = [string]$targetEnvironment[$environmentName]
-        }
-    }
-
     $pathValues = @()
-    foreach ($target in @(
-            [System.EnvironmentVariableTarget]::Machine,
-            [System.EnvironmentVariableTarget]::User
-        )) {
-        $pathValue = [System.Environment]::GetEnvironmentVariable('Path', $target)
-        if (-not [string]::IsNullOrEmpty($pathValue)) {
-            $pathValues += $pathValue
+    foreach ($targetScope in @('Machine', 'User')) {
+        $registryPath = if ($targetScope -eq 'User') {
+            'Environment'
+        } else {
+            'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+        }
+        $baseKey = if ($targetScope -eq 'User') {
+            [Microsoft.Win32.Registry]::CurrentUser
+        } else {
+            [Microsoft.Win32.Registry]::LocalMachine
+        }
+        $registryKey = $baseKey.OpenSubKey($registryPath, $false)
+        if ($null -eq $registryKey) {
+            continue
+        }
+        try {
+            $environmentNames = $registryKey.GetValueNames()
+        } finally {
+            $registryKey.Dispose()
+        }
+        foreach ($environmentName in $environmentNames) {
+            $value = Get-WUEnvironmentVariable -Name $environmentName -Scope $targetScope
+            if ($environmentName -ieq 'Path') {
+                if (-not [string]::IsNullOrEmpty($value)) {
+                    $pathValues += $value
+                }
+            } else {
+                $environmentValues[$environmentName] = $value
+            }
         }
     }
     $environmentValues['Path'] = $pathValues -join ';'

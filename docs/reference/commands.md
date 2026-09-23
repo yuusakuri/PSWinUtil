@@ -8,6 +8,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Assert-WUCommand` | Throws when a named command is unavailable on PATH. |
 | `Assert-WUPSScript` | Throws when a PowerShell script has syntax errors. |
 | `Assert-WUPathProperty` | Validates resolved PowerShell paths against existence and item type requirements. |
+| `Compare-WUPath` | Compares two PATH environment variable items. |
 | `Convert-WUUri` | Converts a URI by removing selected components. |
 | `ConvertTo-WUCmdArgument` | Quotes supported argument values for a Windows batch command. |
 | `ConvertTo-WUCommandLineArgument` | Quotes an argument for a Windows executable command line. |
@@ -60,8 +61,10 @@ The following table is generated from the exported commands and their comment-ba
 | `Enable-WUWindowsSecurityAllNotifications` | Enables all Windows Security notifications. |
 | `Enable-WUWindowsSecurityNonCriticalNotifications` | Enables non-critical Windows Security notifications. |
 | `Get-SystemArchitecture` | Gets the Windows system architecture. |
-| `Get-WUAndroidEmulator` | Gets the names of local Android virtual devices. |
+| `Get-WUAndroidDevice` | Gets Android hardware profile IDs that can be used to create virtual devices. |
+| `Get-WUAndroidEmulator` | Lists Android virtual device names that the emulator can start. |
 | `Get-WUAndroidEmulatorPort` | Gets available Android emulator console ports. |
+| `Get-WUAndroidSystemImage` | Gets available Android system image packages. |
 | `Get-WUEnvironmentVariable` | Reads environment variable values from Process, User, or Machine scope. |
 | `Get-WUFileTreeWithContent` | Lists a file tree and reads UTF-8 text content for each file. |
 | `Get-WUFlutterSdkUrl` | Gets a Flutter SDK download URL for Windows. |
@@ -70,7 +73,12 @@ The following table is generated from the exported commands and their comment-ba
 | `Get-WURegistrySetting` | Gets a Windows registry setting state. |
 | `Get-WUStartupEntry` | Gets Windows startup entries. |
 | `Get-WUWindowsAutoLogon` | Reads the Windows automatic logon configuration. |
-| `Install-WUAndroidSdk` | Installs and configures an Android SDK with Android CLI. |
+| `Install-WUAndroidBuildTool` | Installs an Android SDK Build Tools package. |
+| `Install-WUAndroidCommandLineTool` | Installs the Android SDK Command-Line Tools package. |
+| `Install-WUAndroidEmulator` | Installs the Android Emulator package when it is missing or a version is requested. |
+| `Install-WUAndroidPlatformTool` | Installs the Android Platform Tools package when it is missing or a version is requested. |
+| `Install-WUAndroidSdk` | Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools. |
+| `Install-WUAndroidSdkPlatform` | Installs an Android SDK Platform package for an API level. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
 | `Install-WUGit` | Installs Git for Windows when the Git command is unavailable. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
@@ -79,11 +87,12 @@ The following table is generated from the exported commands and their comment-ba
 | `Invoke-WUHttpFileDownload` | Downloads a file over HTTP with automatic resume. |
 | `Invoke-WUNativeCommand` | Runs a native executable or batch command and returns its exit status. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
+| `New-WUAndroidEmulator` | Creates an Android virtual device using the latest available Pixel by default. |
 | `New-WUCmdArgument` | Creates a cmd.exe argument string for a Windows batch command. |
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
 | `Register-WUStartupEntry` | Registers a Windows startup entry. |
-| `Remove-WUEnvironmentVariable` | Removes an environment variable from selected Process, User, or Machine scopes. |
+| `Remove-WUEnvironmentVariable` | Removes environment variables from selected Process, User, or Machine scopes. |
 | `Remove-WUKeyboardRemapping` | Removes Windows keyboard scan code mappings. |
 | `Remove-WUPathEnvironmentVariable` | Removes selected entries from Process, User, or Machine PATH values. |
 | `Remove-WURegistryProperty` | Removes a registry property. |
@@ -94,7 +103,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Set-WUEnvironmentVariable` | Sets environment variables in selected Process, User, or Machine scopes. |
 | `Set-WUJapaneseImeHalfWidthInput` | Sets Microsoft IME space, number, and alphabet input to half width. |
 | `Set-WUJapaneseKeyboardLayout` | Sets the physical layout used with the Japanese Microsoft IME. |
-| `Set-WUJavaExtraCaCertificate` | Copies a CA certificate into a Java trust store and configures JAVA_TOOL_OPTIONS to use it. |
+| `Set-WUJavaExtraCaCertificate` | Imports an additional CA certificate into JAVA_HOME&#39;s trust store and configures JAVA_TOOL_OPTIONS. |
 | `Set-WUKeyboardRemapping` | Sets a Windows keyboard scan code mapping. |
 | `Set-WUNativeCommandEncoding` | Sets native command input and output encoding to UTF-8. |
 | `Set-WUNodeExtraCaCertificate` | Sets the Node.js extra CA certificate environment variable. |

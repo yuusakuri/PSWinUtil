@@ -22,16 +22,8 @@ Describe 'Get-WUEnvironmentVariable' {
             $null,
             $script:EnvironmentTarget
         )
-        [System.Environment]::SetEnvironmentVariable(
-            $script:FirstEnvironmentName,
-            $null,
-            $script:UserEnvironmentTarget
-        )
-        [System.Environment]::SetEnvironmentVariable(
-            $script:SecondEnvironmentName,
-            $null,
-            $script:UserEnvironmentTarget
-        )
+        Set-WUEnvironmentVariable -Name $script:FirstEnvironmentName -Value $null -Scope User
+        Set-WUEnvironmentVariable -Name $script:SecondEnvironmentName -Value $null -Scope User
     }
 
     It 'gets a variable from the selected scope' {
@@ -73,11 +65,7 @@ Describe 'Get-WUEnvironmentVariable' {
             'process value',
             $script:EnvironmentTarget
         )
-        [System.Environment]::SetEnvironmentVariable(
-            $script:FirstEnvironmentName,
-            'user value',
-            $script:UserEnvironmentTarget
-        )
+        Set-WUEnvironmentVariable -Name $script:FirstEnvironmentName -Value 'user value' -Scope User
 
         $result = @(
             Get-WUEnvironmentVariable `

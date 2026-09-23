@@ -10,7 +10,7 @@ Describe 'Environment setting files through the public command' {
 
     AfterEach {
         [Environment]::SetEnvironmentVariable($script:SettingName, $null, 'Process')
-        [Environment]::SetEnvironmentVariable($script:SettingName, $null, 'User')
+        Remove-WUEnvironmentVariable -Name $script:SettingName -Scope User
     }
 
     It 'loads a literal data file into each selected scope' {

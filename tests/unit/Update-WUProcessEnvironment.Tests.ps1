@@ -6,18 +6,18 @@ BeforeAll {
 
 Describe 'Update-WUProcessEnvironment' {
     BeforeEach {
-        $script:OriginalPathValue = [System.Environment]::GetEnvironmentVariable(
-            'Path',
-            $script:EnvironmentTarget
-        )
+        $script:OriginalProcessEnvironment = [Environment]::GetEnvironmentVariables('Process')
     }
 
     AfterEach {
-        [System.Environment]::SetEnvironmentVariable(
-            'Path',
-            $script:OriginalPathValue,
-            $script:EnvironmentTarget
-        )
+        foreach ($name in [Environment]::GetEnvironmentVariables('Process').Keys) {
+            if (-not $script:OriginalProcessEnvironment.Contains($name)) {
+                [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+            }
+        }
+        foreach ($name in $script:OriginalProcessEnvironment.Keys) {
+            [Environment]::SetEnvironmentVariable($name, $script:OriginalProcessEnvironment[$name], 'Process')
+        }
     }
 
     It 'supports WhatIf and Confirm' {

@@ -4,30 +4,49 @@ BeforeAll {
 
 Describe 'Remove-WUEnvironmentVariable' {
     BeforeEach {
-        $script:VariableName = 'PSWINUTIL_REMOVE_' + [guid]::NewGuid().ToString('N')
-        [Environment]::SetEnvironmentVariable($script:VariableName, 'remove me', 'Process')
+        $script:Names = @(
+            'PSWINUTIL_REMOVE_' + [guid]::NewGuid().ToString('N')
+            'PSWINUTIL_REMOVE_' + [guid]::NewGuid().ToString('N')
+        )
+        foreach ($name in $script:Names) {
+            [Environment]::SetEnvironmentVariable($name, 'value to remove', 'Process')
+        }
     }
 
     AfterEach {
-        [Environment]::SetEnvironmentVariable($script:VariableName, $null, 'Process')
+        foreach ($name in $script:Names) {
+            [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+        }
     }
 
-    It 'removes a variable from the selected environment' {
-        Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process
-
-        [Environment]::GetEnvironmentVariable($script:VariableName, 'Process') | Should -BeNullOrEmpty
+    It 'removes all names supplied by <InputKind>' -ForEach @(
+        @{ InputKind = 'array' }
+        @{ InputKind = 'pipeline' }
+        @{ InputKind = 'property pipeline' }
+    ) {
+        switch ($InputKind) {
+            'array' { Remove-WUEnvironmentVariable -Name $script:Names }
+            'pipeline' { $script:Names | Remove-WUEnvironmentVariable }
+            'property pipeline' {
+                $script:Names | ForEach-Object { [pscustomobject]@{ Name = $_ } } | Remove-WUEnvironmentVariable
+            }
+        }
+        foreach ($name in $script:Names) {
+            [Environment]::GetEnvironmentVariable($name, 'Process') | Should -BeNullOrEmpty
+        }
     }
 
-    It 'succeeds when the variable is already absent' {
-        [Environment]::SetEnvironmentVariable($script:VariableName, $null, 'Process')
-
-        { Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process } | Should -Not -Throw
-        [Environment]::GetEnvironmentVariable($script:VariableName, 'Process') | Should -BeNullOrEmpty
+    It 'previews removal of all names without deleting their values' {
+        $script:Names | Remove-WUEnvironmentVariable -WhatIf
+        foreach ($name in $script:Names) {
+            [Environment]::GetEnvironmentVariable($name, 'Process') | Should -Be 'value to remove'
+        }
     }
 
-    It 'preserves the variable when previewing removal' {
-        Remove-WUEnvironmentVariable -Name $script:VariableName -Scope Process -WhatIf
-
-        [Environment]::GetEnvironmentVariable($script:VariableName, 'Process') | Should -Be 'remove me'
+    It 'accepts an empty pipeline without removing a value' {
+        @() | Remove-WUEnvironmentVariable
+        foreach ($name in $script:Names) {
+            [Environment]::GetEnvironmentVariable($name, 'Process') | Should -Be 'value to remove'
+        }
     }
 }
