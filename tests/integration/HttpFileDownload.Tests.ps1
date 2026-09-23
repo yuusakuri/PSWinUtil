@@ -7,9 +7,7 @@ BeforeAll {
             $testSupportTargetFramework = 'net472'
         }
 
-        $testSupportAssemblyPath = Join-Path `
-            -Path $repositoryRoot `
-            -ChildPath "output/TestSupport/$testSupportTargetFramework/PSWinUtil.TestSupport.dll"
+        $testSupportAssemblyPath = Join-Path -Path $repositoryRoot -ChildPath "output/TestSupport/$testSupportTargetFramework/PSWinUtil.TestSupport.dll"
         if (-not (Test-Path -LiteralPath $testSupportAssemblyPath -PathType Leaf)) {
             throw ".\dev.ps1 build must run before the tests: $testSupportAssemblyPath"
         }

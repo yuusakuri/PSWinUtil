@@ -71,50 +71,21 @@ function Get-WURegistrySetting {
                     }
                 )
 
-                $state = $null
-                foreach ($optionName in @($configuration.Properties[0].Options.Name | Sort-Object)) {
-                    $optionMatches = $true
-                    foreach ($propertyState in $propertyStates) {
-                        $option = @(
-                            $propertyState.Property.Options | Where-Object { $_.Name -ieq $optionName }
-                        )[0]
-                        if ($option.Action -eq 'Remove') {
-                            if ($null -ne $propertyState.RegistryProperty) {
-                                $optionMatches = $false
-                                break
-                            }
-                            continue
-                        }
+                $state = @(
+                    $configuration.Properties[0].Options.Name |
+                        Sort-Object |
+                        Where-Object { Test-WURegistrySettingOptionMatch -PropertyState $propertyStates -OptionName $_ } |
+                        Select-Object -First 1
+                )[0]
 
-                        if (
-                            $null -eq $propertyState.RegistryProperty -or
-                            $propertyState.RegistryProperty.Type -ine $propertyState.Property.Type
-                        ) {
-                            $optionMatches = $false
-                            break
-                        }
-
-                        if (-not (Compare-WURegistryValue -ReferenceValue $option.Value -DifferenceValue $propertyState.RegistryProperty.Value)) {
-                            $optionMatches = $false
-                            break
-                        }
-                    }
-
-                    if ($optionMatches) {
-                        $state = [string]$optionName
-                        break
-                    }
+                $configuredPropertyCount = @(
+                    $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
+                ).Count
+                if ($null -eq $state -and $configuredPropertyCount -eq 0) {
+                    $state = 'NotConfigured'
                 }
-
                 if ($null -eq $state) {
-                    $configuredPropertyCount = @(
-                        $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
-                    ).Count
-                    if ($configuredPropertyCount -eq 0) {
-                        $state = 'NotConfigured'
-                    } else {
-                        $state = 'Mixed'
-                    }
+                    $state = 'Mixed'
                 }
 
                 [pscustomobject]@{

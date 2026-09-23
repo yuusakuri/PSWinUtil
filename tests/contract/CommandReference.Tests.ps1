@@ -35,11 +35,7 @@ function Get-Hidden {
 Export-ModuleMember -Function Get-Zulu, Get-Alpha
 '@
         [System.IO.File]::WriteAllText($script:FixtureModulePath, $script:FixtureSource, $script:Utf8)
-        New-ModuleManifest `
-            -Path $script:FixtureManifestPath `
-            -RootModule "$($script:FixtureName).psm1" `
-            -ModuleVersion '1.0.0' `
-            -FunctionsToExport 'Get-Zulu', 'Get-Alpha'
+        New-ModuleManifest -Path $script:FixtureManifestPath -RootModule "$($script:FixtureName).psm1" -ModuleVersion '1.0.0' -FunctionsToExport 'Get-Zulu', 'Get-Alpha'
     }
 
     AfterEach {

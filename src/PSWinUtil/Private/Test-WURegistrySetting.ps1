@@ -72,112 +72,17 @@ function Test-WURegistrySetting {
         $configurationScopes = @()
         $settingOptionNames = $null
         foreach ($configuration in $configurations) {
-            if (
-                $configuration -isnot [System.Collections.Hashtable] -or
-                $configuration.Count -ne 2 -or
-                -not $configuration.ContainsKey('Scope') -or
-                -not $configuration.ContainsKey('Properties') -or
-                $configuration.Scope -notin @('User', 'Machine') -or
-                $configuration.Scope -in $configurationScopes
-            ) {
-                return $false
-            }
-            $configurationScopes += $configuration.Scope
-
-            $properties = @($configuration.Properties)
-            if ($properties.Count -eq 0) {
+            $result = Test-WURegistryConfiguration -Configuration $configuration -ExistingScope $configurationScopes -ValueTypes $valueTypes
+            if ($null -eq $result) {
                 return $false
             }
 
-            $propertyNames = @()
-            $configurationOptionNames = $null
-            foreach ($property in $properties) {
-                if (
-                    $property -isnot [System.Collections.Hashtable] -or
-                    $property.Count -ne 4 -or
-                    -not $property.ContainsKey('Name') -or
-                    -not $property.ContainsKey('Path') -or
-                    -not $property.ContainsKey('Type') -or
-                    -not $property.ContainsKey('Options') -or
-                    $property.Name -isnot [string] -or
-                    [string]::IsNullOrWhiteSpace($property.Name) -or
-                    $property.Name -in $propertyNames -or
-                    $property.Path -isnot [string] -or
-                    [string]::IsNullOrWhiteSpace($property.Path) -or
-                    $property.Type -notin $valueTypes.Keys
-                ) {
-                    return $false
-                }
-                $propertyNames += $property.Name
-
-                if ($configuration.Scope -eq 'User') {
-                    if ($property.Path -notmatch '^Registry::HKEY_CURRENT_USER\\.+') {
-                        return $false
-                    }
-                } elseif ($property.Path -notmatch '^Registry::HKEY_(LOCAL_MACHINE|CURRENT_CONFIG)\\.+') {
-                    return $false
-                }
-
-                $options = @($property.Options)
-                if ($options.Count -eq 0) {
-                    return $false
-                }
-
-                $optionNames = @()
-                foreach ($option in $options) {
-                    if (
-                        $option -isnot [System.Collections.Hashtable] -or
-                        -not $option.ContainsKey('Name') -or
-                        -not $option.ContainsKey('Action') -or
-                        $option.Name -isnot [string] -or
-                        [string]::IsNullOrWhiteSpace($option.Name) -or
-                        $option.Name -in $optionNames -or
-                        $option.Action -notin @('Set', 'Remove')
-                    ) {
-                        return $false
-                    }
-                    $optionNames += $option.Name
-
-                    if ($option.Action -eq 'Remove') {
-                        if ($option.Count -ne 2) {
-                            return $false
-                        }
-                        continue
-                    }
-
-                    if (
-                        $option.Count -ne 3 -or
-                        -not $option.ContainsKey('Value') -or
-                        $null -eq $option.Value
-                    ) {
-                        return $false
-                    }
-
-                    $valueIsValid = $false
-                    foreach ($valueType in $valueTypes[$property.Type]) {
-                        if ($valueType.IsInstanceOfType($option.Value)) {
-                            $valueIsValid = $true
-                            break
-                        }
-                    }
-                    if (-not $valueIsValid) {
-                        return $false
-                    }
-                }
-
-                $optionNames = @($optionNames | Sort-Object)
-                if ($null -eq $configurationOptionNames) {
-                    $configurationOptionNames = $optionNames
-                } elseif (@(Compare-Object -ReferenceObject $configurationOptionNames -DifferenceObject $optionNames).Count -gt 0) {
-                    return $false
-                }
-            }
-
-            if ($null -eq $settingOptionNames) {
-                $settingOptionNames = $configurationOptionNames
-            } elseif (@(Compare-Object -ReferenceObject $settingOptionNames -DifferenceObject $configurationOptionNames).Count -gt 0) {
+            $configurationScopes += $result.Scope
+            if ($null -ne $settingOptionNames -and
+                @(Compare-Object -ReferenceObject $settingOptionNames -DifferenceObject $result.OptionNames).Count -gt 0) {
                 return $false
             }
+            $settingOptionNames = $result.OptionNames
         }
     }
 

@@ -67,13 +67,14 @@ function Remove-WUPathEnvironmentVariable {
             $removedPath = $false
 
             foreach ($existingPath in $existingPaths) {
-                $isMatch = $false
-                foreach ($inputPath in $paths) {
-                    if (Compare-WUPath -ReferencePath $existingPath -DifferencePath $inputPath -Scope $targetScope) {
-                        $isMatch = $true
-                        $removedPath = $true
-                        break
-                    }
+                $isMatch = @(
+                    $paths |
+                        Where-Object { Compare-WUPath -ReferencePath $existingPath -DifferencePath $_ -Scope $targetScope } |
+                        Select-Object -First 1
+                ).Count -gt 0
+
+                if ($isMatch) {
+                    $removedPath = $true
                 }
 
                 if (-not $isMatch) {

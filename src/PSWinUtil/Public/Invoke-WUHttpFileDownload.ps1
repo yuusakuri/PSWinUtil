@@ -86,24 +86,10 @@ function Invoke-WUHttpFileDownload {
             ).GetAwaiter().GetResult()
             $response.EnsureSuccessStatusCode() | Out-Null
 
-            $fileMode = [System.IO.FileMode]::Create
-            $expectedLength = $response.Content.Headers.ContentLength
-            if ($response.StatusCode -eq [System.Net.HttpStatusCode]::PartialContent) {
-                $contentRange = $response.Content.Headers.ContentRange
-                if ($null -eq $contentRange -or $contentRange.From -ne $savedLength) {
-                    throw "The server returned an invalid Content-Range for offset $savedLength."
-                }
-                if ($savedLength -gt 0) {
-                    $fileMode = [System.IO.FileMode]::Append
-                }
-                if ($contentRange.HasLength) {
-                    $expectedLength = $contentRange.Length
-                } elseif ($null -ne $expectedLength) {
-                    $expectedLength += $savedLength
-                }
-            } elseif ($savedLength -gt 0) {
-                $progressStartLength = 0L
-            }
+            $layout = Get-WUHttpDownloadResponseLayout -Response $response -SavedLength $savedLength
+            $fileMode = $layout.FileMode
+            $expectedLength = $layout.ExpectedLength
+            $progressStartLength = $layout.ProgressStartLength
 
             $responseStream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
             $fileStream = [System.IO.FileStream]::new(

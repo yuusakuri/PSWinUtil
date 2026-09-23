@@ -52,11 +52,7 @@ Describe 'Set-WUEnvironmentVariable' {
 
     It 'sets a named variable in multiple scopes' -Skip:($env:OS -ne 'Windows_NT') {
         $result = @(
-            Set-WUEnvironmentVariable `
-                -Name $script:EnvironmentName `
-                -Value 'shared value' `
-                -Scope Process, User `
-                -PassThru
+            Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value 'shared value' -Scope Process, User -PassThru
         )
 
         $result | Should -HaveCount 2
@@ -97,11 +93,7 @@ Describe 'Set-WUEnvironmentVariable' {
     }
 
     It 'returns the stored state only with PassThru' {
-        $result = Set-WUEnvironmentVariable `
-            -Name $script:EnvironmentName `
-            -Value 'stored value' `
-            -Scope Process `
-            -PassThru
+        $result = Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value 'stored value' -Scope Process -PassThru
 
         $result.Name | Should -Be $script:EnvironmentName
         $result.Value | Should -Be 'stored value'

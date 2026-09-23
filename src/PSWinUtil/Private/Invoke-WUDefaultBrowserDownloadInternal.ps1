@@ -89,26 +89,11 @@ function Invoke-WUDefaultBrowserDownloadInternal {
             $partialFileExists = @(
                 $partialPaths | Where-Object { Test-Path -LiteralPath $_ }
             ).Count -gt 0
-            if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and -not $partialFileExists) {
-                $stream = $null
-                try {
-                    $stream = [IO.File]::Open(
-                        $targetPath,
-                        [IO.FileMode]::Open,
-                        [IO.FileAccess]::Read,
-                        [IO.FileShare]::None
-                    )
-                    [IO.Path]::GetFullPath($targetPath)
-                    return
-                } catch [IO.IOException] {
-                    $_ | Out-Null
-                } catch [UnauthorizedAccessException] {
-                    $_ | Out-Null
-                } finally {
-                    if ($null -ne $stream) {
-                        $stream.Dispose()
-                    }
-                }
+            if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and
+                -not $partialFileExists -and
+                (Test-WUBrowserDownloadReady -Path $targetPath)) {
+                [IO.Path]::GetFullPath($targetPath)
+                return
             }
 
             Start-Sleep -Milliseconds 200

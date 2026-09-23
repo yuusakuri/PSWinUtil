@@ -2,9 +2,7 @@ BeforeAll {
     $script:RepositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $script:OutputModuleDirectory = Join-Path -Path $script:RepositoryRoot -ChildPath 'output/PSWinUtil'
     $script:ManifestPath = Join-Path -Path $script:OutputModuleDirectory -ChildPath 'PSWinUtil.psd1'
-    $script:NativeAssemblyPath = Join-Path `
-        -Path $script:OutputModuleDirectory `
-        -ChildPath 'lib/PSWinUtil.Native.dll'
+    $script:NativeAssemblyPath = Join-Path -Path $script:OutputModuleDirectory -ChildPath 'lib/PSWinUtil.Native.dll'
 }
 
 Describe 'C# source layout' {
@@ -28,12 +26,8 @@ Describe 'C# source layout' {
     }
 
     It 'builds every C# type from a project file' {
-        $nativeProjectPath = Join-Path `
-            -Path $script:RepositoryRoot `
-            -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
-        $testSupportProjectPath = Join-Path `
-            -Path $script:RepositoryRoot `
-            -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
+        $nativeProjectPath = Join-Path -Path $script:RepositoryRoot -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
+        $testSupportProjectPath = Join-Path -Path $script:RepositoryRoot -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
 
         foreach ($projectPath in @($nativeProjectPath, $testSupportProjectPath)) {
             Test-Path -LiteralPath $projectPath -PathType Leaf |
@@ -80,9 +74,7 @@ Describe 'Native assembly distribution' {
 Describe 'Test support assembly distribution' {
     It 'builds the test support assembly for both PowerShell editions' {
         foreach ($targetFramework in @('net472', 'netstandard2.0')) {
-            $testSupportAssemblyPath = Join-Path `
-                -Path $script:RepositoryRoot `
-                -ChildPath "output/TestSupport/$targetFramework/PSWinUtil.TestSupport.dll"
+            $testSupportAssemblyPath = Join-Path -Path $script:RepositoryRoot -ChildPath "output/TestSupport/$targetFramework/PSWinUtil.TestSupport.dll"
 
             Test-Path -LiteralPath $testSupportAssemblyPath -PathType Leaf |
                 Should -BeTrue -Because "$testSupportAssemblyPath must exist"

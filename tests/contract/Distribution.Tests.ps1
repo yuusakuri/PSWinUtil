@@ -13,9 +13,7 @@ Describe 'Distribution contents' {
     }
 
     It 'contains the registry setting data copied by ModuleBuilder' {
-        $registrySettingPath = Join-Path `
-            -Path $script:OutputModuleDirectory `
-            -ChildPath 'data/RegistrySettings.psd1'
+        $registrySettingPath = Join-Path -Path $script:OutputModuleDirectory -ChildPath 'data/RegistrySettings.psd1'
 
         Test-Path -LiteralPath $registrySettingPath -PathType Leaf | Should -BeTrue
         $settingData = Import-PowerShellDataFile -Path $registrySettingPath

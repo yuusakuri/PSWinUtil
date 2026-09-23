@@ -68,9 +68,7 @@ Describe 'Get-WUEnvironmentVariable' {
         Set-WUEnvironmentVariable -Name $script:FirstEnvironmentName -Value 'user value' -Scope User
 
         $result = @(
-            Get-WUEnvironmentVariable `
-                -Name $script:FirstEnvironmentName `
-                -Scope Process, User
+            Get-WUEnvironmentVariable -Name $script:FirstEnvironmentName -Scope Process, User
         )
 
         $result | Should -HaveCount 2

@@ -87,10 +87,7 @@ Describe 'Release publication queries' {
             '[[{"tag_name":"v2.0.0-preview1","draft":false,"prerelease":true}]]'
         }
 
-        Test-GitHubRelease `
-            -GhPath 'gh' `
-            -TagName 'v2.0.0-preview1' `
-            -Prerelease | Should -BeTrue
+        Test-GitHubRelease -GhPath 'gh' -TagName 'v2.0.0-preview1' -Prerelease | Should -BeTrue
     }
 
     It 'rejects an incorrect GitHub prerelease state' {
@@ -99,10 +96,7 @@ Describe 'Release publication queries' {
         }
 
         {
-            Test-GitHubRelease `
-                -GhPath 'gh' `
-                -TagName 'v2.0.0-preview1' `
-                -Prerelease
+            Test-GitHubRelease -GhPath 'gh' -TagName 'v2.0.0-preview1' -Prerelease
         } | Should -Throw '*incorrect prerelease state*'
     }
 
@@ -155,9 +149,7 @@ Describe 'Release publication queries' {
         Mock Test-GalleryPublication { $false }
         Mock Test-GitHubRelease { $false }
 
-        $state = Get-RemoteReleaseState `
-            -ReleaseCommit $script:ReleaseCommit `
-            -Version '2.0.0-preview1'
+        $state = Get-RemoteReleaseState -ReleaseCommit $script:ReleaseCommit -Version '2.0.0-preview1'
 
         $state.TagExists | Should -BeFalse
         Should -Invoke Test-GalleryPublication -Times 1 -Exactly -ParameterFilter {
@@ -261,13 +253,8 @@ Describe 'Invoke-ReleasePublish' {
             "@{ ModuleVersion = '2.0.0'; PrivateData = @{ PSData = @{ Prerelease = 'preview1' } } }"
         )
         $script:PublishArguments.Version = '2.0.0-preview1'
-        $script:PublishArguments.ArtifactPath = Join-Path `
-            -Path $TestDrive `
-            -ChildPath 'PSWinUtil-2.0.0-preview1.zip'
-        $script:PublishArguments.State = Get-ReleasePublicationState `
-            -TagName 'v2.0.0-preview1' `
-            -Version '2.0.0-preview1' `
-            -ReleaseCommit $script:ReleaseCommit
+        $script:PublishArguments.ArtifactPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil-2.0.0-preview1.zip'
+        $script:PublishArguments.State = Get-ReleasePublicationState -TagName 'v2.0.0-preview1' -Version '2.0.0-preview1' -ReleaseCommit $script:ReleaseCommit
 
         $result = Invoke-ReleasePublish @script:PublishArguments
 
@@ -317,9 +304,7 @@ Describe 'Invoke-ReleasePublish' {
 
     It 'resumes after Gallery publication without a credential or duplicate publish' {
         $env:PSGALLERY_API_KEY = ''
-        $script:PublishArguments.State = Get-ReleasePublicationState `
-            -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit `
-            -TagCommit $script:ReleaseCommit -GalleryExists
+        $script:PublishArguments.State = Get-ReleasePublicationState -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit -TagCommit $script:ReleaseCommit -GalleryExists
 
         $null = Invoke-ReleasePublish @script:PublishArguments
 
@@ -327,9 +312,7 @@ Describe 'Invoke-ReleasePublish' {
     }
 
     It 'skips a completed publication and returns no artifact for attestation' {
-        $script:PublishArguments.State = Get-ReleasePublicationState `
-            -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit `
-            -TagCommit $script:ReleaseCommit -GalleryExists -GitHubReleaseExists
+        $script:PublishArguments.State = Get-ReleasePublicationState -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit -TagCommit $script:ReleaseCommit -GalleryExists -GitHubReleaseExists
 
         $results = @(Invoke-ReleasePublish @script:PublishArguments)
 
@@ -383,16 +366,10 @@ Describe 'Release checkout validation' {
             }
         }
         Mock Get-RemoteReleaseState {
-            Get-ReleasePublicationState `
-                -TagName 'v2.0.0-preview1' `
-                -Version '2.0.0-preview1' `
-                -ReleaseCommit $script:ReleaseCommit
+            Get-ReleasePublicationState -TagName 'v2.0.0-preview1' -Version '2.0.0-preview1' -ReleaseCommit $script:ReleaseCommit
         }
 
-        Invoke-Release `
-            -ReleaseCommit $script:ReleaseCommit `
-            -Branch 'release/2.0.0-preview1' `
-            -WhatIf
+        Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/2.0.0-preview1' -WhatIf
 
         Should -Invoke Get-RemoteReleaseState -Times 1 -Exactly -ParameterFilter {
             $Version -eq '2.0.0-preview1'

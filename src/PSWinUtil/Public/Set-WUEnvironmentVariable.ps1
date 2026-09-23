@@ -160,47 +160,14 @@ function Set-WUEnvironmentVariable {
                         [System.EnvironmentVariableTarget]$setting.Scope
                     )
                 } else {
-                    $registryPath = if ($setting.Scope -eq 'User') {
-                        'Environment'
-                    } else {
-                        'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
-                    }
-                    $baseKey = if ($setting.Scope -eq 'User') {
-                        [Microsoft.Win32.Registry]::CurrentUser
-                    } else {
-                        [Microsoft.Win32.Registry]::LocalMachine
-                    }
-                    $registryKey = $baseKey.CreateSubKey($registryPath)
-                    try {
-                        if ([string]::IsNullOrEmpty($setting.Value)) {
-                            if ($null -ne $registryKey.GetValue($setting.Name)) {
-                                $registryKey.DeleteValue($setting.Name, $false)
-                                $persistentChanged = $true
-                            }
-                        } else {
-                            $valueKind = if ($setting.Value -match '%[^%]+%') {
-                                [Microsoft.Win32.RegistryValueKind]::ExpandString
-                            } else {
-                                [Microsoft.Win32.RegistryValueKind]::String
-                            }
-                            $registryKey.SetValue(
-                                $setting.Name,
-                                $setting.Value,
-                                $valueKind
-                            )
-                            $persistentChanged = $true
-                        }
-                    } finally {
-                        $registryKey.Dispose()
-                    }
+                    $changed = Set-WUPersistentEnvironmentVariable -Name $setting.Name -Value $setting.Value -Scope $setting.Scope
+                    $persistentChanged = $persistentChanged -or $changed
                 }
                 if ($PassThru) {
                     $getParameters = @{
                         Name = $setting.Name
                         Scope = $setting.Scope
-                    }
-                    if ($setting.Scope -ne 'Process') {
-                        $getParameters.NoExpand = $true
+                        NoExpand = $setting.Scope -ne 'Process'
                     }
                     [pscustomobject]@{
                         Name = $setting.Name

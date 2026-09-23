@@ -16,9 +16,7 @@ Describe 'Set-ReleaseVersion' {
     }
 
     It 'updates ModuleVersion and Prerelease for a preview version' {
-        $result = Set-ReleaseVersion `
-            -Version $script:NextVersion `
-            -ManifestPath $script:ManifestPath
+        $result = Set-ReleaseVersion -Version $script:NextVersion -ManifestPath $script:ManifestPath
 
         $updatedManifest = Import-PowerShellDataFile -LiteralPath $script:ManifestPath
         [string]$updatedManifest.ModuleVersion | Should -Be $script:BaseVersion
@@ -34,9 +32,7 @@ Describe 'Set-ReleaseVersion' {
     }
 
     It 'clears Prerelease for the stable version with the same base' {
-        $result = Set-ReleaseVersion `
-            -Version $script:BaseVersion `
-            -ManifestPath $script:ManifestPath
+        $result = Set-ReleaseVersion -Version $script:BaseVersion -ManifestPath $script:ManifestPath
 
         $updatedManifest = Import-PowerShellDataFile -LiteralPath $script:ManifestPath
         [string]$updatedManifest.ModuleVersion | Should -Be $script:BaseVersion
@@ -46,9 +42,7 @@ Describe 'Set-ReleaseVersion' {
 
     It 'rejects a version that is not greater than the current version' {
         {
-            Set-ReleaseVersion `
-                -Version $script:CurrentVersion `
-                -ManifestPath $script:ManifestPath
+            Set-ReleaseVersion -Version $script:CurrentVersion -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
 
         [System.IO.File]::ReadAllText($script:ManifestPath) |
@@ -57,9 +51,7 @@ Describe 'Set-ReleaseVersion' {
 
     It 'rejects a version lower than the current version' {
         {
-            Set-ReleaseVersion `
-                -Version '1.0.0' `
-                -ManifestPath $script:ManifestPath
+            Set-ReleaseVersion -Version '1.0.0' -ManifestPath $script:ManifestPath
         } | Should -Throw '*must be greater*'
 
         [System.IO.File]::ReadAllText($script:ManifestPath) |
@@ -73,9 +65,7 @@ Describe 'Set-ReleaseVersion' {
         @{ Version = '2.1.0-preview-1' }
     ) {
         {
-            Set-ReleaseVersion `
-                -Version $Version `
-                -ManifestPath $script:ManifestPath
+            Set-ReleaseVersion -Version $Version -ManifestPath $script:ManifestPath
         } | Should -Throw
 
         [System.IO.File]::ReadAllText($script:ManifestPath) |
@@ -83,10 +73,7 @@ Describe 'Set-ReleaseVersion' {
     }
 
     It 'does not update the manifest with WhatIf' {
-        $null = Set-ReleaseVersion `
-            -Version $script:NextVersion `
-            -ManifestPath $script:ManifestPath `
-            -WhatIf
+        $null = Set-ReleaseVersion -Version $script:NextVersion -ManifestPath $script:ManifestPath -WhatIf
 
         [System.IO.File]::ReadAllText($script:ManifestPath) |
             Should -BeExactly $script:OriginalManifestText

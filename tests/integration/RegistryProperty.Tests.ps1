@@ -43,77 +43,44 @@ Describe 'Registry property commands' {
     }
 
     It 'creates and gets a registry property with its type' {
-        $storedProperty = Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Enabled' `
-            -Value 1 `
-            -Type DWord `
-            -PassThru
+        $storedProperty = Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Enabled' -Value 1 -Type DWord -PassThru
 
         $storedProperty.Value | Should -Be 1
         $storedProperty.Type | Should -Be 'DWord'
         $storedProperty.PSObject.TypeNames | Should -Contain 'PSWinUtil.RegistryProperty'
 
-        $readProperty = Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Enabled'
+        $readProperty = Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Enabled'
         $readProperty.Value | Should -Be 1
         $readProperty.Type | Should -Be 'DWord'
     }
 
     It 'updates a registry property value and type' {
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' `
-            -Value 'old' `
-            -Type String
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' -Value 'old' -Type String
 
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' `
-            -Value 2 `
-            -Type DWord
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' -Value 2 -Type DWord
 
-        $storedProperty = Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting'
+        $storedProperty = Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting'
         $storedProperty.Value | Should -Be 2
         $storedProperty.Type | Should -Be 'DWord'
     }
 
     It 'sets, gets, and removes the default registry value' {
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name '' `
-            -Value 'default text' `
-            -Type String
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name '' -Value 'default text' -Type String
 
-        $storedProperty = Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name ''
+        $storedProperty = Get-WURegistryProperty -Path $script:RegistryTestPath -Name ''
         $storedProperty.Name | Should -Be ''
         $storedProperty.Value | Should -Be 'default text'
         $storedProperty.Type | Should -Be 'String'
 
-        Remove-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name ''
+        Remove-WURegistryProperty -Path $script:RegistryTestPath -Name ''
 
-        Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name '' | Should -BeNullOrEmpty
+        Get-WURegistryProperty -Path $script:RegistryTestPath -Name '' | Should -BeNullOrEmpty
     }
 
     It 'preserves MultiString values' {
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Items' `
-            -Value @('first', 'second') `
-            -Type MultiString
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Items' -Value @('first', 'second') -Type MultiString
 
-        $storedProperty = Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Items'
+        $storedProperty = Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Items'
         @($storedProperty.Value).Count | Should -Be 2
         $storedProperty.Value[0] | Should -Be 'first'
         $storedProperty.Value[1] | Should -Be 'second'
@@ -121,60 +88,34 @@ Describe 'Registry property commands' {
     }
 
     It 'removes a registry property and preserves its key' {
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' `
-            -Value 1 `
-            -Type DWord
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' -Value 1 -Type DWord
 
-        Remove-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting'
+        Remove-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting'
 
-        Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' | Should -BeNullOrEmpty
+        Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' | Should -BeNullOrEmpty
         Test-Path -LiteralPath $script:RegistryTestPath -PathType Container |
             Should -BeTrue
     }
 
     It 'does not create a registry key with WhatIf' {
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' `
-            -Value 1 `
-            -Type DWord `
-            -WhatIf
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' -Value 1 -Type DWord -WhatIf
 
         Test-Path -LiteralPath $script:RegistryTestPath | Should -BeFalse
     }
 
     It 'does not remove a registry property with WhatIf' {
-        Set-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' `
-            -Value 1 `
-            -Type DWord
+        Set-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' -Value 1 -Type DWord
 
-        Remove-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' `
-            -WhatIf
+        Remove-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' -WhatIf
 
-        Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Setting' | Should -Not -BeNullOrEmpty
+        Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Setting' | Should -Not -BeNullOrEmpty
     }
 
     It 'does nothing for a missing key or property' {
-        Get-WURegistryProperty `
-            -Path $script:RegistryTestPath `
-            -Name 'Missing' | Should -BeNullOrEmpty
+        Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Missing' | Should -BeNullOrEmpty
 
         {
-            Remove-WURegistryProperty `
-                -Path $script:RegistryTestPath `
-                -Name 'Missing'
+            Remove-WURegistryProperty -Path $script:RegistryTestPath -Name 'Missing'
         } | Should -Not -Throw
     }
 }

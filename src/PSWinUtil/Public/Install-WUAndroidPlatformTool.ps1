@@ -48,11 +48,6 @@ function Install-WUAndroidPlatformTool {
     if (-not $PSCmdlet.ShouldProcess("Platform Tools package '$package'", 'Install Android SDK component')) {
         return
     }
-    Invoke-WUNativeCommand `
-        -Command 'android.exe' `
-        -ArgumentList $arguments `
-        -CaptureOutput `
-        -ContinueExitCodes @(-1073740791) `
-        -ErrorAction Stop |
+    Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $arguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop |
         Out-Null
 }

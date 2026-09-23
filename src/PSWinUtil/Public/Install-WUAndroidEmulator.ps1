@@ -48,11 +48,6 @@ function Install-WUAndroidEmulator {
     if (-not $PSCmdlet.ShouldProcess("Android Emulator package '$package'", 'Install Android SDK component')) {
         return
     }
-    Invoke-WUNativeCommand `
-        -Command 'android.exe' `
-        -ArgumentList $arguments `
-        -CaptureOutput `
-        -ContinueExitCodes @(-1073740791) `
-        -ErrorAction Stop |
+    Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $arguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop |
         Out-Null
 }

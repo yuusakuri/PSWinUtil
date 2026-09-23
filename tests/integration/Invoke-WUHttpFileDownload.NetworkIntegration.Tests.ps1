@@ -53,10 +53,7 @@ BeforeAll {
         for ($index = 0; $index -lt $expectedStarts.Count; $index++) {
             $state.StartPositions[$index] | Should -Be $expectedStarts[$index]
         }
-        Should -Invoke -CommandName Copy-WUHttpContent `
-            -ModuleName PSWinUtil `
-            -Times $expectedStarts.Count `
-            -Exactly
+        Should -Invoke -CommandName Copy-WUHttpContent -ModuleName PSWinUtil -Times $expectedStarts.Count -Exactly
     }
 }
 
@@ -64,16 +61,12 @@ Describe 'Invoke-WUHttpFileDownload with the Google Android CLI server' -Tag 'In
     It 'reconstructs Android CLI after one Range resume' {
         $downloadPath = Join-Path -Path $TestDrive -ChildPath 'android-one-resume.exe'
 
-        Invoke-AndroidCliRangeResumeIntegrationTest `
-            -DisconnectAt 1MB `
-            -Path $downloadPath
+        Invoke-AndroidCliRangeResumeIntegrationTest -DisconnectAt 1MB -Path $downloadPath
     }
 
     It 'reconstructs Android CLI after two Range resumes' {
         $downloadPath = Join-Path -Path $TestDrive -ChildPath 'android-two-resumes.exe'
 
-        Invoke-AndroidCliRangeResumeIntegrationTest `
-            -DisconnectAt 1MB, 2MB `
-            -Path $downloadPath
+        Invoke-AndroidCliRangeResumeIntegrationTest -DisconnectAt 1MB, 2MB -Path $downloadPath
     }
 }

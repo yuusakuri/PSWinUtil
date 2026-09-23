@@ -263,9 +263,7 @@ Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable)
 
         Disable-WUCommandOverride -Name 'Set-Content'
         Set-Content -LiteralPath $proxyPath -Value @($script:UnicodeText, 'second')
-        Microsoft.PowerShell.Management\Set-Content `
-            -LiteralPath $originalPath `
-            -Value @($script:UnicodeText, 'second')
+        Microsoft.PowerShell.Management\Set-Content -LiteralPath $originalPath -Value @($script:UnicodeText, 'second')
 
         Assert-PSWinUtilFileByteEquality -ProxyPath $proxyPath -OriginalPath $originalPath
     }

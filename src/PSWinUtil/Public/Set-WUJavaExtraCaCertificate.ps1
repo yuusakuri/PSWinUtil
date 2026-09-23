@@ -58,8 +58,5 @@ function Set-WUJavaExtraCaCertificate {
         Invoke-WUNativeCommand -Command 'keytool' -ArgumentList $keytoolArguments -CaptureOutput -ErrorAction Stop | Out-Null
     }
 
-    Set-WUEnvironmentVariable `
-        -Name 'JAVA_TOOL_OPTIONS' `
-        -Value "-Djavax.net.ssl.trustStore=$cacertsPath" `
-        -Scope $Scope
+    Set-WUEnvironmentVariable -Name 'JAVA_TOOL_OPTIONS' -Value "-Djavax.net.ssl.trustStore=$cacertsPath" -Scope $Scope
 }

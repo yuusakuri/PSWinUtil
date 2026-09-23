@@ -89,9 +89,7 @@ function Install-WUFlutterSdk {
             }
 
             $downloadedPath = Join-Path -Path $temporaryDirectory -ChildPath $packageFileName
-            $downloadedPath = Invoke-WUHttpFileDownload `
-                -Uri $release.Uri `
-                -Path $downloadedPath
+            $downloadedPath = Invoke-WUHttpFileDownload -Uri $release.Uri -Path $downloadedPath
 
             $stagingDirectory = Join-Path -Path $fullDestinationPath -ChildPath ".flutter-install-$([guid]::NewGuid().ToString('N'))"
             New-Item -Path $stagingDirectory -ItemType Directory -ErrorAction Stop | Out-Null
