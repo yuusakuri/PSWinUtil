@@ -33,6 +33,12 @@ function Install-PowerShellGet {
         Import-Module -Name 'PowerShellGet' -MaximumVersion $Version -Force -ErrorAction Stop
     }
 
+    if ($null -eq (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore)) {
+        Register-PSRepository -Default -InstallationPolicy 'Trusted' -ErrorAction Stop
+    } else {
+        Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted' -ErrorAction Stop
+    }
+
     Install-PackageProvider -Name 'NuGet' -Scope 'CurrentUser' -Force -ErrorAction Stop | Out-Null
 
     if (-not $availablePowerShellGet) {
@@ -47,13 +53,6 @@ function Install-PSResourceGet {
         [string]$Version
     )
 
-    Import-Module -Name 'PowerShellGet' -MaximumVersion '2.2.5' -Force -ErrorAction Stop
-    if ($null -eq (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore)) {
-        Register-PSRepository -Default -InstallationPolicy 'Trusted' -ErrorAction Stop
-    } else {
-        Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted' -ErrorAction Stop
-    }
-
     $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
         Where-Object { $_.Version -eq [version]$Version }
 
@@ -63,6 +62,11 @@ function Install-PSResourceGet {
     }
 
     Import-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Version -Force -ErrorAction Stop
+    if ($null -eq (Get-PSResourceRepository -Name 'PSGallery' -ErrorAction Ignore)) {
+        Register-PSResourceRepository -PSGallery -Trusted -ErrorAction Stop
+    } else {
+        Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction Stop
+    }
 }
 
 function Install-DevelopmentDependency {
