@@ -10,60 +10,77 @@ if (-not (Test-Path -LiteralPath $requirementsPath -PathType Leaf)) {
 }
 
 $requirements = Import-PowerShellDataFile -Path $requirementsPath
-$psResourceGetName = 'Microsoft.PowerShell.PSResourceGet'
-if (-not $requirements.ContainsKey($psResourceGetName)) {
-    throw "A required development module is not pinned: $psResourceGetName"
+if (-not $requirements.ContainsKey('Microsoft.PowerShell.PSResourceGet')) {
+    throw 'A required development module is not pinned: Microsoft.PowerShell.PSResourceGet'
 }
 
-$psResourceGetVersion = [string]$requirements[$psResourceGetName]
 [Net.ServicePointManager]::SecurityProtocol =
 [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-Write-Verbose ("PSModulePath: {0}" -f $env:PSModulePath)
-$psResourceGetSpecification = @{
-    ModuleName = $psResourceGetName
-    RequiredVersion = $psResourceGetVersion
-}
-$requiredPSResourceGet = Get-Module -FullyQualifiedName $psResourceGetSpecification -ListAvailable
-if (-not $requiredPSResourceGet) {
-    $powerShellGetVersion = '2.2.5'
-    $powerShellGetSpecification = @{
-        ModuleName = 'PowerShellGet'
-        RequiredVersion = $powerShellGetVersion
-    }
-    $requiredPowerShellGet = Get-Module -FullyQualifiedName $powerShellGetSpecification -ListAvailable
-    if (-not $requiredPowerShellGet) {
-        # Use the inbox or an installed 2.x module to bootstrap the pinned release.
-        Import-Module -Name 'PowerShellGet' -MaximumVersion $powerShellGetVersion -Force -ErrorAction Stop
-    } else {
-        Import-Module -FullyQualifiedName $powerShellGetSpecification -Force -ErrorAction Stop
-    }
-    if ($null -eq (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore)) {
-        Register-PSRepository -Default -InstallationPolicy 'Trusted' -ErrorAction Stop
-    } else {
-        Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted' -ErrorAction Stop
-    }
-    Install-PackageProvider -Name 'NuGet' -Scope 'CurrentUser' -Force -ErrorAction Stop | Out-Null
-    if (-not $requiredPowerShellGet) {
-        PowerShellGet\Install-Module -Name 'PowerShellGet' -RequiredVersion $powerShellGetVersion -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
-        Import-Module -FullyQualifiedName $powerShellGetSpecification -Force -ErrorAction Stop
-    }
-    PowerShellGet\Install-Module -Name $psResourceGetName -Repository 'PSGallery' -RequiredVersion $psResourceGetVersion -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
-    $requiredPSResourceGet = Get-Module -FullyQualifiedName $psResourceGetSpecification -ListAvailable
-}
-foreach ($module in Get-Module -Name $psResourceGetName -ListAvailable) {
-    Write-Verbose ("Detected {0} {1}: {2}" -f $module.Name, $module.Version, $module.ModuleBase)
-}
-if (-not $requiredPSResourceGet) {
-    throw "Required module $psResourceGetName $psResourceGetVersion was not found. PSModulePath: $env:PSModulePath"
-}
+function Install-PSResourceGet {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]$Requirements
+    )
 
-Import-Module -Name $psResourceGetName -RequiredVersion $psResourceGetVersion -Force -ErrorAction Stop
+    Write-Verbose ("PSModulePath: {0}" -f $env:PSModulePath)
+    $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
+        Where-Object { $_.Version -eq [version]$Requirements['Microsoft.PowerShell.PSResourceGet'] }
 
-foreach ($moduleName in $requirements.Keys) {
-    if ($moduleName -eq $psResourceGetName) {
-        continue
+    if (-not $availablePSResourceGet) {
+        $availablePowerShellGet = Get-Module -Name 'PowerShellGet' -ListAvailable |
+            Where-Object { $_.Version -eq [version]'2.2.5' }
+
+        if (-not $availablePowerShellGet) {
+            # Use the inbox or an installed 2.x module to bootstrap the pinned release.
+            Import-Module -Name 'PowerShellGet' -MaximumVersion '2.2.5' -Force -ErrorAction Stop
+        } else {
+            Import-Module -Name 'PowerShellGet' -RequiredVersion '2.2.5' -Force -ErrorAction Stop
+        }
+
+        if ($null -eq (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore)) {
+            Register-PSRepository -Default -InstallationPolicy 'Trusted' -ErrorAction Stop
+        } else {
+            Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted' -ErrorAction Stop
+        }
+
+        Install-PackageProvider -Name 'NuGet' -Scope 'CurrentUser' -Force -ErrorAction Stop | Out-Null
+
+        if (-not $availablePowerShellGet) {
+            PowerShellGet\Install-Module -Name 'PowerShellGet' -RequiredVersion '2.2.5' -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
+            Import-Module -Name 'PowerShellGet' -RequiredVersion '2.2.5' -Force -ErrorAction Stop
+        }
+
+        PowerShellGet\Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Requirements['Microsoft.PowerShell.PSResourceGet'] -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
+        $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
+            Where-Object { $_.Version -eq [version]$Requirements['Microsoft.PowerShell.PSResourceGet'] }
     }
 
-    Install-PSResource -Name $moduleName -Version $requirements[$moduleName] -Scope 'CurrentUser' -TrustRepository -Quiet -ErrorAction Stop
+    foreach ($module in Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable) {
+        Write-Verbose ("Detected {0} {1}: {2}" -f $module.Name, $module.Version, $module.ModuleBase)
+    }
+
+    if (-not $availablePSResourceGet) {
+        throw "Required module Microsoft.PowerShell.PSResourceGet $($Requirements['Microsoft.PowerShell.PSResourceGet']) was not found. PSModulePath: $env:PSModulePath"
+    }
+
+    Import-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Requirements['Microsoft.PowerShell.PSResourceGet'] -Force -ErrorAction Stop
 }
+
+function Install-DevelopmentDependency {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]$Requirements
+    )
+
+    foreach ($moduleName in $Requirements.Keys) {
+        if ($moduleName -eq 'Microsoft.PowerShell.PSResourceGet') {
+            continue
+        }
+
+        Install-PSResource -Name $moduleName -Version $Requirements[$moduleName] -Scope 'CurrentUser' -TrustRepository -Quiet -ErrorAction Stop
+    }
+}
+
+Install-PSResourceGet -Requirements $requirements
+Install-DevelopmentDependency -Requirements $requirements
