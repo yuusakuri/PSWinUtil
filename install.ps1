@@ -10,24 +10,76 @@ if (-not (Test-Path -LiteralPath $requirementsPath -PathType Leaf)) {
 }
 
 $requirements = Import-PowerShellDataFile -Path $requirementsPath
-$psResourceGetName = 'Microsoft.PowerShell.PSResourceGet'
-if (-not $requirements.ContainsKey($psResourceGetName)) {
-    throw "A required development module is not pinned: $psResourceGetName"
+if (-not $requirements.ContainsKey('Microsoft.PowerShell.PSResourceGet')) {
+    throw 'A required development module is not pinned: Microsoft.PowerShell.PSResourceGet'
 }
 
-$psResourceGetVersion = [string]$requirements[$psResourceGetName]
 [Net.ServicePointManager]::SecurityProtocol =
 [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-Install-PackageProvider -Name 'NuGet' -Scope 'CurrentUser' -Force | Out-Null
-Install-Module -Name 'PowerShellGet' -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber
-Install-Module -Name $psResourceGetName -Repository 'PSGallery' -RequiredVersion $psResourceGetVersion -Scope 'CurrentUser' -Force -AllowClobber
-Import-Module -Name $psResourceGetName -RequiredVersion $psResourceGetVersion -Force
+function Install-PowerShellGet {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Version
+    )
 
-foreach ($moduleName in $requirements.Keys) {
-    if ($moduleName -eq $psResourceGetName) {
-        continue
+    $availablePowerShellGet = Get-Module -Name 'PowerShellGet' -ListAvailable |
+        Where-Object { $_.Version -eq [version]$Version }
+
+    if ($availablePowerShellGet) {
+        Import-Module -Name 'PowerShellGet' -RequiredVersion $Version -Force -ErrorAction Stop
     }
 
-    Install-PSResource -Name $moduleName -Version $requirements[$moduleName] -Scope 'CurrentUser' -TrustRepository -Quiet
+    if ($null -eq (Get-PSRepository -Name 'PSGallery' -ErrorAction Ignore)) {
+        Register-PSRepository -Default -InstallationPolicy 'Trusted' -ErrorAction Stop
+    } else {
+        Set-PSRepository -Name 'PSGallery' -InstallationPolicy 'Trusted' -ErrorAction Stop
+    }
+
+    Install-PackageProvider -Name 'NuGet' -Scope 'CurrentUser' -Force -ErrorAction Stop | Out-Null
+
+    if (-not $availablePowerShellGet) {
+        PowerShellGet\Install-Module -Name 'PowerShellGet' -RequiredVersion $Version -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
+        Import-Module -Name 'PowerShellGet' -RequiredVersion $Version -Force -ErrorAction Stop
+    }
 }
+
+function Install-PSResourceGet {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Version
+    )
+
+    $availablePSResourceGet = Get-Module -Name 'Microsoft.PowerShell.PSResourceGet' -ListAvailable |
+        Where-Object { $_.Version -eq [version]$Version }
+
+    if (-not $availablePSResourceGet) {
+        Install-PowerShellGet -Version '2.2.5'
+        PowerShellGet\Install-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Version -Repository 'PSGallery' -Scope 'CurrentUser' -Force -AllowClobber -ErrorAction Stop
+    }
+
+    Import-Module -Name 'Microsoft.PowerShell.PSResourceGet' -RequiredVersion $Version -Force -ErrorAction Stop
+    if ($null -eq (Get-PSResourceRepository -Name 'PSGallery' -ErrorAction Ignore)) {
+        Register-PSResourceRepository -PSGallery -Trusted -ErrorAction Stop
+    } else {
+        Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction Stop
+    }
+}
+
+function Install-DevelopmentDependency {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]$Requirements
+    )
+
+    foreach ($moduleName in $Requirements.Keys) {
+        if ($moduleName -eq 'Microsoft.PowerShell.PSResourceGet') {
+            continue
+        }
+
+        Install-PSResource -Name $moduleName -Version $Requirements[$moduleName] -Scope 'CurrentUser' -TrustRepository -Quiet -ErrorAction Stop
+    }
+}
+
+Install-PSResourceGet -Version $requirements['Microsoft.PowerShell.PSResourceGet']
+Install-DevelopmentDependency -Requirements $requirements
