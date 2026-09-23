@@ -80,7 +80,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Install-WUAndroidSdk` | Installs Android CLI, SDK Platform, Build Tools, Platform Tools, Emulator, and Command-Line Tools. |
 | `Install-WUAndroidSdkPlatform` | Installs an Android SDK Platform package for an API level. |
 | `Install-WUFlutterSdk` | Installs the Flutter SDK on Windows. |
-| `Install-WUGit` | Installs Git for Windows and adds its command directory to PATH. |
+| `Install-WUGit` | Installs Git for Windows when the Git command is unavailable. |
 | `Install-WUGitHubCli` | Installs GitHub CLI with Windows Package Manager. |
 | `Install-WUWingetPackage` | Installs an exact package with Windows Package Manager. |
 | `Invoke-WUDefaultBrowserDownload` | Downloads a file with the default browser. |
