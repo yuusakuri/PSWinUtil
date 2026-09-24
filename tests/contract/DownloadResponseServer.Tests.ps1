@@ -1,7 +1,7 @@
 BeforeAll {
     $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     Add-Type -AssemblyName System.Net.Http
-    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/HttpTestDoubles/net472/PSWinUtil.HttpTestDoubles.dll')
+    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/FakeHttpServer/net472/PSWinUtil.FakeHttpServer.dll')
 }
 
 Describe 'HTTP download response server contract' {

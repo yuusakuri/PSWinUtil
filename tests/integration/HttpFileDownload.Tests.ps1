@@ -2,19 +2,19 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 
     if ($null -eq ('PSWinUtil.Tests.DownloadInterruptionServer' -as [type])) {
-        $httpTestDoublesTargetFramework = 'netstandard2.0'
+        $fakeHttpServerTargetFramework = 'netstandard2.0'
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
-            $httpTestDoublesTargetFramework = 'net472'
+            $fakeHttpServerTargetFramework = 'net472'
         }
 
-        $httpTestDoublesAssemblyPath = Join-Path `
+        $fakeHttpServerAssemblyPath = Join-Path `
             -Path $repositoryRoot `
-            -ChildPath "output/HttpTestDoubles/$httpTestDoublesTargetFramework/PSWinUtil.HttpTestDoubles.dll"
-        if (-not (Test-Path -LiteralPath $httpTestDoublesAssemblyPath -PathType Leaf)) {
-            throw ".\dev.ps1 build must run before the tests: $httpTestDoublesAssemblyPath"
+            -ChildPath "output/FakeHttpServer/$fakeHttpServerTargetFramework/PSWinUtil.FakeHttpServer.dll"
+        if (-not (Test-Path -LiteralPath $fakeHttpServerAssemblyPath -PathType Leaf)) {
+            throw ".\dev.ps1 build must run before the tests: $fakeHttpServerAssemblyPath"
         }
 
-        Add-Type -LiteralPath $httpTestDoublesAssemblyPath -ErrorAction Stop
+        Add-Type -LiteralPath $fakeHttpServerAssemblyPath -ErrorAction Stop
     }
 }
 

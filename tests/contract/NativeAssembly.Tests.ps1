@@ -31,11 +31,11 @@ Describe 'C# source layout' {
         $nativeProjectPath = Join-Path `
             -Path $script:RepositoryRoot `
             -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
-        $httpTestDoublesProjectPath = Join-Path `
+        $fakeHttpServerProjectPath = Join-Path `
             -Path $script:RepositoryRoot `
-            -ChildPath 'tests/PSWinUtil.HttpTestDoubles/PSWinUtil.HttpTestDoubles.csproj'
+            -ChildPath 'tests/PSWinUtil.FakeHttpServer/PSWinUtil.FakeHttpServer.csproj'
 
-        foreach ($projectPath in @($nativeProjectPath, $httpTestDoublesProjectPath)) {
+        foreach ($projectPath in @($nativeProjectPath, $fakeHttpServerProjectPath)) {
             Test-Path -LiteralPath $projectPath -PathType Leaf |
                 Should -BeTrue -Because "$projectPath must exist"
         }
@@ -77,15 +77,15 @@ Describe 'Native assembly distribution' {
     }
 }
 
-Describe 'HTTP test doubles assembly distribution' {
-    It 'builds the HTTP test doubles assembly for both PowerShell editions' {
+Describe 'HTTP fake server assembly distribution' {
+    It 'builds the HTTP fake server assembly for both PowerShell editions' {
         foreach ($targetFramework in @('net472', 'netstandard2.0')) {
-            $httpTestDoublesAssemblyPath = Join-Path `
+            $fakeHttpServerAssemblyPath = Join-Path `
                 -Path $script:RepositoryRoot `
-                -ChildPath "output/HttpTestDoubles/$targetFramework/PSWinUtil.HttpTestDoubles.dll"
+                -ChildPath "output/FakeHttpServer/$targetFramework/PSWinUtil.FakeHttpServer.dll"
 
-            Test-Path -LiteralPath $httpTestDoublesAssemblyPath -PathType Leaf |
-                Should -BeTrue -Because "$httpTestDoublesAssemblyPath must exist"
+            Test-Path -LiteralPath $fakeHttpServerAssemblyPath -PathType Leaf |
+                Should -BeTrue -Because "$fakeHttpServerAssemblyPath must exist"
         }
     }
 }
