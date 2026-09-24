@@ -4,9 +4,9 @@ BeforeAll {
     Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/HttpTestDoubles/net472/PSWinUtil.HttpTestDoubles.dll')
 }
 
-Describe 'Loopback HTTP range contract' {
+Describe 'HTTP download response server contract' {
     It 'rejects a 64-bit out-of-range offset without stopping the server' {
-        $server = [PSWinUtil.Tests.LoopbackHttpServer]::new([byte[]]@(1, 2, 3))
+        $server = [PSWinUtil.Tests.DownloadResponseServer]::new([byte[]]@(1, 2, 3))
         $client = [Net.Http.HttpClient]::new()
         try {
             $client.DefaultRequestHeaders.Range = [Net.Http.Headers.RangeHeaderValue]::new(2147483648L, $null)

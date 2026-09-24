@@ -6,7 +6,7 @@ BeforeAll {
 Describe 'HTTP download transport integration' {
     BeforeEach {
         $script:Body = [Text.Encoding]::UTF8.GetBytes(('download content' * 10000))
-        $script:Server = [PSWinUtil.Tests.LoopbackHttpServer]::new($script:Body)
+        $script:Server = [PSWinUtil.Tests.DownloadResponseServer]::new($script:Body)
         $script:Destination = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.bin')
     }
 

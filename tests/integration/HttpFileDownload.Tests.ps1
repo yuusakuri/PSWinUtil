@@ -1,7 +1,7 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 
-    if ($null -eq ('PSWinUtil.Tests.DisconnectingHttpServer' -as [type])) {
+    if ($null -eq ('PSWinUtil.Tests.DownloadInterruptionServer' -as [type])) {
         $httpTestDoublesTargetFramework = 'netstandard2.0'
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
             $httpTestDoublesTargetFramework = 'net472'
@@ -35,7 +35,7 @@ Describe 'Resumable HTTP download' {
 
     It 'resumes after one interrupted response' {
         $firstLength = [int]($script:SourceBytes.Length / 3)
-        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new(
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new(
             $script:SourceBytes,
             [int[]]@($firstLength)
         )
@@ -58,7 +58,7 @@ Describe 'Resumable HTTP download' {
     It 'resumes from each new position after multiple interruptions' {
         $firstLength = [int]($script:SourceBytes.Length / 4)
         $secondLength = [int]($script:SourceBytes.Length / 5)
-        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new(
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new(
             $script:SourceBytes,
             [int[]]@($firstLength, $secondLength)
         )
@@ -79,7 +79,7 @@ Describe 'Resumable HTTP download' {
 
     It 'stops when a resumed response writes no data' {
         $firstLength = [int]($script:SourceBytes.Length / 3)
-        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new(
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new(
             $script:SourceBytes,
             [int[]]@($firstLength, 0)
         )
