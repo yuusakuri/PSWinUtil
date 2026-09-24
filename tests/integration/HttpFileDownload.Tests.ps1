@@ -2,19 +2,19 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 
     if ($null -eq ('PSWinUtil.Tests.DisconnectingHttpServer' -as [type])) {
-        $testSupportTargetFramework = 'netstandard2.0'
+        $httpTestDoublesTargetFramework = 'netstandard2.0'
         if ($PSVersionTable.PSEdition -eq 'Desktop') {
-            $testSupportTargetFramework = 'net472'
+            $httpTestDoublesTargetFramework = 'net472'
         }
 
-        $testSupportAssemblyPath = Join-Path `
+        $httpTestDoublesAssemblyPath = Join-Path `
             -Path $repositoryRoot `
-            -ChildPath "output/TestSupport/$testSupportTargetFramework/PSWinUtil.TestSupport.dll"
-        if (-not (Test-Path -LiteralPath $testSupportAssemblyPath -PathType Leaf)) {
-            throw ".\dev.ps1 build must run before the tests: $testSupportAssemblyPath"
+            -ChildPath "output/HttpTestDoubles/$httpTestDoublesTargetFramework/PSWinUtil.HttpTestDoubles.dll"
+        if (-not (Test-Path -LiteralPath $httpTestDoublesAssemblyPath -PathType Leaf)) {
+            throw ".\dev.ps1 build must run before the tests: $httpTestDoublesAssemblyPath"
         }
 
-        Add-Type -LiteralPath $testSupportAssemblyPath -ErrorAction Stop
+        Add-Type -LiteralPath $httpTestDoublesAssemblyPath -ErrorAction Stop
     }
 }
 

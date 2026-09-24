@@ -25,14 +25,14 @@ $outputModuleDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWi
 $outputManifestPath = Join-Path -Path $outputModuleDirectory -ChildPath 'PSWinUtil.psd1'
 $outputModulePath = Join-Path -Path $outputModuleDirectory -ChildPath 'PSWinUtil.psm1'
 $outputLibraryDirectory = Join-Path -Path $outputModuleDirectory -ChildPath 'lib'
-$outputTestSupportDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/TestSupport'
+$outputHttpTestDoublesDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/HttpTestDoubles'
 $dotnetBuildDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/dotnet'
 $nativeProjectPath = Join-Path `
     -Path $repositoryRoot `
     -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
-$testSupportProjectPath = Join-Path `
+$httpTestDoublesProjectPath = Join-Path `
     -Path $repositoryRoot `
-    -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
+    -ChildPath 'tests/PSWinUtil.HttpTestDoubles/PSWinUtil.HttpTestDoubles.csproj'
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
@@ -159,7 +159,7 @@ function Get-WUDevSourceFile {
 function Get-WUDevDotnetSourceFile {
     $projectDirectories = @(
         (Split-Path -Path $nativeProjectPath -Parent)
-        (Split-Path -Path $testSupportProjectPath -Parent)
+        (Split-Path -Path $httpTestDoublesProjectPath -Parent)
     )
     $files = @()
 
@@ -268,7 +268,7 @@ function Assert-WUDevSource {
         $formatterSettingsPath
         $analyzerSettingsPath
         $nativeProjectPath
-        $testSupportProjectPath
+        $httpTestDoublesProjectPath
     )
     foreach ($requiredPath in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -429,7 +429,7 @@ function Publish-WUDevDotnetAssembly {
 }
 
 function Invoke-WUDevBuild {
-    foreach ($staleDirectory in @($outputModuleDirectory, $outputTestSupportDirectory)) {
+    foreach ($staleDirectory in @($outputModuleDirectory, $outputHttpTestDoublesDirectory)) {
         if (Test-Path -LiteralPath $staleDirectory) {
             Remove-Item -LiteralPath $staleDirectory -Recurse -Force
         }
@@ -451,15 +451,15 @@ function Invoke-WUDevBuild {
         -AssemblyFileName 'PSWinUtil.Native.dll' `
         -DestinationDirectory $outputLibraryDirectory
 
-    foreach ($testSupportTargetFramework in @('net472', 'netstandard2.0')) {
-        $testSupportDestination = Join-Path `
-            -Path $outputTestSupportDirectory `
-            -ChildPath $testSupportTargetFramework
+    foreach ($httpTestDoublesTargetFramework in @('net472', 'netstandard2.0')) {
+        $httpTestDoublesDestination = Join-Path `
+            -Path $outputHttpTestDoublesDirectory `
+            -ChildPath $httpTestDoublesTargetFramework
         Publish-WUDevDotnetAssembly `
-            -ProjectPath $testSupportProjectPath `
-            -TargetFramework $testSupportTargetFramework `
-            -AssemblyFileName 'PSWinUtil.TestSupport.dll' `
-            -DestinationDirectory $testSupportDestination
+            -ProjectPath $httpTestDoublesProjectPath `
+            -TargetFramework $httpTestDoublesTargetFramework `
+            -AssemblyFileName 'PSWinUtil.HttpTestDoubles.dll' `
+            -DestinationDirectory $httpTestDoublesDestination
     }
 
     $generatedPowerShellFiles = @(

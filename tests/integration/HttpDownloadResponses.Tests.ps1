@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
-    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/TestSupport/net472/PSWinUtil.TestSupport.dll')
+    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/HttpTestDoubles/net472/PSWinUtil.HttpTestDoubles.dll')
 }
 
 Describe 'HTTP download transport integration' {

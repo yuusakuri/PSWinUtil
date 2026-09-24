@@ -1,7 +1,7 @@
 BeforeAll {
     $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     Add-Type -AssemblyName System.Net.Http
-    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/TestSupport/net472/PSWinUtil.TestSupport.dll')
+    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/HttpTestDoubles/net472/PSWinUtil.HttpTestDoubles.dll')
 }
 
 Describe 'Loopback HTTP range contract' {
