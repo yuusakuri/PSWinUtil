@@ -4,7 +4,7 @@ BeforeAll {
     $script:RuleSettings = @{
         CustomRulePath = [string[]]@($script:RulePath)
         IncludeDefaultRules = $false
-        IncludeRules = @('Measure-WUAvoidBacktickContinuation', 'Measure-WUControlFlowNesting')
+        IncludeRules = @('Measure-WUAvoidBacktickLineContinuation', 'Measure-WUMaximumControlFlowNestingDepth')
     }
 }
 
@@ -21,7 +21,7 @@ continued'
         $findings = @(Invoke-ScriptAnalyzer -ScriptDefinition $source -Settings $script:RuleSettings)
 
         $findings | Should -HaveCount 1
-        $findings[0].RuleName | Should -Match 'Measure-WUAvoidBacktickContinuation$'
+        $findings[0].RuleName | Should -Match 'Measure-WUAvoidBacktickLineContinuation$'
         $findings[0].Severity.ToString() | Should -Be 'Warning'
         $findings[0].Line | Should -Be 1
     }
@@ -50,7 +50,7 @@ function Test-FourLevels {
         $findings = @(Invoke-ScriptAnalyzer -ScriptDefinition $source -Settings $script:RuleSettings)
 
         $findings | Should -HaveCount 1
-        $findings[0].RuleName | Should -Match 'Measure-WUControlFlowNesting$'
+        $findings[0].RuleName | Should -Match 'Measure-WUMaximumControlFlowNestingDepth$'
         $findings[0].Severity.ToString() | Should -Be 'Warning'
         $findings[0].Message | Should -Match "Test-FourLevels.*depth 4"
     }

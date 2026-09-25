@@ -1,4 +1,4 @@
-function Test-WUControlFlowAst {
+function Test-WUControlFlowNestingAst {
     param(
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.Language.Ast]$Ast
@@ -14,7 +14,7 @@ function Test-WUControlFlowAst {
     $Ast -is [System.Management.Automation.Language.TryStatementAst]
 }
 
-function Get-WUControlFlowDepth {
+function Get-WUControlFlowNestingDepth {
     param(
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.Language.Ast]$ControlAst,
@@ -30,7 +30,7 @@ function Get-WUControlFlowDepth {
             return 0
         }
 
-        if (Test-WUControlFlowAst -Ast $currentAst) {
+        if (Test-WUControlFlowNestingAst -Ast $currentAst) {
             $depth++
         }
 
@@ -52,7 +52,7 @@ Reports LineContinuation tokens so backticks in strings and comments are ignored
 .OUTPUTS
 Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
 #>
-function Measure-WUAvoidBacktickContinuation {
+function Measure-WUAvoidBacktickLineContinuation {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -83,7 +83,7 @@ definitions are measured separately.
 .OUTPUTS
 Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
 #>
-function Measure-WUControlFlowNesting {
+function Measure-WUMaximumControlFlowNestingDepth {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -105,11 +105,11 @@ function Measure-WUControlFlowNesting {
         $maximumDepth = 0
         $controlAsts = $functionAst.Body.FindAll({
                 param($ast)
-                Test-WUControlFlowAst -Ast $ast
+                Test-WUControlFlowNestingAst -Ast $ast
             }, $true)
 
         foreach ($controlAst in $controlAsts) {
-            $depth = Get-WUControlFlowDepth -ControlAst $controlAst -FunctionAst $functionAst
+            $depth = Get-WUControlFlowNestingDepth -ControlAst $controlAst -FunctionAst $functionAst
             if ($depth -gt $maximumDepth) {
                 $maximumDepth = $depth
                 $deepestAst = $controlAst
@@ -129,4 +129,4 @@ function Measure-WUControlFlowNesting {
     }
 }
 
-Export-ModuleMember -Function Measure-WUAvoidBacktickContinuation, Measure-WUControlFlowNesting
+Export-ModuleMember -Function Measure-WUAvoidBacktickLineContinuation, Measure-WUMaximumControlFlowNestingDepth
