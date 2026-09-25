@@ -44,7 +44,32 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
             Should -Throw '*Use Force*'
     }
 
-    
+    It 'preserves a target that appears after ShouldProcess when Force is absent' {
+        $script:TargetPathChecks = 0
+        Mock -CommandName Test-Path -ModuleName PSWinUtil -ParameterFilter {
+            $LiteralPath -eq $script:BrowserTargetPath
+        } -MockWith {
+            $script:TargetPathChecks++
+            if ($script:TargetPathChecks -eq 1) {
+                return $false
+            }
+
+            [IO.File]::WriteAllText($script:BrowserTargetPath, 'appeared')
+            return $true
+        }
+        $parameters = @{
+            Uri = 'https://example.com/package.zip'
+            FileName = 'package.zip'
+            DownloadDirectory = $TestDrive
+            TimeoutSeconds = 2
+        }
+
+        { Invoke-WUDefaultBrowserDownload @parameters } | Should -Throw '*Use Force*'
+
+        [IO.File]::ReadAllText($script:BrowserTargetPath) | Should -Be 'appeared'
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
 
     It 'does not start the browser download with WhatIf' {
         Invoke-WUDefaultBrowserDownload -Uri 'https://example.com/file.zip' -DownloadDirectory $TestDrive -WhatIf
@@ -153,6 +178,43 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
 
         $result | Should -Be $script:BrowserTargetPath
         $script:ProgressStep | Should -Be 4
+    }
+
+    It 'does not reset the timeout when a partial file reappears at the same size' {
+        $script:BrowserPartialPath = "$($script:BrowserTargetPath).crdownload"
+        $script:ProgressStep = 0
+        Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
+            [IO.File]::WriteAllText($script:BrowserPartialPath, 'x')
+        }
+        Mock -CommandName Start-Sleep -ModuleName PSWinUtil -MockWith {
+            $script:ProgressStep++
+            switch ($script:ProgressStep) {
+                1 {
+                    [IO.File]::Delete($script:BrowserPartialPath)
+                    [System.Threading.Thread]::Sleep(200)
+                }
+                2 {
+                    [IO.File]::WriteAllText($script:BrowserPartialPath, 'x')
+                    [System.Threading.Thread]::Sleep(200)
+                }
+                3 {
+                    [System.Threading.Thread]::Sleep(850)
+                }
+                default {
+                    throw 'The timeout was reset by file recreation.'
+                }
+            }
+        }
+        $parameters = @{
+            Uri = 'https://example.com/package.zip'
+            FileName = 'package.zip'
+            DownloadDirectory = $TestDrive
+            TimeoutSeconds = 1
+        }
+
+        { Invoke-WUDefaultBrowserDownload @parameters } | Should -Throw '*made no progress*'
+
+        $script:ProgressStep | Should -Be 3
     }
 
     It 'times out when the target file is not created' {

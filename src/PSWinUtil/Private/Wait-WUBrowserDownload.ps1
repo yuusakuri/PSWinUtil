@@ -27,7 +27,7 @@ function Wait-WUBrowserDownload {
         $progressObserved = $false
         foreach ($path in $currentFileLengths.Keys) {
             if (
-                -not $previousFileLengths.ContainsKey($path) -or
+                $previousFileLengths.ContainsKey($path) -and
                 $currentFileLengths[$path] -gt $previousFileLengths[$path]
             ) {
                 $progressObserved = $true

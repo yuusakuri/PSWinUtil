@@ -91,6 +91,9 @@ function Invoke-WUDefaultBrowserDownload {
     }
 
     if (Test-Path -LiteralPath $targetPath -PathType Leaf) {
+        if (-not $Force) {
+            throw "The target file already exists. Use Force to replace it: $targetPath"
+        }
         Remove-Item -LiteralPath $targetPath -Force -ErrorAction Stop
     }
     $partialPaths = @("$targetPath.crdownload", "$targetPath.part")
