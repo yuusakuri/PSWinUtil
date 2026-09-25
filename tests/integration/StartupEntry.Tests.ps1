@@ -61,6 +61,15 @@ Describe 'Startup entry commands' {
         Get-WUStartupEntry -Name $script:EntryName -Scope User | Should -BeNullOrEmpty
     }
 
+    It 'rejects a directory as the startup executable path' {
+        $directoryPath = Join-Path $TestDrive 'startup-directory'
+        $null = New-Item -Path $directoryPath -ItemType Directory
+
+        { Register-WUStartupEntry -Name $script:EntryName -FilePath $directoryPath } |
+            Should -Throw '*required properties*'
+        Get-WUStartupEntry -Name $script:EntryName -Scope User | Should -BeNullOrEmpty
+    }
+
     It 'registers and unregisters a machine startup entry' -Skip:(-not $runMachineIntegration) {
         Register-WUStartupEntry -Name $script:EntryName -FilePath $script:ExecutablePath -Scope Machine
 

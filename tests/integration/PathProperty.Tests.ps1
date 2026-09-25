@@ -268,8 +268,6 @@ Describe 'Test-WUPathProperty' {
     BeforeEach {
         $script:TestFile = Join-Path -Path $TestDrive -ChildPath 'item.txt'
         [System.IO.File]::WriteAllText($script:TestFile, 'value')
-        $script:TestDirectory = Join-Path -Path $TestDrive -ChildPath 'directory'
-        $null = New-Item -Path $script:TestDirectory -ItemType Directory -Force
     }
 
     It 'returns false for a missing path' {
@@ -280,25 +278,18 @@ Describe 'Test-WUPathProperty' {
         Test-WUPathProperty -Path $script:TestFile | Should -BeTrue
     }
 
-    It 'distinguishes files and directories' {
-        Test-WUPathProperty -Path $script:TestFile -Leaf | Should -BeTrue
-        Test-WUPathProperty -Path $script:TestFile -Container | Should -BeFalse
-        Test-WUPathProperty -Path $script:TestDirectory -Container | Should -BeTrue
-        Test-WUPathProperty -Path $script:TestDirectory -Leaf | Should -BeFalse
-    }
-
     It 'returns one result for each wildcard Path match' {
         $secondFile = Join-Path -Path $TestDrive -ChildPath 'second.txt'
         [System.IO.File]::WriteAllText($secondFile, 'second')
 
-        $results = @(Test-WUPathProperty -Path "$TestDrive\*.txt" -Leaf)
+        $results = @(Test-WUPathProperty -Path "$TestDrive\*.txt")
 
         $results | Should -HaveCount 2
         $results | Should -Not -Contain $false
     }
 
     It 'returns false for a wildcard Path without matches' {
-        Test-WUPathProperty -Path "$TestDrive\missing-*.txt" -Leaf |
+        Test-WUPathProperty -Path "$TestDrive\missing-*.txt" |
             Should -BeFalse
     }
 
@@ -306,17 +297,12 @@ Describe 'Test-WUPathProperty' {
         $literalPath = Join-Path -Path $TestDrive -ChildPath 'item[1].txt'
         [System.IO.File]::WriteAllText($literalPath, 'content')
 
-        Test-WUPathProperty -LiteralPath $literalPath -Leaf |
+        Test-WUPathProperty -LiteralPath $literalPath |
             Should -BeTrue
     }
 
     It 'tests paths from a non-file-system provider' {
-        Test-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf | Should -BeTrue
-        Test-WUPathProperty -LiteralPath 'Env:\PATH' -Container | Should -BeFalse
-    }
-
-    It 'rejects conflicting item types' {
-        { Test-WUPathProperty -Path $script:TestFile -Leaf -Container } | Should -Throw
+        Test-WUPathProperty -LiteralPath 'Env:\PATH' | Should -BeTrue
     }
 }
 
@@ -325,8 +311,10 @@ Describe 'Assert-WUPathProperty' {
 
 
 
-    It 'produces no output for a matching path' {
-        $result = Assert-WUPathProperty -Path $TestDrive -Container
+    It 'produces no output for an existing path' {
+        $filePath = Join-Path -Path $TestDrive -ChildPath 'existing-file.txt'
+        [System.IO.File]::WriteAllText($filePath, 'content')
+        $result = Assert-WUPathProperty -Path $filePath
 
         $result | Should -BeNullOrEmpty
     }
@@ -337,15 +325,15 @@ Describe 'Assert-WUPathProperty' {
         } | Should -Throw '*required properties*'
     }
 
-    It 'allows a missing path while validating the type of an existing path' {
+    It 'allows a missing path when AllowNonExisting is specified' {
         $missingPath = Join-Path -Path $TestDrive -ChildPath 'missing-directory'
         $filePath = Join-Path -Path $TestDrive -ChildPath 'existing-file.txt'
         [System.IO.File]::WriteAllText($filePath, 'content')
 
-        { Assert-WUPathProperty -Path $missingPath -Container -AllowNonExisting } |
+        { Assert-WUPathProperty -Path $missingPath -AllowNonExisting } |
             Should -Not -Throw
-        { Assert-WUPathProperty -Path $filePath -Container -AllowNonExisting } |
-            Should -Throw '*required properties*'
+        { Assert-WUPathProperty -Path $filePath -AllowNonExisting } |
+            Should -Not -Throw
     }
 
     It 'expands wildcard Path values' {
@@ -354,22 +342,12 @@ Describe 'Assert-WUPathProperty' {
         [System.IO.File]::WriteAllText($firstFile, 'first')
         [System.IO.File]::WriteAllText($secondFile, 'second')
 
-        { Assert-WUPathProperty -Path "$TestDrive\*.pem" -Leaf } |
+        { Assert-WUPathProperty -Path "$TestDrive\*.pem" } |
             Should -Not -Throw
     }
 
-    It 'validates every wildcard match' {
-        $filePath = Join-Path -Path $TestDrive -ChildPath 'entry-file'
-        $directoryPath = Join-Path -Path $TestDrive -ChildPath 'entry-directory'
-        [System.IO.File]::WriteAllText($filePath, 'content')
-        $null = New-Item -Path $directoryPath -ItemType Directory -Force
-
-        { Assert-WUPathProperty -Path "$TestDrive\entry-*" -Leaf } |
-            Should -Throw '*required properties*'
-    }
-
     It 'allows a wildcard Path without matches when AllowNonExisting is specified' {
-        { Assert-WUPathProperty -Path "$TestDrive\missing-*.pem" -Leaf -AllowNonExisting } |
+        { Assert-WUPathProperty -Path "$TestDrive\missing-*.pem" -AllowNonExisting } |
             Should -Not -Throw
     }
 
@@ -377,14 +355,12 @@ Describe 'Assert-WUPathProperty' {
         $literalPath = Join-Path -Path $TestDrive -ChildPath 'certificate[1].pem'
         [System.IO.File]::WriteAllText($literalPath, 'content')
 
-        { Assert-WUPathProperty -LiteralPath $literalPath -Leaf } |
+        { Assert-WUPathProperty -LiteralPath $literalPath } |
             Should -Not -Throw
     }
 
     It 'checks paths from a non-file-system provider' {
-        { Assert-WUPathProperty -LiteralPath 'Env:\PATH' -Leaf } |
+        { Assert-WUPathProperty -LiteralPath 'Env:\PATH' } |
             Should -Not -Throw
-        { Assert-WUPathProperty -LiteralPath 'Env:\PATH' -Container } |
-            Should -Throw '*required properties*'
     }
 }

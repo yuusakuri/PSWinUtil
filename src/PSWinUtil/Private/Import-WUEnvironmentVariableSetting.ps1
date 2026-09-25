@@ -57,7 +57,7 @@ function Import-WUEnvironmentVariableSetting {
         Resolve-WUPathFromParameterSet @resolveParameters |
             ConvertTo-WUFullPath
     )
-    Assert-WUPathProperty -LiteralPath $resolvedFiles -Leaf
+    Assert-WUPathProperty -LiteralPath $resolvedFiles
     foreach ($resolvedFile in $resolvedFiles) {
         if ([System.IO.Path]::GetExtension($resolvedFile) -ine '.psd1') {
             throw "The environment file must use the .psd1 extension: $resolvedFile"
