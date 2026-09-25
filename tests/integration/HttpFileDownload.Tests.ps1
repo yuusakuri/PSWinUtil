@@ -96,4 +96,24 @@ Describe 'Resumable HTTP download' {
             $server.Dispose()
         }
     }
+
+    It 'rejects a file as the destination parent before sending a request' {
+        $parentFilePath = Join-Path -Path $TestDrive -ChildPath 'destination-parent'
+        [System.IO.File]::WriteAllText($parentFilePath, 'not a directory')
+        $destinationPath = Join-Path -Path $parentFilePath -ChildPath 'download.zip'
+        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new(
+            [byte[]]@(1, 2, 3),
+            [int[]]@()
+        )
+
+        try {
+            {
+                Invoke-WUHttpFileDownload -Uri $server.Uri -Path $destinationPath
+            } | Should -Throw '*required properties*'
+
+            $server.RangeStarts | Should -HaveCount 0
+        } finally {
+            $server.Dispose()
+        }
+    }
 }
