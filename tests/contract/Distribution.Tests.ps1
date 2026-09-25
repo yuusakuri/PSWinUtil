@@ -12,14 +12,12 @@ Describe 'Distribution contents' {
         ) | Should -Not -Contain $false
     }
 
-    It 'contains the registry setting data copied by ModuleBuilder' {
-        $registrySettingPath = Join-Path `
-            -Path $script:OutputModuleDirectory `
-            -ChildPath 'data/RegistrySettings.psd1'
+    It 'contains the registry config data copied by ModuleBuilder' {
+        $registryConfigPath = Join-Path -Path $script:OutputModuleDirectory -ChildPath 'data/RegistryConfig.psd1'
 
-        Test-Path -LiteralPath $registrySettingPath -PathType Leaf | Should -BeTrue
-        $settingData = Import-PowerShellDataFile -Path $registrySettingPath
-        @($settingData.Settings.Name) | Should -Contain 'DarkMode'
+        Test-Path -LiteralPath $registryConfigPath -PathType Leaf | Should -BeTrue
+        $registryConfig = Import-PowerShellDataFile -Path $registryConfigPath
+        @($registryConfig.Configs.Name) | Should -Contain 'DarkMode'
     }
 
     It 'can be imported through the development command' {

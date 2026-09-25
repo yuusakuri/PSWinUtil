@@ -2,11 +2,11 @@ BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
 
     InModuleScope -ModuleName PSWinUtil {
-        $script:TestRegistrySettingData = @{
-            Settings = @(
+        $script:TestRegistryConfig = @{
+            Configs = @(
                 @{
                     Name = 'Sample'
-                    Configurations = @(
+                    Targets = @(
                         @{
                             Scope = 'User'
                             Properties = @(
@@ -57,7 +57,7 @@ BeforeAll {
                 }
                 @{
                     Name = 'Removable'
-                    Configurations = @(
+                    Targets = @(
                         @{
                             Scope = 'User'
                             Properties = @(
@@ -77,8 +77,8 @@ BeforeAll {
             )
         }
     }
-    $script:TestRegistrySettingData = InModuleScope -ModuleName PSWinUtil {
-        $script:TestRegistrySettingData
+    $script:TestRegistryConfig = InModuleScope -ModuleName PSWinUtil {
+        $script:TestRegistryConfig
     }
 }
 
@@ -87,8 +87,8 @@ BeforeAll {
 Describe 'Get-WURegistrySetting' {
     BeforeEach {
         $script:TestRegistryValues = @{}
-        Mock -CommandName Import-WURegistrySetting -ModuleName PSWinUtil -MockWith {
-            $script:TestRegistrySettingData
+        Mock -CommandName Import-WURegistryConfig -ModuleName PSWinUtil -MockWith {
+            $script:TestRegistryConfig
         }
         Mock -CommandName Get-WURegistryProperty -ModuleName PSWinUtil -MockWith {
             $key = $Path + '|' + $Name
@@ -103,7 +103,7 @@ Describe 'Get-WURegistrySetting' {
         }
     }
 
-    It 'uses the User configuration before the Machine configuration with Auto' {
+    It 'uses the User target before the Machine target with Auto' {
         $path = 'Registry::HKEY_CURRENT_USER\Software\PSWinUtilTest\User'
         $script:TestRegistryValues[$path + '|First'] = 1
         $script:TestRegistryValues[$path + '|Second'] = 1
@@ -112,10 +112,10 @@ Describe 'Get-WURegistrySetting' {
 
         $result.Scope | Should -Be 'User'
         $result.State | Should -Be 'Enable'
-        $result.PSObject.TypeNames | Should -Contain 'PSWinUtil.RegistrySetting'
+        $result.PSObject.TypeNames | Should -Contain 'PSWinUtil.RegistryConfig'
     }
 
-    It 'uses the Machine configuration when Machine is selected' {
+    It 'uses the Machine target when Machine is selected' {
         $path = 'Registry::HKEY_LOCAL_MACHINE\Software\PSWinUtilTest\Machine'
         $script:TestRegistryValues[$path + '|First'] = 0
         $script:TestRegistryValues[$path + '|Second'] = 0
@@ -169,7 +169,4 @@ Describe 'Get-WURegistrySetting' {
         $result.State | Should -Be 'Mixed'
     }
 }
-
-
-
 
