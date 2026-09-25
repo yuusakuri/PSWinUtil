@@ -46,7 +46,7 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
 
     
 
-    It 'does not start the internal operation with WhatIf' {
+    It 'does not start the browser download with WhatIf' {
         Invoke-WUDefaultBrowserDownload -Uri 'https://example.com/file.zip' -DownloadDirectory $TestDrive -WhatIf
 
         Test-Path -LiteralPath (Join-Path $TestDrive 'file.zip') | Should -BeFalse
@@ -124,6 +124,35 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
         {
             Invoke-WUDefaultBrowserDownload @parameters
         } | Should -Throw '*did not complete*'
+    }
+
+    It 'resets the timeout while a partial download continues to grow' {
+        $script:BrowserPartialPath = "$($script:BrowserTargetPath).crdownload"
+        $script:ProgressStep = 0
+        Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
+            [IO.File]::WriteAllText($script:BrowserPartialPath, 'x')
+        }
+        Mock -CommandName Start-Sleep -ModuleName PSWinUtil -MockWith {
+            [System.Threading.Thread]::Sleep(300)
+            $script:ProgressStep++
+            if ($script:ProgressStep -lt 4) {
+                [IO.File]::AppendAllText($script:BrowserPartialPath, 'x')
+            } else {
+                Remove-Item -LiteralPath $script:BrowserPartialPath -Force
+                [IO.File]::WriteAllText($script:BrowserTargetPath, 'downloaded')
+            }
+        }
+        $parameters = @{
+            Uri = 'https://example.com/package.zip'
+            FileName = 'package.zip'
+            DownloadDirectory = $TestDrive
+            TimeoutSeconds = 1
+        }
+
+        $result = Invoke-WUDefaultBrowserDownload @parameters
+
+        $result | Should -Be $script:BrowserTargetPath
+        $script:ProgressStep | Should -Be 4
     }
 
     It 'times out when the target file is not created' {
