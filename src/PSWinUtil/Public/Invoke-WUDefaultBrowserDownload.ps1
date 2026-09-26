@@ -4,7 +4,7 @@ function Invoke-WUDefaultBrowserDownload {
     Downloads a file with the default browser.
 
     .DESCRIPTION
-    Opens an HTTP or HTTPS URI with the Windows default browser and waits for the exact target file to become complete and unlocked in an existing download directory. This command is intended for environments where direct PowerShell HTTP traffic is unavailable.
+    Opens an HTTP or HTTPS URI with the Windows default browser and waits for its partial download files to disappear and the exact target file to appear in an existing download directory. This command is intended for environments where direct PowerShell HTTP traffic is unavailable.
 
     .PARAMETER Uri
     Specifies the absolute HTTP or HTTPS download URI.
@@ -16,7 +16,7 @@ function Invoke-WUDefaultBrowserDownload {
     Specifies an existing browser download directory. The default value is the current user Downloads directory.
 
     .PARAMETER TimeoutSeconds
-    Specifies the maximum number of seconds to wait. The default value is 300.
+    Specifies the maximum number of seconds without observed file-size progress before timing out. The counter resets when a partial or target file grows. The default value is 240.
 
     .PARAMETER Force
     Allows an existing target file to be removed before the browser starts.
@@ -54,7 +54,7 @@ function Invoke-WUDefaultBrowserDownload {
 
         [Parameter()]
         [ValidateRange(1, 86400)]
-        [int]$TimeoutSeconds = 300,
+        [int]$TimeoutSeconds = 240,
 
         [Parameter()]
         [switch]$Force
@@ -82,7 +82,8 @@ function Invoke-WUDefaultBrowserDownload {
     $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
     $targetPath = Join-Path -Path $fullDownloadDirectory -ChildPath $resolvedFileName
-    if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and -not $Force) {
+    $targetExists = Test-Path -LiteralPath $targetPath -PathType Leaf
+    if ($targetExists -and -not $Force) {
         throw "The target file already exists. Use Force to replace it: $targetPath"
     }
 
@@ -90,12 +91,16 @@ function Invoke-WUDefaultBrowserDownload {
         return
     }
 
-    $downloadParameters = @{
-        Uri = $Uri
-        FileName = $resolvedFileName
-        DownloadDirectory = $fullDownloadDirectory
-        TimeoutSeconds = $TimeoutSeconds
-        Force = $Force
+    if ($targetExists) {
+        Remove-Item -LiteralPath $targetPath -Force -ErrorAction Stop
     }
-    Invoke-WUDefaultBrowserDownloadInternal @downloadParameters
+    $partialPaths = @("$targetPath.crdownload", "$targetPath.part")
+    foreach ($partialPath in $partialPaths) {
+        if (Test-Path -LiteralPath $partialPath) {
+            Remove-Item -LiteralPath $partialPath -Force -ErrorAction Stop
+        }
+    }
+
+    Start-Process -FilePath $Uri.AbsoluteUri -ErrorAction Stop | Out-Null
+    Wait-WUBrowserDownload -TargetPath $targetPath -TimeoutSeconds $TimeoutSeconds
 }
