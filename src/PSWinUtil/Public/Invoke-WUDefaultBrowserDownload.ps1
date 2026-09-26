@@ -4,7 +4,7 @@ function Invoke-WUDefaultBrowserDownload {
     Downloads a file with the default browser.
 
     .DESCRIPTION
-    Opens an HTTP or HTTPS URI with the Windows default browser and waits for the exact target file to become complete and unlocked in an existing download directory. This command is intended for environments where direct PowerShell HTTP traffic is unavailable.
+    Opens an HTTP or HTTPS URI with the Windows default browser and waits for its partial download files to disappear and the exact target file to appear in an existing download directory. This command is intended for environments where direct PowerShell HTTP traffic is unavailable.
 
     .PARAMETER Uri
     Specifies the absolute HTTP or HTTPS download URI.
