@@ -44,7 +44,7 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
             Should -Throw '*Use Force*'
     }
 
-    It 'preserves a target that appears after ShouldProcess when Force is absent' {
+    It 'checks the target once and preserves a file that appears after ShouldProcess' {
         $script:TargetPathChecks = 0
         Mock -CommandName Test-Path -ModuleName PSWinUtil -ParameterFilter {
             $LiteralPath -eq $script:BrowserTargetPath
@@ -54,9 +54,21 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
                 return $false
             }
 
-            [IO.File]::WriteAllText($script:BrowserTargetPath, 'appeared')
-            return $true
+            return [IO.File]::Exists($LiteralPath)
         }
+        Mock -CommandName Test-Path -ModuleName PSWinUtil -ParameterFilter {
+            $LiteralPath -in @(
+                "$($script:BrowserTargetPath).crdownload",
+                "$($script:BrowserTargetPath).part"
+            )
+        } -MockWith {
+            if ($LiteralPath -eq "$($script:BrowserTargetPath).crdownload") {
+                [IO.File]::WriteAllText($script:BrowserTargetPath, 'appeared')
+            }
+
+            return [IO.File]::Exists($LiteralPath)
+        }
+        Mock -CommandName Start-Process -ModuleName PSWinUtil
         $parameters = @{
             Uri = 'https://example.com/package.zip'
             FileName = 'package.zip'
@@ -64,10 +76,14 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
             TimeoutSeconds = 2
         }
 
-        { Invoke-WUDefaultBrowserDownload @parameters } | Should -Throw '*Use Force*'
+        $result = Invoke-WUDefaultBrowserDownload @parameters
 
+        $result | Should -Be $script:BrowserTargetPath
         [IO.File]::ReadAllText($script:BrowserTargetPath) | Should -Be 'appeared'
-        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
+        Should -Invoke -CommandName Test-Path -ModuleName PSWinUtil -Times 2 -Exactly -ParameterFilter {
+            $LiteralPath -eq $script:BrowserTargetPath
+        }
+        Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly
     }
 
 

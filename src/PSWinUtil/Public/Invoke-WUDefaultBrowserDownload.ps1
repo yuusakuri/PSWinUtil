@@ -82,7 +82,8 @@ function Invoke-WUDefaultBrowserDownload {
     $fullDownloadDirectory = Resolve-WUPath -LiteralPath $DownloadDirectory -DenyMultiplePaths |
         ConvertTo-WUFullPath
     $targetPath = Join-Path -Path $fullDownloadDirectory -ChildPath $resolvedFileName
-    if ((Test-Path -LiteralPath $targetPath -PathType Leaf) -and -not $Force) {
+    $targetExists = Test-Path -LiteralPath $targetPath -PathType Leaf
+    if ($targetExists -and -not $Force) {
         throw "The target file already exists. Use Force to replace it: $targetPath"
     }
 
@@ -90,10 +91,7 @@ function Invoke-WUDefaultBrowserDownload {
         return
     }
 
-    if (Test-Path -LiteralPath $targetPath -PathType Leaf) {
-        if (-not $Force) {
-            throw "The target file already exists. Use Force to replace it: $targetPath"
-        }
+    if ($targetExists) {
         Remove-Item -LiteralPath $targetPath -Force -ErrorAction Stop
     }
     $partialPaths = @("$targetPath.crdownload", "$targetPath.part")
