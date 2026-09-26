@@ -8,15 +8,15 @@ namespace PSWinUtil.Tests
     using System.Text;
     using System.Threading.Tasks;
 
-    /// <summary>Serves controlled HTTP responses over real loopback sockets.</summary>
-    public sealed class LoopbackHttpServer : IDisposable
+    /// <summary>Returns controlled HTTP download and range responses.</summary>
+    public sealed class DownloadResponseServer : IDisposable
     {
         private readonly TcpListener listener;
         private readonly Task worker;
         private readonly byte[] body;
 
-        /// <summary>Starts an isolated server on an OS-assigned port.</summary>
-        public LoopbackHttpServer(byte[] body)
+        /// <summary>Starts an isolated response server on an OS-assigned port.</summary>
+        public DownloadResponseServer(byte[] body)
         {
             this.body = body;
             this.listener = new TcpListener(IPAddress.Loopback, 0);

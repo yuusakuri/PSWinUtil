@@ -1,12 +1,12 @@
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
-    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/TestSupport/net472/PSWinUtil.TestSupport.dll')
+    Add-Type -LiteralPath (Join-Path $repositoryRoot 'output/FakeHttpServer/net472/PSWinUtil.FakeHttpServer.dll')
 }
 
 Describe 'HTTP download transport integration' {
     BeforeEach {
         $script:Body = [Text.Encoding]::UTF8.GetBytes(('download content' * 10000))
-        $script:Server = [PSWinUtil.Tests.LoopbackHttpServer]::new($script:Body)
+        $script:Server = [PSWinUtil.Tests.DownloadResponseServer]::new($script:Body)
         $script:Destination = Join-Path $TestDrive ([guid]::NewGuid().ToString('N') + '.bin')
     }
 
