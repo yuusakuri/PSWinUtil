@@ -16,7 +16,7 @@ Describe 'Test-WUPSScript' {
 
         $result.IsValid | Should -BeFalse
         $result.Errors.Count | Should -BeGreaterThan 0
-        $result.Errors[0].Extent.StartLineNumber | Should -BeGreaterOrEqual 1
+        ($result.Errors | Select-Object -First 1).Extent.StartLineNumber | Should -BeGreaterOrEqual 1
     }
 }
 

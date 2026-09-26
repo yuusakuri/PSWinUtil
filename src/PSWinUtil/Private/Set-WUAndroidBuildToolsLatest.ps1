@@ -44,7 +44,7 @@ function Set-WUAndroidBuildToolsLatest {
         }
         $targetProperty = $latestItem.PSObject.Properties['Target']
         if ($null -ne $targetProperty -and @($targetProperty.Value).Count -gt 0) {
-            $currentTarget = [string]@($targetProperty.Value)[0]
+            $currentTarget = [string](@($targetProperty.Value) | Select-Object -First 1)
             if (-not [System.IO.Path]::IsPathRooted($currentTarget)) {
                 $currentTarget = Join-Path -Path $BuildToolsPath -ChildPath $currentTarget
             }

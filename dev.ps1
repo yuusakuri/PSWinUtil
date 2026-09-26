@@ -185,7 +185,7 @@ function Assert-WUDevAsciiFile {
     [byte[]]$bytes = [System.IO.File]::ReadAllBytes($File.FullName)
     if (
         $bytes.Length -ge 3 -and
-        $bytes[0] -eq 0xEF -and
+        ($bytes | Select-Object -First 1) -eq 0xEF -and
         $bytes[1] -eq 0xBB -and
         $bytes[2] -eq 0xBF
     ) {
@@ -251,7 +251,7 @@ function Assert-WUDevFunctionFile {
         throw "A function source file must contain exactly one function: $($File.FullName)"
     }
 
-    if ($functionDefinitions[0].Name -cne $File.BaseName) {
+    if (($functionDefinitions | Select-Object -First 1).Name -cne $File.BaseName) {
         throw "The function and file names must match: $($File.FullName)"
     }
 }
@@ -1188,12 +1188,12 @@ function Get-ReleaseManifest {
     if (
         $manifestStatement -isnot [System.Management.Automation.Language.PipelineAst] -or
         $manifestStatement.PipelineElements.Count -ne 1 -or
-        $manifestStatement.PipelineElements[0] -isnot [System.Management.Automation.Language.CommandExpressionAst] -or
-        $manifestStatement.PipelineElements[0].Expression -isnot [System.Management.Automation.Language.HashtableAst]
+        ($manifestStatement.PipelineElements | Select-Object -First 1) -isnot [System.Management.Automation.Language.CommandExpressionAst] -or
+        ($manifestStatement.PipelineElements | Select-Object -First 1).Expression -isnot [System.Management.Automation.Language.HashtableAst]
     ) {
         throw "The manifest at release commit $ReleaseCommit must contain one data table."
     }
-    $manifest = $manifestStatement.PipelineElements[0].Expression.SafeGetValue()
+    $manifest = ($manifestStatement.PipelineElements | Select-Object -First 1).Expression.SafeGetValue()
     if ($manifest -isnot [hashtable] -or -not $manifest.ContainsKey('ModuleVersion')) {
         throw "The manifest at release commit $ReleaseCommit does not define ModuleVersion."
     }
@@ -1293,10 +1293,10 @@ function Get-RemoteReleaseState {
     foreach ($line in $remoteTagLines) {
         $parts = $line -split '\s+', 2
         if ($parts[1] -eq "refs/tags/$tagName^{}") {
-            $tagCommit = $parts[0]
+            $tagCommit = ($parts | Select-Object -First 1)
             break
         }
-        $tagCommit = $parts[0]
+        $tagCommit = ($parts | Select-Object -First 1)
     }
 
     Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'

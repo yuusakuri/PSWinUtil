@@ -74,7 +74,7 @@ Describe 'Android SDK availability' {
             }
             $sdkRoot = $env:ANDROID_HOME
             foreach ($argument in $arguments) {
-                $package = ($argument -split '@')[0]
+                $package = (($argument -split '@') | Select-Object -First 1)
                 $revision = ($argument -split '@')[1]
                 $files = @()
                 if ($package -eq 'platform-tools') {

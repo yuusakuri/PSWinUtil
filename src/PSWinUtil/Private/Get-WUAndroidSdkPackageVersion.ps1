@@ -44,7 +44,7 @@ function Get-WUAndroidSdkPackageVersion {
     }
 
     if ($Latest) {
-        [string]$versions[0]
+        [string]($versions | Select-Object -First 1)
         return
     }
 

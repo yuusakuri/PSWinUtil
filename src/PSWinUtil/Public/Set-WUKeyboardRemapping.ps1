@@ -62,7 +62,8 @@ function Set-WUKeyboardRemapping {
             DestinationScanCode = $DestinationScanCode
         }
     } else {
-        $existingMapping[0].DestinationScanCode = $DestinationScanCode
+        $firstExistingMapping = $existingMapping | Select-Object -First 1
+        $firstExistingMapping.DestinationScanCode = $DestinationScanCode
     }
 
     $value = ConvertTo-WUScancodeMap -Mapping $mappings

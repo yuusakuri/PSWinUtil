@@ -13,7 +13,7 @@ Describe 'Windows setting command state transitions' -Skip:(-not $runRegistrySet
         param($Setting, $Command, $Parameter, $Options)
         $definition = $script:SettingData.Settings | Where-Object { $_.Name -eq $Setting }
         $saved = @(
-            foreach ($property in $definition.Configurations[0].Properties) {
+            foreach ($property in ($definition.Configurations | Select-Object -First 1).Properties) {
                 [pscustomobject]@{ Path = $property.Path; Name = $property.Name; Stored = (Get-WURegistryProperty -Path $property.Path -Name $property.Name) }
             }
         )
@@ -23,7 +23,7 @@ Describe 'Windows setting command state transitions' -Skip:(-not $runRegistrySet
                 & $Command @parameters
                 (Get-WURegistrySetting -Name $Setting).State | Should -Be $option
             }
-            $parameters = @{ $Parameter = $Options[0]; WhatIf = $true }
+            $parameters = @{ $Parameter = ($Options | Select-Object -First 1); WhatIf = $true }
             & $Command @parameters
             (Get-WURegistrySetting -Name $Setting).State | Should -Be $Options[-1]
         } finally {
@@ -62,7 +62,7 @@ Describe 'Windows setting command state transitions' -Skip:(-not $runRegistrySet
         # transitions are specified by this test, not read from catalog options.
         $definition = $script:SettingData.Settings | Where-Object { $_.Name -eq $Setting }
         $saved = @(
-            foreach ($property in $definition.Configurations[0].Properties) {
+            foreach ($property in ($definition.Configurations | Select-Object -First 1).Properties) {
                 [pscustomobject]@{ Path = $property.Path; Name = $property.Name; Stored = (Get-WURegistryProperty -Path $property.Path -Name $property.Name) }
             }
         )

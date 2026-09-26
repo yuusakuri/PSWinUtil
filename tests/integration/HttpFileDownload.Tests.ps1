@@ -45,7 +45,7 @@ Describe 'Resumable HTTP download' {
             (Get-Item -LiteralPath $script:DownloadPath).Length |
                 Should -Be (Get-Item -LiteralPath $script:SourcePath).Length
             $server.RangeStarts | Should -HaveCount 2
-            $server.RangeStarts[0] | Should -Be -1
+            ($server.RangeStarts | Select-Object -First 1) | Should -Be -1
             $server.RangeStarts[1] | Should -Be $firstLength
             $server.ServerException | Should -BeNullOrEmpty
         } finally {
@@ -66,7 +66,7 @@ Describe 'Resumable HTTP download' {
             (Get-FileHash -LiteralPath $script:DownloadPath -Algorithm SHA256).Hash |
                 Should -Be $script:ExpectedHash
             $server.RangeStarts | Should -HaveCount 3
-            $server.RangeStarts[0] | Should -Be -1
+            ($server.RangeStarts | Select-Object -First 1) | Should -Be -1
             $server.RangeStarts[1] | Should -Be $firstLength
             $server.RangeStarts[2] | Should -Be ($firstLength + $secondLength)
             $server.ServerException | Should -BeNullOrEmpty

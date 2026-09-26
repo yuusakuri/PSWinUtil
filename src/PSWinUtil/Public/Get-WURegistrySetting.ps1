@@ -54,7 +54,7 @@ function Get-WURegistrySetting {
 
     process {
         foreach ($inputName in $Name) {
-            $setting = @($settings | Where-Object { $_.Name -ieq $inputName })[0]
+            $setting = $settings | Where-Object { $_.Name -ieq $inputName } | Select-Object -First 1
             if ($null -eq $setting) {
                 throw "The registry setting was not found: $inputName"
             }
@@ -71,12 +71,12 @@ function Get-WURegistrySetting {
                     }
                 )
 
-                $state = @(
-                    $configuration.Properties[0].Options.Name |
-                        Sort-Object |
-                        Where-Object { Test-WURegistrySettingOptionMatch -PropertyState $propertyStates -OptionName $_ } |
-                        Select-Object -First 1
-                )[0]
+                $state = $configuration.Properties |
+                    Select-Object -First 1 |
+                    ForEach-Object { $_.Options.Name } |
+                    Sort-Object |
+                    Where-Object { Test-WURegistrySettingOptionMatch -PropertyState $propertyStates -OptionName $_ } |
+                    Select-Object -First 1
 
                 $configuredPropertyCount = @(
                     $propertyStates | Where-Object { $null -ne $_.RegistryProperty }

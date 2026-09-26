@@ -85,10 +85,9 @@ function Get-WUFlutterSdkRelease {
     if ([string]::IsNullOrWhiteSpace($Version)) {
         $currentReleaseHash = [string]$releaseData.current_release.$Channel
         if (-not [string]::IsNullOrWhiteSpace($currentReleaseHash)) {
-            $targetRelease = @(
-                $matchingReleases |
-                    Where-Object { $_.hash -eq $currentReleaseHash }
-            )[0]
+            $targetRelease = $matchingReleases |
+                Where-Object { $_.hash -eq $currentReleaseHash } |
+                Select-Object -First 1
         }
     }
     if ($null -eq $targetRelease) {

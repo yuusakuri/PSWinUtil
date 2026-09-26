@@ -146,7 +146,7 @@ Describe 'Start-WUPSScriptAsAdmin' {
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
             $FilePath -eq 'powershell.exe' -and
             $Verb -eq 'RunAs' -and
-            $ArgumentList[0] -eq '-NoProfile' -and
+            ($ArgumentList | Select-Object -First 1) -eq '-NoProfile' -and
             $ArgumentList[1] -eq '-EncodedCommand' -and
             [System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($ArgumentList[2])) -eq $expectedCommand
         }

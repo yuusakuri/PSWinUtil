@@ -22,8 +22,8 @@ Describe 'Keyboard mapping public behavior with a registry fake' {
         $script:StoredMapping.Value | Should -Be ([byte[]]@(0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 29, 0, 58, 0, 0, 0, 91, 224, 0, 0, 0, 0))
         $result = @(Get-WUKeyboardRemapping)
         $result | Should -HaveCount 2
-        $result[0].SourceScanCode | Should -Be 58
-        $result[0].DestinationScanCode | Should -Be 29
+        ($result | Select-Object -First 1).SourceScanCode | Should -Be 58
+        ($result | Select-Object -First 1).DestinationScanCode | Should -Be 29
         $result[1].DestinationScanCode | Should -Be 0
         $result.RestartRequired | Should -Not -Contain $false
     }

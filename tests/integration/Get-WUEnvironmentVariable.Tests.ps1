@@ -55,7 +55,7 @@ Describe 'Get-WUEnvironmentVariable' {
         )
 
         $result.Count | Should -Be 2
-        $result[0] | Should -Be 'first value'
+        ($result | Select-Object -First 1) | Should -Be 'first value'
         $result[1] | Should -Be 'second value'
     }
 
@@ -72,7 +72,7 @@ Describe 'Get-WUEnvironmentVariable' {
         )
 
         $result | Should -HaveCount 2
-        $result[0] | Should -Be 'process value'
+        ($result | Select-Object -First 1) | Should -Be 'process value'
         $result[1] | Should -Be 'user value'
     }
 

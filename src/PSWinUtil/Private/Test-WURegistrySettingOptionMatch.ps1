@@ -10,7 +10,7 @@ function Test-WURegistrySettingOptionMatch {
     )
 
     foreach ($item in $PropertyState) {
-        $option = @($item.Property.Options | Where-Object { $_.Name -ieq $OptionName })[0]
+        $option = (@($item.Property.Options | Where-Object { $_.Name -ieq $OptionName }) | Select-Object -First 1)
         if ($option.Action -eq 'Remove') {
             if ($null -ne $item.RegistryProperty) {
                 return $false

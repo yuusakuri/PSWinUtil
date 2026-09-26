@@ -21,9 +21,9 @@ continued'
         $findings = @(Invoke-ScriptAnalyzer -ScriptDefinition $source -Settings $script:RuleSettings)
 
         $findings | Should -HaveCount 1
-        $findings[0].RuleName | Should -Match 'Measure-WUAvoidBacktickLineContinuation$'
-        $findings[0].Severity.ToString() | Should -Be 'Warning'
-        $findings[0].Line | Should -Be 1
+        ($findings | Select-Object -First 1).RuleName | Should -Match 'Measure-WUAvoidBacktickLineContinuation$'
+        ($findings | Select-Object -First 1).Severity.ToString() | Should -Be 'Warning'
+        ($findings | Select-Object -First 1).Line | Should -Be 1
     }
 
     It 'warns when control-flow nesting exceeds three levels' {
@@ -50,9 +50,9 @@ function Test-FourLevels {
         $findings = @(Invoke-ScriptAnalyzer -ScriptDefinition $source -Settings $script:RuleSettings)
 
         $findings | Should -HaveCount 1
-        $findings[0].RuleName | Should -Match 'Measure-WUMaximumControlFlowNestingDepth$'
-        $findings[0].Severity.ToString() | Should -Be 'Warning'
-        $findings[0].Message | Should -Match "Test-FourLevels.*depth 4"
+        ($findings | Select-Object -First 1).RuleName | Should -Match 'Measure-WUMaximumControlFlowNestingDepth$'
+        ($findings | Select-Object -First 1).Severity.ToString() | Should -Be 'Warning'
+        ($findings | Select-Object -First 1).Message | Should -Match "Test-FourLevels.*depth 4"
     }
 
     It 'measures nested functions separately' {
@@ -75,6 +75,6 @@ function Test-Outer {
         $findings = @(Invoke-ScriptAnalyzer -ScriptDefinition $source -Settings $script:RuleSettings)
 
         $findings | Should -HaveCount 1
-        $findings[0].Message | Should -Match "Test-Inner.*depth 4"
+        ($findings | Select-Object -First 1).Message | Should -Match "Test-Inner.*depth 4"
     }
 }

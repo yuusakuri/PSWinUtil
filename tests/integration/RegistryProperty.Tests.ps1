@@ -82,7 +82,7 @@ Describe 'Registry property commands' {
 
         $storedProperty = Get-WURegistryProperty -Path $script:RegistryTestPath -Name 'Items'
         @($storedProperty.Value).Count | Should -Be 2
-        $storedProperty.Value[0] | Should -Be 'first'
+        ($storedProperty.Value | Select-Object -First 1) | Should -Be 'first'
         $storedProperty.Value[1] | Should -Be 'second'
         $storedProperty.Type | Should -Be 'MultiString'
     }
