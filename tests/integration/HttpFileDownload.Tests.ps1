@@ -116,4 +116,22 @@ Describe 'Resumable HTTP download' {
             $server.Dispose()
         }
     }
+
+    It 'creates missing destination parent directories before downloading' {
+        $destinationDirectory = Join-Path -Path $TestDrive -ChildPath 'created/child'
+        $destinationPath = Join-Path -Path $destinationDirectory -ChildPath 'download.bin'
+        $payload = [byte[]]@(1, 2, 3, 4)
+        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new($payload, [int[]]@())
+
+        try {
+            $result = Invoke-WUHttpFileDownload -Uri $server.Uri -Path $destinationPath
+
+            $result | Should -Be $destinationPath
+            Test-Path -LiteralPath $destinationDirectory -PathType Container | Should -BeTrue
+            [System.IO.File]::ReadAllBytes($destinationPath) | Should -Be $payload
+            $server.RangeStarts | Should -HaveCount 1
+        } finally {
+            $server.Dispose()
+        }
+    }
 }

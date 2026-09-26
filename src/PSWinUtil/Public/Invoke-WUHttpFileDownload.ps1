@@ -41,13 +41,15 @@ function Invoke-WUHttpFileDownload {
 
     $fullPath = ConvertTo-WUFullPath -Path $Path
     $parentPath = Split-Path -Path $fullPath -Parent
-    Assert-WUPathProperty -LiteralPath $parentPath -Container
+    Assert-WUPathProperty -LiteralPath $parentPath -Container -AllowNonExisting
     if (Test-Path -LiteralPath $fullPath -PathType Container) {
         throw "The download target must be a file path: $fullPath"
     }
     if (-not $PSCmdlet.ShouldProcess($fullPath, "Download from $($Uri.AbsoluteUri)")) {
         return
     }
+
+    [System.IO.Directory]::CreateDirectory($parentPath) | Out-Null
 
     Add-Type -AssemblyName 'System.Net.Http' -ErrorAction Stop
     $clientVariable = Get-Variable -Name 'WUHttpClient' -Scope Script -ErrorAction Ignore
