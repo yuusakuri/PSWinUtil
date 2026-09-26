@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
-    <AssemblyName>PSWinUtil.TestSupport</AssemblyName>
+    <AssemblyName>PSWinUtil.FakeHttpServer</AssemblyName>
     <RootNamespace>PSWinUtil.Tests</RootNamespace>
     <LangVersion>7.3</LangVersion>
     <Version>2.0.0</Version>
@@ -12,7 +12,7 @@
     <Company>yuusakuri</Company>
     <Authors>yuusakuri</Authors>
     <Copyright>Copyright (c) yuusakuri. Licensed under the Apache License 2.0.</Copyright>
-    <Description>Test doubles used by the PSWinUtil test suite.</Description>
+    <Description>HTTP fake server used by the PSWinUtil test suite.</Description>
     <NeutralLanguage>en-US</NeutralLanguage>
     <Deterministic>true</Deterministic>
     <DebugType>none</DebugType>

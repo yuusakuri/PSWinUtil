@@ -10,9 +10,9 @@ namespace PSWinUtil.Tests
     using System.Threading;
 
     /// <summary>
-    /// Serves a byte array and closes selected responses before their declared length.
+    /// Serves a byte array and interrupts selected downloads before completion.
     /// </summary>
-    public sealed class DisconnectingHttpServer : IDisposable
+    public sealed class DownloadInterruptionServer : IDisposable
     {
         private readonly byte[] body;
         private readonly int[] responseByteCounts;
@@ -29,7 +29,7 @@ namespace PSWinUtil.Tests
         /// <param name="responseByteCounts">
         /// The maximum body bytes sent by each request. Requests beyond the array receive all remaining bytes.
         /// </param>
-        public DisconnectingHttpServer(byte[] body, int[] responseByteCounts)
+        public DownloadInterruptionServer(byte[] body, int[] responseByteCounts)
         {
             this.body = body ?? throw new ArgumentNullException(nameof(body));
             this.responseByteCounts = responseByteCounts ?? throw new ArgumentNullException(nameof(responseByteCounts));
