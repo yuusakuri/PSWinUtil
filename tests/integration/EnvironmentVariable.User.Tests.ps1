@@ -66,7 +66,7 @@ Describe 'User environment variable integration' {
     It 'stores references as expandable values and returns the unexpanded saved state' {
         $result = @(Set-WUEnvironmentVariable -Name $script:EnvironmentName -Value '%USERPROFILE%\bin' -Scope User -PassThru)
         $result | Should -HaveCount 1
-        $result[0].Value | Should -Be '%USERPROFILE%\bin'
+        ($result | Select-Object -First 1).Value | Should -Be '%USERPROFILE%\bin'
         $registryKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
         try {
             $registryKey.GetValue($script:EnvironmentName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) | Should -Be '%USERPROFILE%\bin'
@@ -153,7 +153,7 @@ Describe 'User environment variable integration' {
         )
         $result = @($settings | Set-WUEnvironmentVariable -Scope User -PassThru)
         $result | Should -HaveCount 2
-        $result[0].Value | Should -Be 'first value'
+        ($result | Select-Object -First 1).Value | Should -Be 'first value'
         $result[1].Value | Should -Be 'last value'
         [Environment]::GetEnvironmentVariable($script:EnvironmentName, 'User') | Should -Be 'last value'
     }

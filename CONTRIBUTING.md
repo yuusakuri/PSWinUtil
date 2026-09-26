@@ -59,6 +59,8 @@ Implement exported commands in `src/PSWinUtil/Public/` and internal functions in
 | `.\dev.ps1 verify` | Checks source, formatting, analysis, build output, import, the command reference, and tests that do not require network services. |
 | `.\dev.ps1 ci` | Runs the same verification as `verify`. |
 
+The analyzer also reports warnings for backtick line continuations and control-flow nesting deeper than three levels per function. All analyzer findings, including these style warnings, fail verification.
+
 Version preparation and publication commands are described in [Releasing](RELEASING.md).
 
 Build the current source and import the generated module:

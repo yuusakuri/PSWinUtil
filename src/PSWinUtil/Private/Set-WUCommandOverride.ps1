@@ -52,9 +52,7 @@ function Set-WUCommandOverride {
         }
 
         if ($Enabled) {
-            Microsoft.PowerShell.Management\Set-Item `
-                -Path "function:global:$commandName" `
-                -Value $script:WUCommandOverrideDefinition[$commandName]
+            Microsoft.PowerShell.Management\Set-Item -Path "function:global:$commandName" -Value $script:WUCommandOverrideDefinition[$commandName]
         } elseif (Microsoft.PowerShell.Management\Test-Path -LiteralPath "Function:\$commandName") {
             Microsoft.PowerShell.Management\Remove-Item -LiteralPath "Function:\$commandName" -Force
         }

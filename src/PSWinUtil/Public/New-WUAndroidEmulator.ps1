@@ -97,10 +97,7 @@ function New-WUAndroidEmulator {
         throw "Android device profile was not found: $Device"
     }
 
-    $availableImages = @(Get-WUAndroidSystemImage `
-            -SystemImageTag $SystemImageTag `
-            -Abi $Abi `
-            -ErrorAction Stop)
+    $availableImages = @(Get-WUAndroidSystemImage -SystemImageTag $SystemImageTag -Abi $Abi -ErrorAction Stop)
     $availableVersions = @($availableImages | ForEach-Object { $_.PlatformVersion })
     if (-not $PSBoundParameters.ContainsKey('PlatformVersion')) {
         if ($availableVersions.Count -eq 0) {

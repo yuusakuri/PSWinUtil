@@ -39,16 +39,16 @@ Describe 'Get-WUStartupEntry' {
         $entries.Count | Should -Be 4
         @($entries.Scope) | Should -Contain 'User'
         @($entries.Scope) | Should -Contain 'Machine'
-        $entries[0].PSObject.TypeNames | Should -Contain 'PSWinUtil.StartupEntry'
+        ($entries | Select-Object -First 1).PSObject.TypeNames | Should -Contain 'PSWinUtil.StartupEntry'
     }
 
     It 'filters by registry name and scope without case differences' {
         $entries = @(Get-WUStartupEntry -Name 'exampleapp' -Scope User)
 
         $entries.Count | Should -Be 1
-        $entries[0].Name | Should -Be 'ExampleApp'
-        $entries[0].Scope | Should -Be 'User'
-        $entries[0].CommandLine | Should -Be 'User command'
+        ($entries | Select-Object -First 1).Name | Should -Be 'ExampleApp'
+        ($entries | Select-Object -First 1).Scope | Should -Be 'User'
+        ($entries | Select-Object -First 1).CommandLine | Should -Be 'User command'
     }
 
     It 'gets entries from multiple explicitly selected scopes' {

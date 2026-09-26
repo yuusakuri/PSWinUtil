@@ -101,7 +101,7 @@ function Resolve-WUPath {
         $resolvedPaths = @(Resolve-Path @resolveParameters)
 
         if ($resolvedPaths.Count -eq 1) {
-            $resolvedPaths[0]
+            ($resolvedPaths | Select-Object -First 1)
         } elseif ($resolvedPaths.Count -gt 1) {
             throw [System.ArgumentException]::new(
                 'Path resolved to more than one result'

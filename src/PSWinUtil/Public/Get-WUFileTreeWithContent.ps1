@@ -111,10 +111,7 @@ function Get-WUFileTreeWithContent {
         )
         foreach ($fullPath in $fullPaths) {
             if ([System.IO.File]::Exists($fullPath)) {
-                Write-WUFileTreeContentItem `
-                    -Item ([System.IO.FileInfo]::new($fullPath)) `
-                    -Utf8 $utf8 `
-                    -AsXml:$AsXml
+                Write-WUFileTreeContentItem -Item ([System.IO.FileInfo]::new($fullPath)) -Utf8 $utf8 -AsXml:$AsXml
                 continue
             }
 
@@ -126,10 +123,7 @@ function Get-WUFileTreeWithContent {
             while ($stack.Count -gt 0) {
                 $node = $stack.Pop()
                 if ($node.Depth -ge $MinDepth) {
-                    Write-WUFileTreeContentItem `
-                        -Item $node.Item `
-                        -Utf8 $utf8 `
-                        -AsXml:$AsXml
+                    Write-WUFileTreeContentItem -Item $node.Item -Utf8 $utf8 -AsXml:$AsXml
                 }
 
                 $isDirectory = $node.Item -is [System.IO.DirectoryInfo]

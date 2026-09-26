@@ -17,9 +17,9 @@ Describe 'Keyboard remapping commands' {
     BeforeEach {
         $script:SavedProperty = Get-WURegistryProperty -Path $script:KeyboardLayoutPath -Name 'Scancode Map'
         $usedSourceScanCodes = @(Get-WUKeyboardRemapping | Select-Object -ExpandProperty SourceScanCode)
-        $script:TestSourceScanCode = @(
-            0x7E00..0x7E0F | Where-Object { $_ -notin $usedSourceScanCodes }
-        )[0]
+        $script:TestSourceScanCode = (@(
+                0x7E00..0x7E0F | Where-Object { $_ -notin $usedSourceScanCodes }
+            ) | Select-Object -First 1)
     }
 
     AfterEach {

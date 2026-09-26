@@ -1,8 +1,8 @@
 @{
-    Settings = @(
+    Configs = @(
         @{
             Name = 'AdvertisingId'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -28,7 +28,7 @@
         }
         @{
             Name = 'AppLaunchTracking'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -54,7 +54,7 @@
         }
         @{
             Name = 'AppSuggestions'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -80,7 +80,7 @@
         }
         @{
             Name = 'DarkMode'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -124,7 +124,7 @@
         }
         @{
             Name = 'EdgeFirstRunExperience'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -151,7 +151,7 @@
         }
         @{
             Name = 'FileHistory'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -178,7 +178,7 @@
         }
         @{
             Name = 'LockScreen'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -205,7 +205,7 @@
         }
         @{
             Name = 'LockWorkstation'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -232,7 +232,7 @@
         }
         @{
             Name = 'LongPaths'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -259,7 +259,7 @@
         }
         @{
             Name = 'Widgets'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -286,7 +286,7 @@
         }
         @{
             Name = 'RequireSignInOnWakeup'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -330,7 +330,7 @@
         }
         @{
             Name = 'SaveZoneInformation'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -356,7 +356,7 @@
         }
         @{
             Name = 'SmartScreenInShell'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -383,7 +383,7 @@
         }
         @{
             Name = 'Uac'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -410,7 +410,7 @@
         }
         @{
             Name = 'WebsiteAccessToLanguageList'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -436,7 +436,7 @@
         }
         @{
             Name = 'WindowsHelloForBusiness'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -463,7 +463,7 @@
         }
         @{
             Name = 'WindowsMediaPlayerFirstUseDialogBoxes'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -490,7 +490,7 @@
         }
         @{
             Name = 'WindowsSecurityAllNotifications'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -516,7 +516,7 @@
         }
         @{
             Name = 'WindowsSecurityNonCriticalNotifications'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -542,7 +542,7 @@
         }
         @{
             Name = 'WindowsUpdateNotificationLevel'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'Machine'
                     Properties = @(
@@ -594,7 +594,7 @@
         }
         @{
             Name = 'DeviceSetupSuggestions'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -621,7 +621,7 @@
         }
         @{
             Name = 'TaskbarAlignment'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -648,7 +648,7 @@
         }
         @{
             Name = 'TaskbarSearchMode'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(
@@ -680,7 +680,7 @@
         }
         @{
             Name = 'JapaneseImeHalfWidthInput'
-            Configurations = @(
+            Targets = @(
                 @{
                     Scope = 'User'
                     Properties = @(

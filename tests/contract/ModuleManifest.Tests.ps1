@@ -142,12 +142,12 @@ Describe 'Public command help' {
                 throw "Public command help does not contain Examples: $functionName"
             }
             $exampleProperty = @(
-                $examplesProperty[0].Value.PSObject.Properties |
+                ($examplesProperty | Select-Object -First 1).Value.PSObject.Properties |
                     Where-Object { $_.Name -ieq 'Example' }
             )
             $exampleCount = 0
             if ($exampleProperty.Count -eq 1) {
-                $exampleCount = @($exampleProperty[0].Value).Count
+                $exampleCount = @(($exampleProperty | Select-Object -First 1).Value).Count
             }
             $exampleCount | Should -BeGreaterThan 0
 
@@ -165,7 +165,7 @@ Describe 'Public command help' {
                         Where-Object { $_.Name -eq $parameterName }
                 )
                 $parameterHelp.Count | Should -Be 1 -Because "$functionName must document $parameterName"
-                $parameterHelp[0].Description | Should -Not -BeNullOrEmpty
+                ($parameterHelp | Select-Object -First 1).Description | Should -Not -BeNullOrEmpty
             }
         }
     }

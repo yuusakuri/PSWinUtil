@@ -11,9 +11,7 @@ Describe 'Select-WUBoundParameter' {
             Other = 42
         }
 
-        $result = Select-WUBoundParameter `
-            -BoundParameters $boundParameters `
-            -Name 'WhatIf', 'Confirm', 'Missing'
+        $result = Select-WUBoundParameter -BoundParameters $boundParameters -Name 'WhatIf', 'Confirm', 'Missing'
 
         $result | Should -BeOfType ([hashtable])
         $result.Count | Should -Be 2
@@ -29,18 +27,14 @@ Describe 'Select-WUBoundParameter' {
             ErrorVariable = $null
         }
 
-        $result = Select-WUBoundParameter `
-            -BoundParameters $boundParameters `
-            -Name 'ErrorVariable'
+        $result = Select-WUBoundParameter -BoundParameters $boundParameters -Name 'ErrorVariable'
 
         $result.ContainsKey('ErrorVariable') | Should -BeTrue
         $result.ErrorVariable | Should -BeNullOrEmpty
     }
 
     It 'returns an empty hashtable when no requested entry exists' {
-        $result = Select-WUBoundParameter `
-            -BoundParameters @{ Name = 'Sample' } `
-            -Name 'WhatIf', 'Confirm'
+        $result = Select-WUBoundParameter -BoundParameters @{ Name = 'Sample' } -Name 'WhatIf', 'Confirm'
 
         $result | Should -BeOfType ([hashtable])
         $result.Count | Should -Be 0

@@ -102,7 +102,7 @@ Describe 'Set-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverrides
         Set-Content -LiteralPath $path -Value $script:UnicodeText -Encoding Unicode
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($path)
-        $bytes[0] | Should -Be 0xFF
+        ($bytes | Select-Object -First 1) | Should -Be 0xFF
         $bytes[1] | Should -Be 0xFE
     }
 }
@@ -161,7 +161,7 @@ Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAva
         $script:UnicodeText | Out-File -LiteralPath $path -Encoding Unicode
 
         [byte[]]$bytes = [System.IO.File]::ReadAllBytes($path)
-        $bytes[0] | Should -Be 0xFF
+        ($bytes | Select-Object -First 1) | Should -Be 0xFF
         $bytes[1] | Should -Be 0xFE
     }
 
@@ -263,9 +263,7 @@ Describe 'Command override state' -Skip:(-not $contentCommandOverridesAvailable)
 
         Disable-WUCommandOverride -Name 'Set-Content'
         Set-Content -LiteralPath $proxyPath -Value @($script:UnicodeText, 'second')
-        Microsoft.PowerShell.Management\Set-Content `
-            -LiteralPath $originalPath `
-            -Value @($script:UnicodeText, 'second')
+        Microsoft.PowerShell.Management\Set-Content -LiteralPath $originalPath -Value @($script:UnicodeText, 'second')
 
         Assert-PSWinUtilFileByteEquality -ProxyPath $proxyPath -OriginalPath $originalPath
     }

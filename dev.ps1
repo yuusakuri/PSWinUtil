@@ -25,16 +25,21 @@ $outputModuleDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/PSWi
 $outputManifestPath = Join-Path -Path $outputModuleDirectory -ChildPath 'PSWinUtil.psd1'
 $outputModulePath = Join-Path -Path $outputModuleDirectory -ChildPath 'PSWinUtil.psm1'
 $outputLibraryDirectory = Join-Path -Path $outputModuleDirectory -ChildPath 'lib'
-$outputTestSupportDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/TestSupport'
+$outputFakeHttpServerDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/FakeHttpServer'
 $dotnetBuildDirectory = Join-Path -Path $repositoryRoot -ChildPath 'output/dotnet'
-$nativeProjectPath = Join-Path `
-    -Path $repositoryRoot `
-    -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
-$testSupportProjectPath = Join-Path `
-    -Path $repositoryRoot `
-    -ChildPath 'tests/PSWinUtil.TestSupport/PSWinUtil.TestSupport.csproj'
+$nativeProjectPathParameters = @{
+    Path = $repositoryRoot
+    ChildPath = 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
+}
+$nativeProjectPath = Join-Path @nativeProjectPathParameters
+$fakeHttpServerProjectPathParameters = @{
+    Path = $repositoryRoot
+    ChildPath = 'tests/PSWinUtil.FakeHttpServer/PSWinUtil.FakeHttpServer.csproj'
+}
+$fakeHttpServerProjectPath = Join-Path @fakeHttpServerProjectPathParameters
 $formatterSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptFormatterSettings.psd1'
 $analyzerSettingsPath = Join-Path -Path $repositoryRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
+$analyzerRulesPath = Join-Path -Path $repositoryRoot -ChildPath 'tools/PSScriptAnalyzerRules.psm1'
 $requirementsPath = Join-Path -Path $repositoryRoot -ChildPath 'build.requirements.psd1'
 $commandReferencePath = Join-Path -Path $repositoryRoot -ChildPath 'docs/reference/commands.md'
 
@@ -130,6 +135,7 @@ function Get-WUDevSourceFile {
         'build.requirements.psd1'
         'PSScriptFormatterSettings.psd1'
         'PSScriptAnalyzerSettings.psd1'
+        'tools/PSScriptAnalyzerRules.psm1'
     )
     $files = @()
 
@@ -159,7 +165,7 @@ function Get-WUDevSourceFile {
 function Get-WUDevDotnetSourceFile {
     $projectDirectories = @(
         (Split-Path -Path $nativeProjectPath -Parent)
-        (Split-Path -Path $testSupportProjectPath -Parent)
+        (Split-Path -Path $fakeHttpServerProjectPath -Parent)
     )
     $files = @()
 
@@ -187,7 +193,7 @@ function Assert-WUDevAsciiFile {
     [byte[]]$bytes = [System.IO.File]::ReadAllBytes($File.FullName)
     if (
         $bytes.Length -ge 3 -and
-        $bytes[0] -eq 0xEF -and
+        ($bytes | Select-Object -First 1) -eq 0xEF -and
         $bytes[1] -eq 0xBB -and
         $bytes[2] -eq 0xBF
     ) {
@@ -253,7 +259,7 @@ function Assert-WUDevFunctionFile {
         throw "A function source file must contain exactly one function: $($File.FullName)"
     }
 
-    if ($functionDefinitions[0].Name -cne $File.BaseName) {
+    if (($functionDefinitions | Select-Object -First 1).Name -cne $File.BaseName) {
         throw "The function and file names must match: $($File.FullName)"
     }
 }
@@ -268,7 +274,7 @@ function Assert-WUDevSource {
         $formatterSettingsPath
         $analyzerSettingsPath
         $nativeProjectPath
-        $testSupportProjectPath
+        $fakeHttpServerProjectPath
     )
     foreach ($requiredPath in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -358,10 +364,12 @@ function Invoke-WUDevFormat {
 }
 
 function Invoke-WUDevAnalyze {
+    $settings = Import-PowerShellDataFile -Path $analyzerSettingsPath
+    $settings.CustomRulePath = [string[]]@($analyzerRulesPath)
     $analysisResults = @()
     foreach ($sourceFile in @(Get-WUDevSourceFile)) {
         $analysisResults += @(
-            Invoke-ScriptAnalyzer -Path $sourceFile.FullName -Settings $analyzerSettingsPath
+            Invoke-ScriptAnalyzer -Path $sourceFile.FullName -Settings $settings
         )
     }
 
@@ -391,22 +399,14 @@ function Publish-WUDevDotnetAssembly {
         [string]$DestinationDirectory
     )
 
-    Assert-WUCommand `
-        -Name 'dotnet' `
-        -Purpose 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
+    Assert-WUCommand -Name 'dotnet' -Purpose 'Install the .NET SDK 8.0 or later. The dotnet command compiles the PSWinUtil assemblies.'
 
     $projectName = [System.IO.Path]::GetFileNameWithoutExtension($ProjectPath)
-    $intermediateDirectory = Join-Path `
-        -Path $dotnetBuildDirectory `
-        -ChildPath "$projectName/$TargetFramework"
+    $intermediateDirectory = Join-Path -Path $dotnetBuildDirectory -ChildPath "$projectName/$TargetFramework"
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $buildOutput = & 'dotnet' build $ProjectPath `
-            --configuration 'Release' `
-            --framework $TargetFramework `
-            --output $intermediateDirectory `
-            --nologo 2>&1
+        $buildOutput = & 'dotnet' build $ProjectPath --configuration 'Release' --framework $TargetFramework --output $intermediateDirectory --nologo 2>&1
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
     }
@@ -429,7 +429,7 @@ function Publish-WUDevDotnetAssembly {
 }
 
 function Invoke-WUDevBuild {
-    foreach ($staleDirectory in @($outputModuleDirectory, $outputTestSupportDirectory)) {
+    foreach ($staleDirectory in @($outputModuleDirectory, $outputFakeHttpServerDirectory)) {
         if (Test-Path -LiteralPath $staleDirectory) {
             Remove-Item -LiteralPath $staleDirectory -Recurse -Force
         }
@@ -445,21 +445,27 @@ function Invoke-WUDevBuild {
         }
     }
 
-    Publish-WUDevDotnetAssembly `
-        -ProjectPath $nativeProjectPath `
-        -TargetFramework 'netstandard2.0' `
-        -AssemblyFileName 'PSWinUtil.Native.dll' `
-        -DestinationDirectory $outputLibraryDirectory
+    $nativeAssemblyParameters = @{
+        ProjectPath = $nativeProjectPath
+        TargetFramework = 'netstandard2.0'
+        AssemblyFileName = 'PSWinUtil.Native.dll'
+        DestinationDirectory = $outputLibraryDirectory
+    }
+    Publish-WUDevDotnetAssembly @nativeAssemblyParameters
 
-    foreach ($testSupportTargetFramework in @('net472', 'netstandard2.0')) {
-        $testSupportDestination = Join-Path `
-            -Path $outputTestSupportDirectory `
-            -ChildPath $testSupportTargetFramework
-        Publish-WUDevDotnetAssembly `
-            -ProjectPath $testSupportProjectPath `
-            -TargetFramework $testSupportTargetFramework `
-            -AssemblyFileName 'PSWinUtil.TestSupport.dll' `
-            -DestinationDirectory $testSupportDestination
+    foreach ($fakeHttpServerTargetFramework in @('net472', 'netstandard2.0')) {
+        $fakeHttpServerDestinationParameters = @{
+            Path = $outputFakeHttpServerDirectory
+            ChildPath = $fakeHttpServerTargetFramework
+        }
+        $fakeHttpServerDestination = Join-Path @fakeHttpServerDestinationParameters
+        $fakeHttpServerAssemblyParameters = @{
+            ProjectPath = $fakeHttpServerProjectPath
+            TargetFramework = $fakeHttpServerTargetFramework
+            AssemblyFileName = 'PSWinUtil.FakeHttpServer.dll'
+            DestinationDirectory = $fakeHttpServerDestination
+        }
+        Publish-WUDevDotnetAssembly @fakeHttpServerAssemblyParameters
     }
 
     $generatedPowerShellFiles = @(
@@ -574,11 +580,7 @@ function Invoke-WUDevNetworkIntegrationTest {
     Invoke-WUDevBuild
 
     $networkIntegrationTests = @(
-        Get-ChildItem `
-            -LiteralPath (Join-Path -Path $repositoryRoot -ChildPath 'tests') `
-            -File `
-            -Recurse `
-            -Filter '*.NetworkIntegration.Tests.ps1'
+        Get-ChildItem -LiteralPath (Join-Path -Path $repositoryRoot -ChildPath 'tests') -File -Recurse -Filter '*.NetworkIntegration.Tests.ps1'
     )
     if ($networkIntegrationTests.Count -eq 0) {
         throw 'No network integration tests were found.'
@@ -960,8 +962,7 @@ function Get-ReleaseIdentity {
     $latestReleasedVersion = $null
     foreach ($existingTag in $ExistingTagName) {
         if (
-            $existingTag -notmatch `
-                '^v(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+)?)$'
+            $existingTag -notmatch '^v(?<Version>(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+)?)$'
         ) {
             continue
         }
@@ -969,18 +970,14 @@ function Get-ReleaseIdentity {
         $existingVersion = $Matches['Version']
         if (
             $null -eq $latestReleasedVersion -or
-            (Compare-ReleaseVersion `
-                -ReferenceVersion $existingVersion `
-                -DifferenceVersion $latestReleasedVersion) -gt 0
+            (Compare-ReleaseVersion -ReferenceVersion $existingVersion -DifferenceVersion $latestReleasedVersion) -gt 0
         ) {
             $latestReleasedVersion = $existingVersion
         }
     }
     if (
         $null -ne $latestReleasedVersion -and
-        (Compare-ReleaseVersion `
-            -ReferenceVersion $version `
-            -DifferenceVersion $latestReleasedVersion) -lt 0
+        (Compare-ReleaseVersion -ReferenceVersion $version -DifferenceVersion $latestReleasedVersion) -lt 0
     ) {
         throw "Release version $version is older than existing tag v$latestReleasedVersion."
     }
@@ -1159,20 +1156,17 @@ function Invoke-Release {
     $manifest = Get-ReleaseManifest -GitPath $git -ReleaseCommit $ReleaseCommit
     $manifestVersion = Get-ReleaseManifestVersion -Manifest $manifest
     $existingTagNames = @(Invoke-NativeCommand -FilePath $git -ArgumentList @('tag', '--list', 'v*'))
-    $identity = Get-ReleaseIdentity `
-        -Branch $Branch `
-        -ManifestVersion $manifestVersion `
-        -ExistingTagName $existingTagNames
-    $state = Get-RemoteReleaseState `
-        -ReleaseCommit $ReleaseCommit `
-        -Version $identity.Version
+    $identity = Get-ReleaseIdentity -Branch $Branch -ManifestVersion $manifestVersion -ExistingTagName $existingTagNames
+    $state = Get-RemoteReleaseState -ReleaseCommit $ReleaseCommit -Version $identity.Version
 
-    Invoke-ReleasePublish `
-        -ReleaseCommit $ReleaseCommit `
-        -Version $identity.Version `
-        -State $state `
-        -ModuleDirectory $outputModuleDirectory `
-        -ArtifactPath (Join-Path -Path $repositoryRoot -ChildPath "PSWinUtil-$($identity.Version).zip")
+    $publicationParameters = @{
+        ReleaseCommit = $ReleaseCommit
+        Version = $identity.Version
+        State = $state
+        ModuleDirectory = $outputModuleDirectory
+        ArtifactPath = Join-Path -Path $repositoryRoot -ChildPath "PSWinUtil-$($identity.Version).zip"
+    }
+    Invoke-ReleasePublish @publicationParameters
 }
 
 function Get-ReleaseManifest {
@@ -1206,12 +1200,12 @@ function Get-ReleaseManifest {
     if (
         $manifestStatement -isnot [System.Management.Automation.Language.PipelineAst] -or
         $manifestStatement.PipelineElements.Count -ne 1 -or
-        $manifestStatement.PipelineElements[0] -isnot [System.Management.Automation.Language.CommandExpressionAst] -or
-        $manifestStatement.PipelineElements[0].Expression -isnot [System.Management.Automation.Language.HashtableAst]
+        ($manifestStatement.PipelineElements | Select-Object -First 1) -isnot [System.Management.Automation.Language.CommandExpressionAst] -or
+        ($manifestStatement.PipelineElements | Select-Object -First 1).Expression -isnot [System.Management.Automation.Language.HashtableAst]
     ) {
         throw "The manifest at release commit $ReleaseCommit must contain one data table."
     }
-    $manifest = $manifestStatement.PipelineElements[0].Expression.SafeGetValue()
+    $manifest = ($manifestStatement.PipelineElements | Select-Object -First 1).Expression.SafeGetValue()
     if ($manifest -isnot [hashtable] -or -not $manifest.ContainsKey('ModuleVersion')) {
         throw "The manifest at release commit $ReleaseCommit does not define ModuleVersion."
     }
@@ -1269,18 +1263,19 @@ function Test-GitHubRelease {
     $releasePages = ConvertFrom-Json -InputObject $releaseJson -ErrorAction Stop
     foreach ($page in $releasePages) {
         foreach ($release in $page) {
-            if ($release.tag_name -eq $TagName) {
-                if ($release.draft) {
-                    throw "GitHub Release $TagName is a draft. Publish or remove the draft before retrying."
-                }
-                $prereleaseProperty = $release.PSObject.Properties['prerelease']
-                $releaseIsPrerelease = $null -ne $prereleaseProperty -and [bool]$prereleaseProperty.Value
-                if ($releaseIsPrerelease -ne [bool]$Prerelease) {
-                    throw "GitHub Release $TagName has an incorrect prerelease state."
-                }
-
-                return $true
+            if ($release.tag_name -ne $TagName) {
+                continue
             }
+            if ($release.draft) {
+                throw "GitHub Release $TagName is a draft. Publish or remove the draft before retrying."
+            }
+            $prereleaseProperty = $release.PSObject.Properties['prerelease']
+            $releaseIsPrerelease = $null -ne $prereleaseProperty -and [bool]$prereleaseProperty.Value
+            if ($releaseIsPrerelease -ne [bool]$Prerelease) {
+                throw "GitHub Release $TagName has an incorrect prerelease state."
+            }
+
+            return $true
         }
     }
 
@@ -1310,26 +1305,25 @@ function Get-RemoteReleaseState {
     foreach ($line in $remoteTagLines) {
         $parts = $line -split '\s+', 2
         if ($parts[1] -eq "refs/tags/$tagName^{}") {
-            $tagCommit = $parts[0]
+            $tagCommit = ($parts | Select-Object -First 1)
             break
         }
-        $tagCommit = $parts[0]
+        $tagCommit = ($parts | Select-Object -First 1)
     }
 
     Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
     $galleryExists = Test-GalleryPublication -Version $Version
-    $gitHubReleaseExists = Test-GitHubRelease `
-        -GhPath $gh `
-        -TagName $tagName `
-        -Prerelease:$isPrerelease
+    $gitHubReleaseExists = Test-GitHubRelease -GhPath $gh -TagName $tagName -Prerelease:$isPrerelease
 
-    Get-ReleasePublicationState `
-        -TagName $tagName `
-        -Version $Version `
-        -ReleaseCommit $ReleaseCommit `
-        -TagCommit $tagCommit `
-        -GalleryExists:$galleryExists `
-        -GitHubReleaseExists:$gitHubReleaseExists
+    $publicationStateParameters = @{
+        TagName = $tagName
+        Version = $Version
+        ReleaseCommit = $ReleaseCommit
+        TagCommit = $tagCommit
+        GalleryExists = $galleryExists
+        GitHubReleaseExists = $gitHubReleaseExists
+    }
+    Get-ReleasePublicationState @publicationStateParameters
 }
 
 function Invoke-ReleasePack {
@@ -1346,10 +1340,7 @@ function Invoke-ReleasePack {
         Remove-Item -LiteralPath $ArtifactPath -Force
     }
 
-    Compress-Archive `
-        -LiteralPath $ModuleDirectory `
-        -DestinationPath $ArtifactPath `
-        -CompressionLevel Optimal
+    Compress-Archive -LiteralPath $ModuleDirectory -DestinationPath $ArtifactPath -CompressionLevel Optimal
 }
 
 function Invoke-ReleasePublish {
@@ -1425,11 +1416,7 @@ function Invoke-ReleasePublish {
 
     if (-not $State.GalleryExists) {
         Import-RequiredModule -Name 'Microsoft.PowerShell.PSResourceGet'
-        Publish-PSResource `
-            -Path $ModuleDirectory `
-            -Repository 'PSGallery' `
-            -ApiKey $env:PSGALLERY_API_KEY `
-            -ErrorAction Stop | Out-Null
+        Publish-PSResource -Path $ModuleDirectory -Repository 'PSGallery' -ApiKey $env:PSGALLERY_API_KEY -ErrorAction Stop | Out-Null
 
         Wait-GalleryPublication -Version $Version
     }
@@ -1524,10 +1511,7 @@ switch ($Command) {
         Assert-WUDevSource
         Import-RequiredModule -Name 'ModuleBuilder'
         Invoke-WUDevBuild
-        Update-CommandReference `
-            -ManifestPath $outputManifestPath `
-            -Path $commandReferencePath `
-            -Check:($Argument -eq 'check')
+        Update-CommandReference -ManifestPath $outputManifestPath -Path $commandReferencePath -Check:($Argument -eq 'check')
     }
     'test' {
         $selectedTestType = 'all'

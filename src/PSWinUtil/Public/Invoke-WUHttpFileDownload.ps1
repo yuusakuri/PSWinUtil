@@ -41,13 +41,14 @@ function Invoke-WUHttpFileDownload {
 
     $fullPath = ConvertTo-WUFullPath -Path $Path
     $parentPath = Split-Path -Path $fullPath -Parent
-    Assert-WUPathProperty -LiteralPath $parentPath -Container
     if (Test-Path -LiteralPath $fullPath -PathType Container) {
         throw "The download target must be a file path: $fullPath"
     }
     if (-not $PSCmdlet.ShouldProcess($fullPath, "Download from $($Uri.AbsoluteUri)")) {
         return
     }
+
+    [System.IO.Directory]::CreateDirectory($parentPath) | Out-Null
 
     Add-Type -AssemblyName 'System.Net.Http' -ErrorAction Stop
     $clientVariable = Get-Variable -Name 'WUHttpClient' -Scope Script -ErrorAction Ignore
@@ -86,24 +87,10 @@ function Invoke-WUHttpFileDownload {
             ).GetAwaiter().GetResult()
             $response.EnsureSuccessStatusCode() | Out-Null
 
-            $fileMode = [System.IO.FileMode]::Create
-            $expectedLength = $response.Content.Headers.ContentLength
-            if ($response.StatusCode -eq [System.Net.HttpStatusCode]::PartialContent) {
-                $contentRange = $response.Content.Headers.ContentRange
-                if ($null -eq $contentRange -or $contentRange.From -ne $savedLength) {
-                    throw "The server returned an invalid Content-Range for offset $savedLength."
-                }
-                if ($savedLength -gt 0) {
-                    $fileMode = [System.IO.FileMode]::Append
-                }
-                if ($contentRange.HasLength) {
-                    $expectedLength = $contentRange.Length
-                } elseif ($null -ne $expectedLength) {
-                    $expectedLength += $savedLength
-                }
-            } elseif ($savedLength -gt 0) {
-                $progressStartLength = 0L
-            }
+            $layout = Get-WUHttpDownloadResponseLayout -Response $response -SavedLength $savedLength
+            $fileMode = $layout.FileMode
+            $expectedLength = $layout.ExpectedLength
+            $progressStartLength = $layout.ProgressStartLength
 
             $responseStream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
             $fileStream = [System.IO.FileStream]::new(

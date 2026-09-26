@@ -4,7 +4,7 @@ function Get-WURegistrySetting {
     Gets a Windows registry setting state.
 
     .DESCRIPTION
-    Gets the state of a named registry setting in one or more scopes. Auto selects the User configuration before the Machine configuration. The result is an option name, NotConfigured, or Mixed.
+    Gets the state of a named registry setting in one or more scopes. Auto selects the User target before the Machine target. The result is an option name, NotConfigured, or Mixed.
 
     .PARAMETER Name
     Specifies one or more registry setting names from the distributed setting data.
@@ -49,20 +49,20 @@ function Get-WURegistrySetting {
         if ($scopes.Count -gt 1 -and $scopes -contains 'Auto') {
             throw 'Auto cannot be combined with another scope.'
         }
-        $settings = @((Import-WURegistrySetting).Settings)
+        $configs = @((Import-WURegistryConfig).Configs)
     }
 
     process {
         foreach ($inputName in $Name) {
-            $setting = @($settings | Where-Object { $_.Name -ieq $inputName })[0]
-            if ($null -eq $setting) {
+            $registryConfig = (@($configs | Where-Object { $_.Name -ieq $inputName }) | Select-Object -First 1)
+            if ($null -eq $registryConfig) {
                 throw "The registry setting was not found: $inputName"
             }
 
             foreach ($targetScope in $scopes) {
-                $configuration = Get-WURegistrySettingConfiguration -Setting $setting -Scope $targetScope
+                $target = Get-WURegistryConfigTarget -Config $registryConfig -Scope $targetScope
                 $propertyStates = @(
-                    foreach ($property in $configuration.Properties) {
+                    foreach ($property in $target.Properties) {
                         $registryProperty = Get-WURegistryProperty -Path $property.Path -Name $property.Name
                         [pscustomobject]@{
                             Property = $property
@@ -71,59 +71,30 @@ function Get-WURegistrySetting {
                     }
                 )
 
-                $state = $null
-                foreach ($optionName in @($configuration.Properties[0].Options.Name | Sort-Object)) {
-                    $optionMatches = $true
-                    foreach ($propertyState in $propertyStates) {
-                        $option = @(
-                            $propertyState.Property.Options | Where-Object { $_.Name -ieq $optionName }
-                        )[0]
-                        if ($option.Action -eq 'Remove') {
-                            if ($null -ne $propertyState.RegistryProperty) {
-                                $optionMatches = $false
-                                break
-                            }
-                            continue
-                        }
+                $state = (@(
+                        ($target.Properties | Select-Object -First 1).Options.Name |
+                            Sort-Object |
+                            Where-Object { Test-WURegistryConfigOptionApplied -PropertyState $propertyStates -OptionName $_ } |
+                            Select-Object -First 1
+                        ) | Select-Object -First 1)
 
-                        if (
-                            $null -eq $propertyState.RegistryProperty -or
-                            $propertyState.RegistryProperty.Type -ine $propertyState.Property.Type
-                        ) {
-                            $optionMatches = $false
-                            break
-                        }
-
-                        if (-not (Compare-WURegistryValue -ReferenceValue $option.Value -DifferenceValue $propertyState.RegistryProperty.Value)) {
-                            $optionMatches = $false
-                            break
-                        }
-                    }
-
-                    if ($optionMatches) {
-                        $state = [string]$optionName
-                        break
-                    }
-                }
-
-                if ($null -eq $state) {
                     $configuredPropertyCount = @(
                         $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
                     ).Count
-                    if ($configuredPropertyCount -eq 0) {
+                    if ($null -eq $state -and $configuredPropertyCount -eq 0) {
                         $state = 'NotConfigured'
-                    } else {
+                    }
+                    if ($null -eq $state) {
                         $state = 'Mixed'
                     }
-                }
 
-                [pscustomobject]@{
-                    PSTypeName = 'PSWinUtil.RegistrySetting'
-                    Name = $inputName
-                    Scope = $configuration.Scope
-                    State = $state
+                    [pscustomobject]@{
+                        PSTypeName = 'PSWinUtil.RegistryConfig'
+                        Name = $inputName
+                        Scope = $target.Scope
+                        State = $state
+                    }
                 }
             }
         }
     }
-}
