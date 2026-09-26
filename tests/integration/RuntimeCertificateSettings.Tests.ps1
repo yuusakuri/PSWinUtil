@@ -37,6 +37,11 @@ Describe 'Runtime certificate environment integration' {
         $env:NODE_EXTRA_CA_CERTS | Should -Be 'original'
     }
 
+    It 'rejects a directory as a certificate and preserves the environment' {
+        { Set-WUNodeExtraCaCertificate -LiteralPath $TestDrive -Scope Process } | Should -Throw '*required properties*'
+        $env:NODE_EXTRA_CA_CERTS | Should -Be 'original'
+    }
+
     It 'previews certificate and trust store settings without changing their values' {
         $env:JAVA_TOOL_OPTIONS = '-Xmx2g'
         Set-WUNodeExtraCaCertificate -LiteralPath $script:CertificatePath -Scope Process -WhatIf

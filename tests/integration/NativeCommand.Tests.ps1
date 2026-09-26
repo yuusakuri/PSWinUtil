@@ -25,7 +25,7 @@ Describe 'Invoke-WUNativeCommand' {
         $script:ProcessScriptPath = Join-Path -Path $script:CommandDirectory -ChildPath 'echo-arguments.ps1'
         [IO.File]::WriteAllText(
             $script:ProcessScriptPath,
-            "[Console]::WriteLine('VALUE=' + `($args | Select-Object -First 1))`n",
+            "[Console]::WriteLine('VALUE=' + (`$args | Select-Object -First 1))`n",
             [Text.Encoding]::ASCII
         )
         $script:ExitScriptPath = Join-Path -Path $script:CommandDirectory -ChildPath 'report-exit.ps1'

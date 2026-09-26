@@ -105,7 +105,7 @@ function New-WUSshKey {
     $arguments += @('-C', $Comment, '-N', $Passphrase, '-f', $keyPath)
 
     Invoke-WUNativeCommand -Command 'ssh-keygen.exe' -ArgumentList $arguments -CaptureOutput -ErrorAction Stop | Out-Null
-    Assert-WUPathProperty -LiteralPath $keyPath, $publicKeyPath -Leaf
+    Assert-WUPathProperty -LiteralPath $keyPath, $publicKeyPath
 
     Get-Item -LiteralPath $keyPath
 }

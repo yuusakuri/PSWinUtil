@@ -4,7 +4,7 @@ function Set-WURegistrySetting {
     Applies a registry setting option.
 
     .DESCRIPTION
-    Selects a configuration for each requested scope, resolves the selected option from every property, and delegates each change to Set-WURegistryProperty or Remove-WURegistryProperty.
+    Selects a target for each requested scope, resolves the selected option from every property, and delegates each change to Set-WURegistryProperty or Remove-WURegistryProperty.
 
     .PARAMETER Name
     Specifies a registry setting name from the distributed setting data.
@@ -56,32 +56,30 @@ function Set-WURegistrySetting {
         throw 'Auto cannot be combined with another scope.'
     }
 
-    $settings = @((Import-WURegistrySetting).Settings)
-    $setting = $settings | Where-Object { $_.Name -ieq $Name } | Select-Object -First 1
-    if ($null -eq $setting) {
+    $configs = @((Import-WURegistryConfig).Configs)
+    $registryConfig = (@($configs | Where-Object { $_.Name -ieq $Name }) | Select-Object -First 1)
+    if ($null -eq $registryConfig) {
         throw "The registry setting was not found: $Name"
     }
 
     $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
     foreach ($targetScope in $scopes) {
-        $configuration = Get-WURegistrySettingConfiguration -Setting $setting -Scope $targetScope
-        $configurationOption = $configuration.Properties |
-            Select-Object -First 1 |
-            ForEach-Object { $_.Options } |
-            Where-Object { $_.Name -ieq $Option } |
-            Select-Object -First 1
-        if ($null -eq $configurationOption) {
+        $target = Get-WURegistryConfigTarget -Config $registryConfig -Scope $targetScope
+        $targetOption = (@(
+                ($target.Properties | Select-Object -First 1).Options | Where-Object { $_.Name -ieq $Option }
+            ) | Select-Object -First 1)
+        if ($null -eq $targetOption) {
             throw "The registry setting option was not found: $Name/$Option"
         }
 
-        $currentState = Get-WURegistrySetting -Name $Name -Scope $configuration.Scope
-        if ($currentState.State -ceq $configurationOption.Name) {
+        $currentState = Get-WURegistrySetting -Name $Name -Scope $target.Scope
+        if ($currentState.State -ceq $targetOption.Name) {
             continue
         }
 
-        foreach ($property in $configuration.Properties) {
-            $propertyOption = $property.Options | Where-Object { $_.Name -ieq $Option } | Select-Object -First 1
+        foreach ($property in $target.Properties) {
+            $propertyOption = (@($property.Options | Where-Object { $_.Name -ieq $Option }) | Select-Object -First 1)
             $propertyParameters = @{
                 Path = $property.Path
                 Name = $property.Name
