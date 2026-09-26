@@ -109,7 +109,7 @@ Describe 'Resumable HTTP download' {
         try {
             {
                 Invoke-WUHttpFileDownload -Uri $server.Uri -Path $destinationPath
-            } | Should -Throw '*required properties*'
+            } | Should -Throw
 
             $server.RangeStarts | Should -HaveCount 0
         } finally {

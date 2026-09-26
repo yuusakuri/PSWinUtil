@@ -102,7 +102,6 @@ function Edit-WUSshKey {
     }
     $fullKeyPath = Resolve-WUPathFromParameterSet @resolveParameters |
         ConvertTo-WUFullPath
-    Assert-WUPathProperty -LiteralPath $fullKeyPath
 
     $argumentParameters = @{
         KeyPath = $fullKeyPath

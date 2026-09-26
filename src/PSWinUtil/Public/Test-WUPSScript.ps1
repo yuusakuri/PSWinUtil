@@ -90,7 +90,6 @@ function Test-WUPSScript {
                 Resolve-WUPathFromParameterSet @resolveParameters |
                     ConvertTo-WUFullPath
             )
-            Assert-WUPathProperty -LiteralPath $inputs
         }
 
         foreach ($inputValue in $inputs) {

@@ -41,7 +41,6 @@ function Invoke-WUHttpFileDownload {
 
     $fullPath = ConvertTo-WUFullPath -Path $Path
     $parentPath = Split-Path -Path $fullPath -Parent
-    Assert-WUPathProperty -LiteralPath $parentPath -Container -AllowNonExisting
     if (Test-Path -LiteralPath $fullPath -PathType Container) {
         throw "The download target must be a file path: $fullPath"
     }
