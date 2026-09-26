@@ -96,4 +96,42 @@ Describe 'Resumable HTTP download' {
             $server.Dispose()
         }
     }
+
+    It 'rejects a file as the destination parent before sending a request' {
+        $parentFilePath = Join-Path -Path $TestDrive -ChildPath 'destination-parent'
+        [System.IO.File]::WriteAllText($parentFilePath, 'not a directory')
+        $destinationPath = Join-Path -Path $parentFilePath -ChildPath 'download.zip'
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new(
+            [byte[]]@(1, 2, 3),
+            [int[]]@()
+        )
+
+        try {
+            {
+                Invoke-WUHttpFileDownload -Uri $server.Uri -Path $destinationPath
+            } | Should -Throw
+
+            $server.RangeStarts | Should -HaveCount 0
+        } finally {
+            $server.Dispose()
+        }
+    }
+
+    It 'creates missing destination parent directories before downloading' {
+        $destinationDirectory = Join-Path -Path $TestDrive -ChildPath 'created/child'
+        $destinationPath = Join-Path -Path $destinationDirectory -ChildPath 'download.bin'
+        $payload = [byte[]]@(1, 2, 3, 4)
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new($payload, [int[]]@())
+
+        try {
+            $result = Invoke-WUHttpFileDownload -Uri $server.Uri -Path $destinationPath
+
+            $result | Should -Be $destinationPath
+            Test-Path -LiteralPath $destinationDirectory -PathType Container | Should -BeTrue
+            [System.IO.File]::ReadAllBytes($destinationPath) | Should -Be $payload
+            $server.RangeStarts | Should -HaveCount 1
+        } finally {
+            $server.Dispose()
+        }
+    }
 }

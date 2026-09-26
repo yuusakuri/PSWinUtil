@@ -82,7 +82,6 @@ function Start-WUPSScriptAsAdmin {
         }
         $fullPath = Resolve-WUPathFromParameterSet @resolveParameters |
             ConvertTo-WUFullPath
-        Assert-WUPathProperty -LiteralPath $fullPath -Leaf
         if ([System.IO.Path]::GetExtension($fullPath) -ine '.ps1') {
             throw "The script must use the .ps1 extension: $fullPath"
         }
