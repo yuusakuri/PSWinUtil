@@ -145,7 +145,7 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
         Test-Path -LiteralPath $firefoxPartialPath | Should -BeFalse
     }
 
-    It 'waits while the target file is locked and then times out' {
+    It 'returns the target when browser partial files are gone even if it is locked' {
         Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
             [IO.File]::WriteAllText($script:BrowserTargetPath, 'locked')
             $script:BrowserLockStream = [IO.File]::Open(
@@ -162,9 +162,9 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
             TimeoutSeconds = 1
         }
 
-        {
-            Invoke-WUDefaultBrowserDownload @parameters
-        } | Should -Throw '*did not complete*'
+        $result = Invoke-WUDefaultBrowserDownload @parameters
+
+        $result | Should -Be $script:BrowserTargetPath
     }
 
     It 'resets the timeout while a partial download continues to grow' {

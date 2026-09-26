@@ -54,8 +54,7 @@ function Wait-WUBrowserDownload {
         ).Count -gt 0
         if (
             -not $partialFileExists -and
-            (Test-Path -LiteralPath $TargetPath -PathType Leaf) -and
-            (Test-WUDownloadFileReady -Path $TargetPath)
+            (Test-Path -LiteralPath $TargetPath -PathType Leaf)
         ) {
             return [IO.Path]::GetFullPath($TargetPath)
         }
