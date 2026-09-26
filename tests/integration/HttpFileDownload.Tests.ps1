@@ -101,7 +101,7 @@ Describe 'Resumable HTTP download' {
         $parentFilePath = Join-Path -Path $TestDrive -ChildPath 'destination-parent'
         [System.IO.File]::WriteAllText($parentFilePath, 'not a directory')
         $destinationPath = Join-Path -Path $parentFilePath -ChildPath 'download.zip'
-        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new(
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new(
             [byte[]]@(1, 2, 3),
             [int[]]@()
         )
@@ -121,7 +121,7 @@ Describe 'Resumable HTTP download' {
         $destinationDirectory = Join-Path -Path $TestDrive -ChildPath 'created/child'
         $destinationPath = Join-Path -Path $destinationDirectory -ChildPath 'download.bin'
         $payload = [byte[]]@(1, 2, 3, 4)
-        $server = [PSWinUtil.Tests.DisconnectingHttpServer]::new($payload, [int[]]@())
+        $server = [PSWinUtil.Tests.DownloadInterruptionServer]::new($payload, [int[]]@())
 
         try {
             $result = Invoke-WUHttpFileDownload -Uri $server.Uri -Path $destinationPath
