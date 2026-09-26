@@ -196,6 +196,77 @@ Describe 'Invoke-WUDefaultBrowserDownload' {
         $script:ProgressStep | Should -Be 4
     }
 
+    It 'resets the timeout when a nonempty partial file is first observed' {
+        $script:BrowserPartialPath = "$($script:BrowserTargetPath).crdownload"
+        $script:ProgressStep = 0
+        Mock -CommandName Start-Process -ModuleName PSWinUtil
+        Mock -CommandName Start-Sleep -ModuleName PSWinUtil -MockWith {
+            $script:ProgressStep++
+            switch ($script:ProgressStep) {
+                1 {
+                    [System.Threading.Thread]::Sleep(800)
+                    [IO.File]::WriteAllText($script:BrowserPartialPath, 'first chunk')
+                }
+                2 {
+                    [System.Threading.Thread]::Sleep(400)
+                }
+                3 {
+                    [System.Threading.Thread]::Sleep(400)
+                    [IO.File]::Delete($script:BrowserPartialPath)
+                    [IO.File]::WriteAllText($script:BrowserTargetPath, 'downloaded')
+                }
+            }
+        }
+        $parameters = @{
+            Uri = 'https://example.com/package.zip'
+            FileName = 'package.zip'
+            DownloadDirectory = $TestDrive
+            TimeoutSeconds = 1
+        }
+
+        $result = Invoke-WUDefaultBrowserDownload @parameters
+
+        $result | Should -Be $script:BrowserTargetPath
+        $script:ProgressStep | Should -Be 3
+    }
+
+    It 'does not reset the timeout when a partial file shrinks and grows to its prior size' {
+        $script:BrowserPartialPath = "$($script:BrowserTargetPath).crdownload"
+        $script:ProgressStep = 0
+        Mock -CommandName Start-Process -ModuleName PSWinUtil -MockWith {
+            [IO.File]::WriteAllText($script:BrowserPartialPath, 'x')
+        }
+        Mock -CommandName Start-Sleep -ModuleName PSWinUtil -MockWith {
+            $script:ProgressStep++
+            switch ($script:ProgressStep) {
+                1 {
+                    [IO.File]::WriteAllText($script:BrowserPartialPath, '')
+                    [System.Threading.Thread]::Sleep(200)
+                }
+                2 {
+                    [IO.File]::WriteAllText($script:BrowserPartialPath, 'x')
+                    [System.Threading.Thread]::Sleep(200)
+                }
+                3 {
+                    [System.Threading.Thread]::Sleep(850)
+                }
+                default {
+                    throw 'The timeout was reset when the file regrew to its prior size.'
+                }
+            }
+        }
+        $parameters = @{
+            Uri = 'https://example.com/package.zip'
+            FileName = 'package.zip'
+            DownloadDirectory = $TestDrive
+            TimeoutSeconds = 1
+        }
+
+        { Invoke-WUDefaultBrowserDownload @parameters } | Should -Throw '*made no progress*'
+
+        $script:ProgressStep | Should -Be 3
+    }
+
     It 'does not reset the timeout when a partial file reappears at the same size' {
         $script:BrowserPartialPath = "$($script:BrowserTargetPath).crdownload"
         $script:ProgressStep = 0

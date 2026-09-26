@@ -13,7 +13,7 @@ function Wait-WUBrowserDownload {
 
     $partialPaths = @("$TargetPath.crdownload", "$TargetPath.part")
     $observedPaths = @($partialPaths) + $TargetPath
-    $previousFileLengths = @{}
+    $highestObservedFileLengths = @{}
     $stopwatch = [Diagnostics.Stopwatch]::StartNew()
     while ($true) {
         $currentFileLengths = @{}
@@ -27,8 +27,11 @@ function Wait-WUBrowserDownload {
         $progressObserved = $false
         foreach ($path in $currentFileLengths.Keys) {
             if (
-                $previousFileLengths.ContainsKey($path) -and
-                $currentFileLengths[$path] -gt $previousFileLengths[$path]
+                $currentFileLengths[$path] -gt 0 -and
+                (
+                    -not $highestObservedFileLengths.ContainsKey($path) -or
+                    $currentFileLengths[$path] -gt $highestObservedFileLengths[$path]
+                )
             ) {
                 $progressObserved = $true
                 break
@@ -37,7 +40,14 @@ function Wait-WUBrowserDownload {
         if ($progressObserved) {
             $stopwatch.Restart()
         }
-        $previousFileLengths = $currentFileLengths
+        foreach ($path in $currentFileLengths.Keys) {
+            if (
+                -not $highestObservedFileLengths.ContainsKey($path) -or
+                $currentFileLengths[$path] -gt $highestObservedFileLengths[$path]
+            ) {
+                $highestObservedFileLengths[$path] = $currentFileLengths[$path]
+            }
+        }
 
         $partialFileExists = @(
             $partialPaths | Where-Object { Test-Path -LiteralPath $_ }
