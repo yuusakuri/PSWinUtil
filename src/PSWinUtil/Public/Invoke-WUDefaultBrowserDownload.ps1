@@ -16,7 +16,7 @@ function Invoke-WUDefaultBrowserDownload {
     Specifies an existing browser download directory. The default value is the current user Downloads directory.
 
     .PARAMETER TimeoutSeconds
-    Specifies the maximum number of seconds without observed file-size progress before timing out. The counter resets when a partial or target file grows. The default value is 300.
+    Specifies the maximum number of seconds without observed file-size progress before timing out. The counter resets when a partial or target file grows. The default value is 240.
 
     .PARAMETER Force
     Allows an existing target file to be removed before the browser starts.
@@ -54,7 +54,7 @@ function Invoke-WUDefaultBrowserDownload {
 
         [Parameter()]
         [ValidateRange(1, 86400)]
-        [int]$TimeoutSeconds = 300,
+        [int]$TimeoutSeconds = 240,
 
         [Parameter()]
         [switch]$Force
