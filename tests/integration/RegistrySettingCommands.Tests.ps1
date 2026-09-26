@@ -2,7 +2,7 @@ $runRegistrySettings = $env:PSWINUTIL_RUN_REGISTRY_SETTINGS_INTEGRATION -eq '1'
 
 BeforeAll {
     . (Join-Path -Path $PSScriptRoot -ChildPath '../UnitTestBootstrap.ps1')
-    $script:SettingData = Import-PowerShellDataFile (Join-Path $repositoryRoot 'output/PSWinUtil/data/RegistrySettings.psd1')
+    $script:RegistryConfig = Import-PowerShellDataFile (Join-Path $repositoryRoot 'output/PSWinUtil/data/RegistryConfig.psd1')
 }
 
 Describe 'Windows setting command state transitions' -Skip:(-not $runRegistrySettings) {
@@ -11,9 +11,9 @@ Describe 'Windows setting command state transitions' -Skip:(-not $runRegistrySet
         @{ Setting = 'WindowsUpdateNotificationLevel'; Command = 'Set-WUWindowsUpdateNotificationLevel'; Parameter = 'Level'; Options = @('None', 'RestartWarningsOnly', 'Default') }
     ) {
         param($Setting, $Command, $Parameter, $Options)
-        $definition = $script:SettingData.Settings | Where-Object { $_.Name -eq $Setting }
+        $definition = $script:RegistryConfig.Configs | Where-Object { $_.Name -eq $Setting }
         $saved = @(
-            foreach ($property in $definition.Configurations[0].Properties) {
+            foreach ($property in $definition.Targets[0].Properties) {
                 [pscustomobject]@{ Path = $property.Path; Name = $property.Name; Stored = (Get-WURegistryProperty -Path $property.Path -Name $property.Name) }
             }
         )
@@ -60,9 +60,9 @@ Describe 'Windows setting command state transitions' -Skip:(-not $runRegistrySet
         param($Setting)
         # The catalog locates values for snapshot/restore only. Expected public
         # transitions are specified by this test, not read from catalog options.
-        $definition = $script:SettingData.Settings | Where-Object { $_.Name -eq $Setting }
+        $definition = $script:RegistryConfig.Configs | Where-Object { $_.Name -eq $Setting }
         $saved = @(
-            foreach ($property in $definition.Configurations[0].Properties) {
+            foreach ($property in $definition.Targets[0].Properties) {
                 [pscustomobject]@{ Path = $property.Path; Name = $property.Name; Stored = (Get-WURegistryProperty -Path $property.Path -Name $property.Name) }
             }
         )
