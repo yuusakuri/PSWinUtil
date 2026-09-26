@@ -57,7 +57,7 @@ function Set-WURegistrySetting {
     }
 
     $configs = @((Import-WURegistryConfig).Configs)
-    $registryConfig = @($configs | Where-Object { $_.Name -ieq $Name })[0]
+    $registryConfig = (@($configs | Where-Object { $_.Name -ieq $Name }) | Select-Object -First 1)
     if ($null -eq $registryConfig) {
         throw "The registry setting was not found: $Name"
     }
@@ -66,9 +66,9 @@ function Set-WURegistrySetting {
 
     foreach ($targetScope in $scopes) {
         $target = Get-WURegistryConfigTarget -Config $registryConfig -Scope $targetScope
-        $targetOption = @(
-            $target.Properties[0].Options | Where-Object { $_.Name -ieq $Option }
-        )[0]
+        $targetOption = (@(
+                ($target.Properties | Select-Object -First 1).Options | Where-Object { $_.Name -ieq $Option }
+            ) | Select-Object -First 1)
         if ($null -eq $targetOption) {
             throw "The registry setting option was not found: $Name/$Option"
         }
@@ -79,7 +79,7 @@ function Set-WURegistrySetting {
         }
 
         foreach ($property in $target.Properties) {
-            $propertyOption = @($property.Options | Where-Object { $_.Name -ieq $Option })[0]
+            $propertyOption = (@($property.Options | Where-Object { $_.Name -ieq $Option }) | Select-Object -First 1)
             $propertyParameters = @{
                 Path = $property.Path
                 Name = $property.Name

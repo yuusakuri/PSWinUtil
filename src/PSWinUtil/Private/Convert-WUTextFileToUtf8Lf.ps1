@@ -29,13 +29,13 @@ function Convert-WUTextFileToUtf8Lf {
 
     [byte[]]$bytes = [System.IO.File]::ReadAllBytes($Path)
     $encoding = [System.Text.UTF8Encoding]::new($false, $true)
-    if ($bytes.Length -ge 4 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE -and $bytes[2] -eq 0 -and $bytes[3] -eq 0) {
+    if ($bytes.Length -ge 4 -and ($bytes | Select-Object -First 1) -eq 0xFF -and $bytes[1] -eq 0xFE -and $bytes[2] -eq 0 -and $bytes[3] -eq 0) {
         $encoding = [System.Text.UTF32Encoding]::new($false, $true)
-    } elseif ($bytes.Length -ge 4 -and $bytes[0] -eq 0 -and $bytes[1] -eq 0 -and $bytes[2] -eq 0xFE -and $bytes[3] -eq 0xFF) {
+    } elseif ($bytes.Length -ge 4 -and ($bytes | Select-Object -First 1) -eq 0 -and $bytes[1] -eq 0 -and $bytes[2] -eq 0xFE -and $bytes[3] -eq 0xFF) {
         $encoding = [System.Text.UTF32Encoding]::new($true, $true)
-    } elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+    } elseif ($bytes.Length -ge 2 -and ($bytes | Select-Object -First 1) -eq 0xFF -and $bytes[1] -eq 0xFE) {
         $encoding = [System.Text.UnicodeEncoding]::new($false, $true)
-    } elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+    } elseif ($bytes.Length -ge 2 -and ($bytes | Select-Object -First 1) -eq 0xFE -and $bytes[1] -eq 0xFF) {
         $encoding = [System.Text.UnicodeEncoding]::new($true, $true)
     }
 

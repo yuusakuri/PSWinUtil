@@ -35,11 +35,7 @@ function Get-Hidden {
 Export-ModuleMember -Function Get-Zulu, Get-Alpha
 '@
         [System.IO.File]::WriteAllText($script:FixtureModulePath, $script:FixtureSource, $script:Utf8)
-        New-ModuleManifest `
-            -Path $script:FixtureManifestPath `
-            -RootModule "$($script:FixtureName).psm1" `
-            -ModuleVersion '1.0.0' `
-            -FunctionsToExport 'Get-Zulu', 'Get-Alpha'
+        New-ModuleManifest -Path $script:FixtureManifestPath -RootModule "$($script:FixtureName).psm1" -ModuleVersion '1.0.0' -FunctionsToExport 'Get-Zulu', 'Get-Alpha'
     }
 
     AfterEach {
@@ -51,7 +47,7 @@ Export-ModuleMember -Function Get-Zulu, Get-Alpha
         $rows = @($reference -split "`n" | Where-Object { $_ -match '^\| `Get-' })
 
         $rows | Should -HaveCount 2
-        $rows[0] | Should -BeExactly '| `Get-Alpha` | Gets the first &#124; item.<br>Continues on another line. |'
+        ($rows | Select-Object -First 1) | Should -BeExactly '| `Get-Alpha` | Gets the first &#124; item.<br>Continues on another line. |'
         $rows[1] | Should -BeExactly '| `Get-Zulu` | Gets the last item. |'
         $reference | Should -Not -Match 'Get-Hidden'
         $reference | Should -Not -Match "`r"

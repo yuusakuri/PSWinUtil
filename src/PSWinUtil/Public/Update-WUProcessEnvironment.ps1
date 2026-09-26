@@ -49,12 +49,12 @@ function Update-WUProcessEnvironment {
         }
         foreach ($environmentName in $environmentNames) {
             $value = Get-WUEnvironmentVariable -Name $environmentName -Scope $targetScope
-            if ($environmentName -ieq 'Path') {
-                if (-not [string]::IsNullOrEmpty($value)) {
-                    $pathValues += $value
-                }
-            } else {
+            if ($environmentName -ine 'Path') {
                 $environmentValues[$environmentName] = $value
+                continue
+            }
+            if (-not [string]::IsNullOrEmpty($value)) {
+                $pathValues += $value
             }
         }
     }

@@ -102,7 +102,7 @@ function Start-WUAndroidEmulator {
                 if ($matchingNames.Count -eq 0) {
                     throw "The Android virtual device was not found: $requestedName"
                 }
-                $matchingNames[0]
+                ($matchingNames | Select-Object -First 1)
             }
         )
         if (@($selectedNames | Select-Object -Unique).Count -ne $selectedNames.Count) {

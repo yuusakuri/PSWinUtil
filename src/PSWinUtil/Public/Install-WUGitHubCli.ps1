@@ -25,11 +25,7 @@ function Install-WUGitHubCli {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param()
 
-    $shouldProcessParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'WhatIf', 'Confirm'
+    $shouldProcessParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'WhatIf', 'Confirm'
 
-    Install-WUWingetPackage `
-        -Id 'GitHub.cli' `
-        @shouldProcessParameters
+    Install-WUWingetPackage -Id 'GitHub.cli' @shouldProcessParameters
 }

@@ -208,20 +208,13 @@ function Out-File {
         if ($approved) {
             try {
                 if ($normalizeOutput) {
-                    Write-WUOutFileLine `
-                        -StreamWriter $streamWriter `
-                        -Line @($formatPipeline.Process($_)) `
-                        -NoNewline:$NoNewline
+                    Write-WUOutFileLine -StreamWriter $streamWriter -Line @($formatPipeline.Process($_)) -NoNewline:$NoNewline
                 } else {
                     $steppablePipeline.Process($_)
                 }
             } catch {
                 if ($normalizeOutput) {
-                    Close-WUOutFile `
-                        -FormatPipeline $formatPipeline `
-                        -StreamWriter $streamWriter `
-                        -FullPath $fullPath `
-                        -OriginalAttributes $originalAttributes
+                    Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FullPath $fullPath -OriginalAttributes $originalAttributes
                 } else {
                     $steppablePipeline.Dispose()
                 }
@@ -236,16 +229,9 @@ function Out-File {
         }
         if ($normalizeOutput) {
             try {
-                Write-WUOutFileLine `
-                    -StreamWriter $streamWriter `
-                    -Line @($formatPipeline.End()) `
-                    -NoNewline:$NoNewline
+                Write-WUOutFileLine -StreamWriter $streamWriter -Line @($formatPipeline.End()) -NoNewline:$NoNewline
             } finally {
-                Close-WUOutFile `
-                    -FormatPipeline $formatPipeline `
-                    -StreamWriter $streamWriter `
-                    -FullPath $fullPath `
-                    -OriginalAttributes $originalAttributes
+                Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FullPath $fullPath -OriginalAttributes $originalAttributes
             }
         } else {
             try {

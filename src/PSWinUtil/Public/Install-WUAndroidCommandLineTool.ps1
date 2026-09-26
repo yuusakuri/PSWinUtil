@@ -44,11 +44,6 @@ function Install-WUAndroidCommandLineTool {
     if (-not $PSCmdlet.ShouldProcess("Command-Line Tools package '$Version'", 'Install Android SDK component')) {
         return
     }
-    Invoke-WUNativeCommand `
-        -Command 'android.exe' `
-        -ArgumentList $arguments `
-        -CaptureOutput `
-        -ContinueExitCodes @(-1073740791) `
-        -ErrorAction Stop |
+    Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList $arguments -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop |
         Out-Null
 }

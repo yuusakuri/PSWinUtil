@@ -111,11 +111,11 @@ Describe 'Windows 11 user setting registry changes' {
 
     It 'writes both device setup suggestion states' {
         Enable-WUDeviceSetupSuggestions
-        (Get-WURegistryProperty -Path $script:Windows11RegistryProperties[0].Path -Name $script:Windows11RegistryProperties[0].Name).Value |
+        (Get-WURegistryProperty -Path ($script:Windows11RegistryProperties | Select-Object -First 1).Path -Name ($script:Windows11RegistryProperties | Select-Object -First 1).Name).Value |
             Should -Be 1
 
         Disable-WUDeviceSetupSuggestions
-        (Get-WURegistryProperty -Path $script:Windows11RegistryProperties[0].Path -Name $script:Windows11RegistryProperties[0].Name).Value |
+        (Get-WURegistryProperty -Path ($script:Windows11RegistryProperties | Select-Object -First 1).Path -Name ($script:Windows11RegistryProperties | Select-Object -First 1).Name).Value |
             Should -Be 0
     }
 

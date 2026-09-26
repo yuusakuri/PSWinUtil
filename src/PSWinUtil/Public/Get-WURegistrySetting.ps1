@@ -54,7 +54,7 @@ function Get-WURegistrySetting {
 
     process {
         foreach ($inputName in $Name) {
-            $registryConfig = @($configs | Where-Object { $_.Name -ieq $inputName })[0]
+            $registryConfig = (@($configs | Where-Object { $_.Name -ieq $inputName }) | Select-Object -First 1)
             if ($null -eq $registryConfig) {
                 throw "The registry setting was not found: $inputName"
             }
@@ -71,30 +71,30 @@ function Get-WURegistrySetting {
                     }
                 )
 
-                $state = @(
-                    $target.Properties[0].Options.Name |
-                        Sort-Object |
-                        Where-Object { Test-WURegistryConfigOptionApplied -PropertyState $propertyStates -OptionName $_ } |
-                        Select-Object -First 1
-                )[0]
+                $state = (@(
+                        ($target.Properties | Select-Object -First 1).Options.Name |
+                            Sort-Object |
+                            Where-Object { Test-WURegistryConfigOptionApplied -PropertyState $propertyStates -OptionName $_ } |
+                            Select-Object -First 1
+                        ) | Select-Object -First 1)
 
-                $configuredPropertyCount = @(
-                    $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
-                ).Count
-                if ($null -eq $state -and $configuredPropertyCount -eq 0) {
-                    $state = 'NotConfigured'
-                }
-                if ($null -eq $state) {
-                    $state = 'Mixed'
-                }
+                    $configuredPropertyCount = @(
+                        $propertyStates | Where-Object { $null -ne $_.RegistryProperty }
+                    ).Count
+                    if ($null -eq $state -and $configuredPropertyCount -eq 0) {
+                        $state = 'NotConfigured'
+                    }
+                    if ($null -eq $state) {
+                        $state = 'Mixed'
+                    }
 
-                [pscustomobject]@{
-                    PSTypeName = 'PSWinUtil.RegistryConfig'
-                    Name = $inputName
-                    Scope = $target.Scope
-                    State = $state
+                    [pscustomobject]@{
+                        PSTypeName = 'PSWinUtil.RegistryConfig'
+                        Name = $inputName
+                        Scope = $target.Scope
+                        State = $state
+                    }
                 }
             }
         }
     }
-}

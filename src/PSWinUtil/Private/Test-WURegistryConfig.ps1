@@ -77,7 +77,7 @@ function Test-WURegistryConfig {
             }
 
             $targetScopes += $target.Scope
-            $targetOptionNames = @($target.Properties[0].Options.Name | Sort-Object)
+            $targetOptionNames = @(($target.Properties | Select-Object -First 1).Options.Name | Sort-Object)
             if ($null -ne $configOptionNames -and
                 @(Compare-Object -ReferenceObject $configOptionNames -DifferenceObject $targetOptionNames).Count -gt 0) {
                 return $false

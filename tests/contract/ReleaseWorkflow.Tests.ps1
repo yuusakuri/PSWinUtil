@@ -87,10 +87,7 @@ Describe 'Release publication queries' {
             '[[{"tag_name":"v2.0.0-preview1","draft":false,"prerelease":true}]]'
         }
 
-        Test-GitHubRelease `
-            -GhPath 'gh' `
-            -TagName 'v2.0.0-preview1' `
-            -Prerelease | Should -BeTrue
+        Test-GitHubRelease -GhPath 'gh' -TagName 'v2.0.0-preview1' -Prerelease | Should -BeTrue
     }
 
     It 'rejects an incorrect GitHub prerelease state' {
@@ -99,10 +96,7 @@ Describe 'Release publication queries' {
         }
 
         {
-            Test-GitHubRelease `
-                -GhPath 'gh' `
-                -TagName 'v2.0.0-preview1' `
-                -Prerelease
+            Test-GitHubRelease -GhPath 'gh' -TagName 'v2.0.0-preview1' -Prerelease
         } | Should -Throw '*incorrect prerelease state*'
     }
 
@@ -136,7 +130,7 @@ Describe 'Release publication queries' {
 
         $state.TagExists | Should -BeTrue
         Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList[0] -eq 'ls-remote' -and $ArgumentList -contains 'origin'
+            ($ArgumentList | Select-Object -First 1) -eq 'ls-remote' -and $ArgumentList -contains 'origin'
         }
     }
 
@@ -155,9 +149,7 @@ Describe 'Release publication queries' {
         Mock Test-GalleryPublication { $false }
         Mock Test-GitHubRelease { $false }
 
-        $state = Get-RemoteReleaseState `
-            -ReleaseCommit $script:ReleaseCommit `
-            -Version '2.0.0-preview1'
+        $state = Get-RemoteReleaseState -ReleaseCommit $script:ReleaseCommit -Version '2.0.0-preview1'
 
         $state.TagExists | Should -BeFalse
         Should -Invoke Test-GalleryPublication -Times 1 -Exactly -ParameterFilter {
@@ -221,7 +213,7 @@ Describe 'Invoke-ReleasePublish' {
         Mock Wait-GalleryPublication { $script:PublicationEvents.Add('wait') }
         Mock Invoke-NativeCommand {
             if ($ArgumentList -contains '--list') { return }
-            $script:PublicationEvents.Add($ArgumentList[0])
+            $script:PublicationEvents.Add(($ArgumentList | Select-Object -First 1))
         }
     }
 
@@ -251,8 +243,8 @@ Describe 'Invoke-ReleasePublish' {
 
         ($script:PublicationEvents -join ',') | Should -BeExactly 'pack,tag,push,gallery,wait,release'
         $results.Count | Should -Be 1
-        $results[0].Version | Should -Be '1.2.3'
-        $results[0].ArtifactPath | Should -Be $script:PublishArguments.ArtifactPath
+        ($results | Select-Object -First 1).Version | Should -Be '1.2.3'
+        ($results | Select-Object -First 1).ArtifactPath | Should -Be $script:PublishArguments.ArtifactPath
     }
 
     It 'publishes a prerelease with matching Gallery and GitHub metadata' {
@@ -261,13 +253,8 @@ Describe 'Invoke-ReleasePublish' {
             "@{ ModuleVersion = '2.0.0'; PrivateData = @{ PSData = @{ Prerelease = 'preview1' } } }"
         )
         $script:PublishArguments.Version = '2.0.0-preview1'
-        $script:PublishArguments.ArtifactPath = Join-Path `
-            -Path $TestDrive `
-            -ChildPath 'PSWinUtil-2.0.0-preview1.zip'
-        $script:PublishArguments.State = Get-ReleasePublicationState `
-            -TagName 'v2.0.0-preview1' `
-            -Version '2.0.0-preview1' `
-            -ReleaseCommit $script:ReleaseCommit
+        $script:PublishArguments.ArtifactPath = Join-Path -Path $TestDrive -ChildPath 'PSWinUtil-2.0.0-preview1.zip'
+        $script:PublishArguments.State = Get-ReleasePublicationState -TagName 'v2.0.0-preview1' -Version '2.0.0-preview1' -ReleaseCommit $script:ReleaseCommit
 
         $result = Invoke-ReleasePublish @script:PublishArguments
 
@@ -276,7 +263,7 @@ Describe 'Invoke-ReleasePublish' {
             $Version -eq '2.0.0-preview1'
         }
         Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList[0] -eq 'release' -and
+            ($ArgumentList | Select-Object -First 1) -eq 'release' -and
             $ArgumentList -contains 'v2.0.0-preview1' -and
             $ArgumentList -contains '--prerelease'
         }
@@ -284,7 +271,7 @@ Describe 'Invoke-ReleasePublish' {
 
     It 'reuses a matching local tag after a failed push' {
         Mock Invoke-NativeCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
-        Mock Invoke-NativeCommand { $script:ReleaseCommit } -ParameterFilter { $ArgumentList[0] -eq 'rev-parse' }
+        Mock Invoke-NativeCommand { $script:ReleaseCommit } -ParameterFilter { ($ArgumentList | Select-Object -First 1) -eq 'rev-parse' }
 
         $null = Invoke-ReleasePublish @script:PublishArguments
 
@@ -294,7 +281,7 @@ Describe 'Invoke-ReleasePublish' {
     It 'rejects a local tag on a different commit even with WhatIf' {
         Mock Invoke-NativeCommand { 'v1.2.3' } -ParameterFilter { $ArgumentList -contains '--list' }
         Mock Invoke-NativeCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
-            $ArgumentList[0] -eq 'rev-parse'
+            ($ArgumentList | Select-Object -First 1) -eq 'rev-parse'
         }
 
         { Invoke-ReleasePublish @script:PublishArguments -WhatIf } | Should -Throw '*Local tag*does not point*'
@@ -302,7 +289,7 @@ Describe 'Invoke-ReleasePublish' {
     }
 
     It 'does not publish to Gallery after a tag push failure' {
-        Mock Invoke-NativeCommand { throw 'Push failed.' } -ParameterFilter { $ArgumentList[0] -eq 'push' }
+        Mock Invoke-NativeCommand { throw 'Push failed.' } -ParameterFilter { ($ArgumentList | Select-Object -First 1) -eq 'push' }
 
         { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*Push failed*'
         Should -Invoke Publish-PSResource -Times 0 -Exactly
@@ -312,14 +299,12 @@ Describe 'Invoke-ReleasePublish' {
         Mock Wait-GalleryPublication { throw 'Gallery unavailable.' }
 
         { Invoke-ReleasePublish @script:PublishArguments } | Should -Throw '*Gallery unavailable*'
-        Should -Invoke Invoke-NativeCommand -Times 0 -Exactly -ParameterFilter { $ArgumentList[0] -eq 'release' }
+        Should -Invoke Invoke-NativeCommand -Times 0 -Exactly -ParameterFilter { ($ArgumentList | Select-Object -First 1) -eq 'release' }
     }
 
     It 'resumes after Gallery publication without a credential or duplicate publish' {
         $env:PSGALLERY_API_KEY = ''
-        $script:PublishArguments.State = Get-ReleasePublicationState `
-            -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit `
-            -TagCommit $script:ReleaseCommit -GalleryExists
+        $script:PublishArguments.State = Get-ReleasePublicationState -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit -TagCommit $script:ReleaseCommit -GalleryExists
 
         $null = Invoke-ReleasePublish @script:PublishArguments
 
@@ -327,14 +312,12 @@ Describe 'Invoke-ReleasePublish' {
     }
 
     It 'skips a completed publication and returns no artifact for attestation' {
-        $script:PublishArguments.State = Get-ReleasePublicationState `
-            -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit `
-            -TagCommit $script:ReleaseCommit -GalleryExists -GitHubReleaseExists
+        $script:PublishArguments.State = Get-ReleasePublicationState -TagName 'v1.2.3' -Version '1.2.3' -ReleaseCommit $script:ReleaseCommit -TagCommit $script:ReleaseCommit -GalleryExists -GitHubReleaseExists
 
         $results = @(Invoke-ReleasePublish @script:PublishArguments)
 
         $results.Count | Should -Be 1
-        $results[0].ArtifactPath | Should -Be ''
+        ($results | Select-Object -First 1).ArtifactPath | Should -Be ''
         $script:PublicationEvents.Count | Should -Be 0
     }
 
@@ -350,7 +333,7 @@ Describe 'Release checkout validation' {
     BeforeEach {
         Mock Get-RequiredApplication { $Name }
         Mock Invoke-NativeCommand {
-            if ($ArgumentList[0] -eq 'rev-parse') { $script:ReleaseCommit }
+            if (($ArgumentList | Select-Object -First 1) -eq 'rev-parse') { $script:ReleaseCommit }
         }
         Mock Get-ReleaseManifest { @{ ModuleVersion = '1.2.3' } }
         Mock Get-RemoteReleaseState {
@@ -366,7 +349,7 @@ Describe 'Release checkout validation' {
         Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' -WhatIf
 
         Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList[0] -eq 'fetch' -and
+            ($ArgumentList | Select-Object -First 1) -eq 'fetch' -and
             $ArgumentList -contains '+refs/heads/master:refs/remotes/origin/master'
         }
         Should -Invoke Get-ReleaseManifest -Times 1 -Exactly -ParameterFilter {
@@ -383,16 +366,10 @@ Describe 'Release checkout validation' {
             }
         }
         Mock Get-RemoteReleaseState {
-            Get-ReleasePublicationState `
-                -TagName 'v2.0.0-preview1' `
-                -Version '2.0.0-preview1' `
-                -ReleaseCommit $script:ReleaseCommit
+            Get-ReleasePublicationState -TagName 'v2.0.0-preview1' -Version '2.0.0-preview1' -ReleaseCommit $script:ReleaseCommit
         }
 
-        Invoke-Release `
-            -ReleaseCommit $script:ReleaseCommit `
-            -Branch 'release/2.0.0-preview1' `
-            -WhatIf
+        Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/2.0.0-preview1' -WhatIf
 
         Should -Invoke Get-RemoteReleaseState -Times 1 -Exactly -ParameterFilter {
             $Version -eq '2.0.0-preview1'
@@ -404,7 +381,7 @@ Describe 'Release checkout validation' {
 
     It 'rejects a checkout on a different commit' {
         Mock Invoke-NativeCommand { '2222222222222222222222222222222222222222' } -ParameterFilter {
-            $ArgumentList[0] -eq 'rev-parse'
+            ($ArgumentList | Select-Object -First 1) -eq 'rev-parse'
         }
 
         { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' } | Should -Throw '*does not match release commit*'
@@ -412,14 +389,14 @@ Describe 'Release checkout validation' {
     }
 
     It 'rejects a nonexistent commit object' {
-        Mock Invoke-NativeCommand { throw 'Unknown commit.' } -ParameterFilter { $ArgumentList[0] -eq 'cat-file' }
+        Mock Invoke-NativeCommand { throw 'Unknown commit.' } -ParameterFilter { ($ArgumentList | Select-Object -First 1) -eq 'cat-file' }
 
         { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' } | Should -Throw '*Unknown commit*'
         Should -Invoke Get-RemoteReleaseState -Times 0 -Exactly
     }
 
     It 'rejects a commit outside origin/master' {
-        Mock Invoke-NativeCommand { throw 'Not an ancestor.' } -ParameterFilter { $ArgumentList[0] -eq 'merge-base' }
+        Mock Invoke-NativeCommand { throw 'Not an ancestor.' } -ParameterFilter { ($ArgumentList | Select-Object -First 1) -eq 'merge-base' }
 
         { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' } | Should -Throw '*Not an ancestor*'
         Should -Invoke Invoke-ReleasePublish -Times 0 -Exactly
@@ -430,7 +407,7 @@ Describe 'Release checkout validation' {
         @{ GitCommand = 'ls-files' }
     ) {
         Mock Invoke-NativeCommand { 'src/PSWinUtil/Public/Example.ps1' } -ParameterFilter {
-            $ArgumentList[0] -eq $GitCommand
+            ($ArgumentList | Select-Object -First 1) -eq $GitCommand
         }
 
         { Invoke-Release -ReleaseCommit $script:ReleaseCommit -Branch 'release/1.2.3' -WhatIf } | Should -Throw '*uncommitted changes*'
@@ -458,7 +435,7 @@ Describe 'Committed release manifest' {
 
         $manifest.ModuleVersion | Should -Be '1.2.3'
         Should -Invoke Invoke-NativeCommand -Times 1 -Exactly -ParameterFilter {
-            $ArgumentList[0] -eq 'show' -and
+            ($ArgumentList | Select-Object -First 1) -eq 'show' -and
             $ArgumentList[1] -eq "$($script:ReleaseCommit):src/PSWinUtil/PSWinUtil.psd1"
         }
     }
@@ -509,7 +486,7 @@ Describe 'Invoke-Bump WhatIf' {
 
         Should -Invoke Set-ReleaseVersion -Times 0 -Exactly
         Should -Invoke Invoke-NativeCommand -Times 0 -Exactly -ParameterFilter {
-            $ArgumentList[0] -in @('switch', 'add', 'commit', 'push', 'pr')
+            ($ArgumentList | Select-Object -First 1) -in @('switch', 'add', 'commit', 'push', 'pr')
         }
     }
 

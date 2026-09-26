@@ -25,7 +25,7 @@ Describe 'Invoke-WUNativeCommand' {
         $script:ProcessScriptPath = Join-Path -Path $script:CommandDirectory -ChildPath 'echo-arguments.ps1'
         [IO.File]::WriteAllText(
             $script:ProcessScriptPath,
-            "[Console]::WriteLine('VALUE=' + `$args[0])`n",
+            "[Console]::WriteLine('VALUE=' + (`$args | Select-Object -First 1))`n",
             [Text.Encoding]::ASCII
         )
         $script:ExitScriptPath = Join-Path -Path $script:CommandDirectory -ChildPath 'report-exit.ps1'
@@ -137,7 +137,7 @@ Describe 'Invoke-WUNativeCommand' {
 
         $result.Succeeded | Should -BeFalse
         $commandError | Should -HaveCount 1
-        $errorText = $commandError[0].Exception.Message
+        $errorText = ($commandError | Select-Object -First 1).Exception.Message
         $errorText | Should -Match '^Command failed: '
         $diagnostic = $errorText.Substring('Command failed: '.Length) | ConvertFrom-Json
         $diagnostic.command | Should -BeExactly 'powershell.exe'
@@ -157,7 +157,7 @@ Describe 'Invoke-WUNativeCommand' {
         $result = Invoke-WUNativeCommand -Command $script:FailBatchPath -ErrorAction Continue -ErrorVariable commandError 2>$null
 
         $result.Succeeded | Should -BeFalse
-        $diagnostic = $commandError[0].Exception.Message.Substring('Command failed: '.Length) | ConvertFrom-Json
+        $diagnostic = ($commandError | Select-Object -First 1).Exception.Message.Substring('Command failed: '.Length) | ConvertFrom-Json
         $diagnostic.command | Should -BeExactly $script:FailBatchPath
         $diagnostic.exit_code | Should -Be 9
     }

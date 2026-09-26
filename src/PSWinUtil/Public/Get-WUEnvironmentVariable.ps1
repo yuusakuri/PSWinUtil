@@ -63,39 +63,7 @@ function Get-WUEnvironmentVariable {
                     continue
                 }
 
-                $registryPath = if ($targetScope -eq 'User') {
-                    'Environment'
-                } else {
-                    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
-                }
-                $baseKey = if ($targetScope -eq 'User') {
-                    [Microsoft.Win32.Registry]::CurrentUser
-                } else {
-                    [Microsoft.Win32.Registry]::LocalMachine
-                }
-                $registryKey = $baseKey.OpenSubKey($registryPath, $false)
-                if ($null -eq $registryKey) {
-                    continue
-                }
-
-                try {
-                    $storedValue = $registryKey.GetValue(
-                        $inputName,
-                        $null,
-                        [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
-                    )
-                    if ($null -eq $storedValue) {
-                        continue
-                    }
-
-                    if (-not $NoExpand -and $registryKey.GetValueKind($inputName) -eq [Microsoft.Win32.RegistryValueKind]::ExpandString) {
-                        [PSWinUtil.EnvironmentVariableExpander]::Expand($storedValue, $targetScope)
-                    } else {
-                        $storedValue
-                    }
-                } finally {
-                    $registryKey.Dispose()
-                }
+                Get-WUPersistentEnvironmentVariable -Name $inputName -Scope $targetScope -NoExpand:$NoExpand
             }
         }
     }

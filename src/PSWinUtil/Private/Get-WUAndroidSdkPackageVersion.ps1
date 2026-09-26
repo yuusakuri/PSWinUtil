@@ -18,19 +18,14 @@ function Get-WUAndroidSdkPackageVersion {
         'Platform' { '(?m)^\s*platforms/android-(\d+)\s+' }
         'BuildTools' { '(?m)^\s*build-tools/([0-9]+\.[0-9]+\.[0-9]+)\s+' }
     }
-    $result = Invoke-WUNativeCommand `
-        -Command 'android.exe' `
-        -ArgumentList @(
+    $result = Invoke-WUNativeCommand -Command 'android.exe' -ArgumentList @(
         '--no-metrics'
         'sdk'
         'list'
         $packagePattern
         '--all'
         '--all-versions'
-    ) `
-        -CaptureOutput `
-        -ContinueExitCodes @(-1073740791) `
-        -ErrorAction Stop
+    ) -CaptureOutput -ContinueExitCodes @(-1073740791) -ErrorAction Stop
 
     $text = @($result.StandardOutput | Split-WUNewLine) -join "`n"
     $versions = @(
@@ -49,7 +44,7 @@ function Get-WUAndroidSdkPackageVersion {
     }
 
     if ($Latest) {
-        [string]$versions[0]
+        [string]($versions | Select-Object -First 1)
         return
     }
 

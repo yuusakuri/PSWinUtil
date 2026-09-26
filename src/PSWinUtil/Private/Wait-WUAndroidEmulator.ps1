@@ -53,25 +53,8 @@ function Wait-WUAndroidEmulator {
 
         $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         while ($true) {
-            foreach ($item in $Emulator) {
-                $item.Process.Refresh()
-                if ($item.Process.HasExited) {
-                    throw "$($item.Serial) exited before becoming available to adb with exit code $($item.Process.ExitCode)."
-                }
-            }
-
-            $pendingWaiters = @(
-                foreach ($waiter in $waiters) {
-                    $waiter.Process.Refresh()
-                    if ($waiter.Process.HasExited) {
-                        if ($waiter.Process.ExitCode -ne 0) {
-                            throw "adb wait-for-device for $($waiter.Serial) exited with code $($waiter.Process.ExitCode)."
-                        }
-                    } else {
-                        $waiter
-                    }
-                }
-            )
+            Assert-WUAndroidEmulatorRunning -Emulator $Emulator
+            $pendingWaiters = @(Get-WUPendingAndroidEmulatorWaiter -Waiter @($waiters))
             if ($pendingWaiters.Count -eq 0) {
                 return
             }

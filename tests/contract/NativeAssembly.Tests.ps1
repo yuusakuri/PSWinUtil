@@ -2,9 +2,11 @@ BeforeAll {
     $script:RepositoryRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $script:OutputModuleDirectory = Join-Path -Path $script:RepositoryRoot -ChildPath 'output/PSWinUtil'
     $script:ManifestPath = Join-Path -Path $script:OutputModuleDirectory -ChildPath 'PSWinUtil.psd1'
-    $script:NativeAssemblyPath = Join-Path `
-        -Path $script:OutputModuleDirectory `
-        -ChildPath 'lib/PSWinUtil.Native.dll'
+    $nativeAssemblyPathParameters = @{
+        Path = $script:OutputModuleDirectory
+        ChildPath = 'lib/PSWinUtil.Native.dll'
+    }
+    $script:NativeAssemblyPath = Join-Path @nativeAssemblyPathParameters
 }
 
 Describe 'C# source layout' {
@@ -28,12 +30,16 @@ Describe 'C# source layout' {
     }
 
     It 'builds every C# type from a project file' {
-        $nativeProjectPath = Join-Path `
-            -Path $script:RepositoryRoot `
-            -ChildPath 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
-        $fakeHttpServerProjectPath = Join-Path `
-            -Path $script:RepositoryRoot `
-            -ChildPath 'tests/PSWinUtil.FakeHttpServer/PSWinUtil.FakeHttpServer.csproj'
+        $nativeProjectPathParameters = @{
+            Path = $script:RepositoryRoot
+            ChildPath = 'src/PSWinUtil.Native/PSWinUtil.Native.csproj'
+        }
+        $nativeProjectPath = Join-Path @nativeProjectPathParameters
+        $fakeHttpServerProjectPathParameters = @{
+            Path = $script:RepositoryRoot
+            ChildPath = 'tests/PSWinUtil.FakeHttpServer/PSWinUtil.FakeHttpServer.csproj'
+        }
+        $fakeHttpServerProjectPath = Join-Path @fakeHttpServerProjectPathParameters
 
         foreach ($projectPath in @($nativeProjectPath, $fakeHttpServerProjectPath)) {
             Test-Path -LiteralPath $projectPath -PathType Leaf |
@@ -80,9 +86,11 @@ Describe 'Native assembly distribution' {
 Describe 'HTTP fake server assembly distribution' {
     It 'builds the HTTP fake server assembly for both PowerShell editions' {
         foreach ($targetFramework in @('net472', 'netstandard2.0')) {
-            $fakeHttpServerAssemblyPath = Join-Path `
-                -Path $script:RepositoryRoot `
-                -ChildPath "output/FakeHttpServer/$targetFramework/PSWinUtil.FakeHttpServer.dll"
+            $fakeHttpServerAssemblyPathParameters = @{
+                Path = $script:RepositoryRoot
+                ChildPath = "output/FakeHttpServer/$targetFramework/PSWinUtil.FakeHttpServer.dll"
+            }
+            $fakeHttpServerAssemblyPath = Join-Path @fakeHttpServerAssemblyPathParameters
 
             Test-Path -LiteralPath $fakeHttpServerAssemblyPath -PathType Leaf |
                 Should -BeTrue -Because "$fakeHttpServerAssemblyPath must exist"

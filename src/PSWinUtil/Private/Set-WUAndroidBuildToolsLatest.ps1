@@ -44,7 +44,7 @@ function Set-WUAndroidBuildToolsLatest {
         }
         $targetProperty = $latestItem.PSObject.Properties['Target']
         if ($null -ne $targetProperty -and @($targetProperty.Value).Count -gt 0) {
-            $currentTarget = [string]@($targetProperty.Value)[0]
+            $currentTarget = [string](@($targetProperty.Value) | Select-Object -First 1)
             if (-not [System.IO.Path]::IsPathRooted($currentTarget)) {
                 $currentTarget = Join-Path -Path $BuildToolsPath -ChildPath $currentTarget
             }
@@ -58,15 +58,9 @@ function Set-WUAndroidBuildToolsLatest {
         return
     }
 
-    $stagingPath = Join-Path `
-        -Path $BuildToolsPath `
-        -ChildPath ".latest-$([guid]::NewGuid().ToString('N'))"
+    $stagingPath = Join-Path -Path $BuildToolsPath -ChildPath ".latest-$([guid]::NewGuid().ToString('N'))"
     try {
-        New-Item `
-            -Path $stagingPath `
-            -ItemType Junction `
-            -Target $versionPath `
-            -ErrorAction Stop | Out-Null
+        New-Item -Path $stagingPath -ItemType Junction -Target $versionPath -ErrorAction Stop | Out-Null
         if (Test-Path -LiteralPath $latestPath) {
             Remove-Item -LiteralPath $latestPath -Force -ErrorAction Stop
         }

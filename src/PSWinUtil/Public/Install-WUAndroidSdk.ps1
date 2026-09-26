@@ -86,10 +86,7 @@ function Install-WUAndroidSdk {
     if ([string]::IsNullOrWhiteSpace($env:ANDROID_HOME)) {
         $env:ANDROID_HOME = Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Android\Sdk'
     }
-    Set-WUEnvironmentVariable `
-        -Name 'ANDROID_HOME' `
-        -Value $env:ANDROID_HOME `
-        -Scope User, Process
+    Set-WUEnvironmentVariable -Name 'ANDROID_HOME' -Value $env:ANDROID_HOME -Scope User, Process
     Remove-WUEnvironmentVariable -Name 'ANDROID_SDK_ROOT' -Scope User, Process
 
     Install-WUWingetPackage -Id 'Google.AndroidCLI'
@@ -116,39 +113,28 @@ function Install-WUAndroidSdk {
 
     $buildToolsRoot = Join-Path -Path $env:ANDROID_HOME -ChildPath 'build-tools'
 
-    $platformToolsParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'PlatformToolsVersion'
+    $platformToolsParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'PlatformToolsVersion'
     Install-WUAndroidPlatformTool @platformToolsParameters
 
     $platformParameters = @{ ApiVersion = $resolvedPlatformVersion }
-    $platformParameters += Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'PlatformPackageVersion'
+    $platformParameters += Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'PlatformPackageVersion'
     Install-WUAndroidSdkPlatform @platformParameters
 
     Install-WUAndroidBuildTool -Version $resolvedBuildToolsVersion
 
-    $emulatorParameters = Select-WUBoundParameter `
-        -BoundParameters $PSBoundParameters `
-        -Name 'EmulatorVersion'
+    $emulatorParameters = Select-WUBoundParameter -BoundParameters $PSBoundParameters -Name 'EmulatorVersion'
     Install-WUAndroidEmulator @emulatorParameters
 
     Install-WUAndroidCommandLineTool -Version $CommandLineToolsVersion
 
-    Set-WUAndroidBuildToolsLatest `
-        -BuildToolsPath $buildToolsRoot `
-        -Version $resolvedBuildToolsVersion
+    Set-WUAndroidBuildToolsLatest -BuildToolsPath $buildToolsRoot -Version $resolvedBuildToolsVersion
     $userPaths = @(
         '%ANDROID_HOME%\platform-tools'
         '%ANDROID_HOME%\emulator'
         '%ANDROID_HOME%\build-tools\latest'
         "%ANDROID_HOME%\cmdline-tools\$CommandLineToolsVersion\bin"
     )
-    Add-WUPathEnvironmentVariable `
-        -Path $userPaths `
-        -Scope 'User' `
-        -Prepend
+    Add-WUPathEnvironmentVariable -Path $userPaths -Scope 'User' -Prepend
     Update-WUProcessEnvironment
 
     Assert-WUCommand -Name @('adb.exe', 'aapt2.exe', 'emulator.exe', 'avdmanager.bat')

@@ -44,11 +44,11 @@ function New-WURandomString {
     try {
         while ($builder.Length -lt $Length) {
             $randomNumberGenerator.GetBytes($randomByte)
-            if ($randomByte[0] -ge $maximumAcceptedByte) {
+            if (($randomByte | Select-Object -First 1) -ge $maximumAcceptedByte) {
                 continue
             }
 
-            $characterIndex = [int]($randomByte[0] % $characterCount)
+            $characterIndex = [int](($randomByte | Select-Object -First 1) % $characterCount)
             $builder.Append($characters[$characterIndex]) | Out-Null
         }
     } finally {

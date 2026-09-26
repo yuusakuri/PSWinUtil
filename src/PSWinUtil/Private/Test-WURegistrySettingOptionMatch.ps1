@@ -1,4 +1,4 @@
-function Test-WURegistryConfigOptionApplied {
+function Test-WURegistrySettingOptionMatch {
     [CmdletBinding()]
     [OutputType([bool])]
     param(

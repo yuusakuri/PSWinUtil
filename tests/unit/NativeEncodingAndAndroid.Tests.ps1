@@ -124,7 +124,7 @@ Describe 'ConvertTo-WUPSStringLiteral' {
         $result = @(ConvertTo-WUPSStringLiteral -InputObject $values)
 
         $result | Should -HaveCount 3
-        $result[0] | Should -Be "'first value'"
+        ($result | Select-Object -First 1) | Should -Be "'first value'"
         $result[1] | Should -Be "''"
         $result[2] | Should -Be "'third''value'"
     }
@@ -135,7 +135,7 @@ Describe 'ConvertTo-WUPSStringLiteral' {
         $result = @($values | ConvertTo-WUPSStringLiteral)
 
         $result | Should -HaveCount 2
-        $result[0] | Should -Be "'first'"
+        ($result | Select-Object -First 1) | Should -Be "'first'"
         $result[1] | Should -Be "'second'"
     }
 }
@@ -207,11 +207,11 @@ Describe 'Android virtual devices' {
         $names = @(Get-WUAndroidEmulator)
 
         $names | Should -HaveCount 2
-        $names[0] | Should -BeExactly 'Pixel_API_35'
+        ($names | Select-Object -First 1) | Should -BeExactly 'Pixel_API_35'
         $names[1] | Should -BeExactly 'Tablet_API_35'
         InModuleScope -ModuleName PSWinUtil {
             $script:CapturedAndroidArguments | Should -HaveCount 1
-            $script:CapturedAndroidArguments[0] | Should -BeExactly '-list-avds'
+            ($script:CapturedAndroidArguments | Select-Object -First 1) | Should -BeExactly '-list-avds'
         }
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 0 -Exactly
     }
@@ -232,7 +232,7 @@ Describe 'Android virtual devices' {
         $names = @(Get-WUAndroidEmulator)
 
         $names | Should -HaveCount 2
-        $names[0] | Should -BeExactly 'Pixel_API_35'
+        ($names | Select-Object -First 1) | Should -BeExactly 'Pixel_API_35'
         $names[1] | Should -BeExactly 'Tablet_API_35'
     }
 
@@ -472,7 +472,7 @@ Describe 'Android virtual devices' {
             ($ArgumentList -join ' ') -eq '-avd "Tablet_API_35" -port 5682'
         }
         Should -Invoke -CommandName Wait-WUAndroidEmulator -ModuleName PSWinUtil -Times 1 -Exactly -ParameterFilter {
-            @($Emulator.Serial).Count -eq 1 -and $Emulator[0].Serial -eq 'emulator-5682'
+            @($Emulator.Serial).Count -eq 1 -and ($Emulator | Select-Object -First 1).Serial -eq 'emulator-5682'
         }
     }
 
@@ -865,7 +865,7 @@ Describe 'Wait-WUAndroidEmulator' {
         Should -Invoke -CommandName Start-Process -ModuleName PSWinUtil -Times 3 -Exactly -ParameterFilter {
             $FilePath -eq 'adb.exe' -and
             $ArgumentList.Count -eq 3 -and
-            $ArgumentList[0] -eq '-s' -and
+            ($ArgumentList | Select-Object -First 1) -eq '-s' -and
             $ArgumentList[2] -eq 'wait-for-device' -and
             $PassThru -and
             $NoNewWindow

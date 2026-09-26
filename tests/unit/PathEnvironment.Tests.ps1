@@ -15,10 +15,7 @@ Describe 'Compare-WUPath' {
         $name = 'PSWINUTIL_COMPARE_' + [guid]::NewGuid().ToString('N')
         [Environment]::SetEnvironmentVariable($name, 'C:\Tools', 'Process')
         try {
-            Compare-WUPath `
-                -ReferencePath "%$name%\bin" `
-                -DifferencePath 'C:\Tools\bin' `
-                -Scope $Scope |
+            Compare-WUPath -ReferencePath "%$name%\bin" -DifferencePath 'C:\Tools\bin' -Scope $Scope |
                 Should -BeFalse
         } finally {
             [Environment]::SetEnvironmentVariable($name, $null, 'Process')
@@ -26,10 +23,7 @@ Describe 'Compare-WUPath' {
     }
 
     It 'uses the current user environment block for User scope' {
-        Compare-WUPath `
-            -ReferencePath '%USERPROFILE%\bin' `
-            -DifferencePath (Join-Path $env:USERPROFILE 'bin') `
-            -Scope User |
+        Compare-WUPath -ReferencePath '%USERPROFILE%\bin' -DifferencePath (Join-Path $env:USERPROFILE 'bin') -Scope User |
             Should -BeTrue
     }
 
@@ -42,24 +36,15 @@ Describe 'Compare-WUPath' {
     }
 
     It 'does not make an unresolved variable relative to the current directory' {
-        Compare-WUPath `
-            -ReferencePath '%PSWINUTIL_UNKNOWN%\bin' `
-            -DifferencePath (Join-Path (Get-Location) '%PSWINUTIL_UNKNOWN%\bin') `
-            -Scope Process |
+        Compare-WUPath -ReferencePath '%PSWINUTIL_UNKNOWN%\bin' -DifferencePath (Join-Path (Get-Location) '%PSWINUTIL_UNKNOWN%\bin') -Scope Process |
             Should -BeFalse
     }
 
     It 'does not make relative paths absolute during comparison' {
-        Compare-WUPath `
-            -ReferencePath '.' `
-            -DifferencePath (Get-Location).Path `
-            -Scope Process |
+        Compare-WUPath -ReferencePath '.' -DifferencePath (Get-Location).Path -Scope Process |
             Should -BeFalse
 
-        Compare-WUPath `
-            -ReferencePath 'C:relative' `
-            -DifferencePath 'C:\relative' `
-            -Scope Process |
+        Compare-WUPath -ReferencePath 'C:relative' -DifferencePath 'C:\relative' -Scope Process |
             Should -BeFalse
     }
 

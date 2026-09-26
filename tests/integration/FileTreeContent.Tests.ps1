@@ -11,8 +11,8 @@ Describe 'Get-WUFileTreeWithContent' {
         try {
             $result = @(Get-WUFileTreeWithContent -LiteralPath $root)
             $result | Should -HaveCount 1
-            $result[0].Path | Should -Be $junction
-            $result[0].ItemType | Should -Be 'Directory'
+            ($result | Select-Object -First 1).Path | Should -Be $junction
+            ($result | Select-Object -First 1).ItemType | Should -Be 'Directory'
         } finally {
             [IO.Directory]::Delete($junction)
         }
@@ -44,10 +44,10 @@ Describe 'Get-WUFileTreeWithContent' {
         $result = @(Get-WUFileTreeWithContent -LiteralPath $script:RootPath)
 
         $result | Should -HaveCount 3
-        $result[0].Path | Should -Be $script:ChildPath
-        $result[0].ItemType | Should -Be 'Directory'
-        $result[0].Content | Should -BeNullOrEmpty
-        $result[0].PSObject.TypeNames | Should -Contain 'PSWinUtil.FileTreeContent'
+        ($result | Select-Object -First 1).Path | Should -Be $script:ChildPath
+        ($result | Select-Object -First 1).ItemType | Should -Be 'Directory'
+        ($result | Select-Object -First 1).Content | Should -BeNullOrEmpty
+        ($result | Select-Object -First 1).PSObject.TypeNames | Should -Contain 'PSWinUtil.FileTreeContent'
         $firstFile = $result | Where-Object { $_.Path -eq $script:FirstFilePath }
         $firstFile.ItemType | Should -Be 'File'
         $firstFile.Content | Should -Be 'first'
@@ -69,16 +69,10 @@ Describe 'Get-WUFileTreeWithContent' {
 
     It 'applies minimum and maximum depth to directory inputs' {
         $depthZero = @(
-            Get-WUFileTreeWithContent `
-                -LiteralPath $script:RootPath `
-                -MinDepth 0 `
-                -MaxDepth 1
+            Get-WUFileTreeWithContent -LiteralPath $script:RootPath -MinDepth 0 -MaxDepth 1
         )
         $depthTwo = @(
-            Get-WUFileTreeWithContent `
-                -LiteralPath $script:RootPath `
-                -MinDepth 2 `
-                -MaxDepth 2
+            Get-WUFileTreeWithContent -LiteralPath $script:RootPath -MinDepth 2 -MaxDepth 2
         )
 
         $depthZero.Path | Should -Contain $script:RootPath
@@ -86,14 +80,11 @@ Describe 'Get-WUFileTreeWithContent' {
         $depthZero.Path | Should -Contain $script:FirstFilePath
         $depthZero.Path | Should -Not -Contain $script:NestedFilePath
         $depthTwo | Should -HaveCount 1
-        $depthTwo[0].Path | Should -Be $script:NestedFilePath
+        ($depthTwo | Select-Object -First 1).Path | Should -Be $script:NestedFilePath
     }
 
     It 'always returns a directly specified file' {
-        $result = Get-WUFileTreeWithContent `
-            -LiteralPath $script:FirstFilePath `
-            -MinDepth 10 `
-            -MaxDepth 10
+        $result = Get-WUFileTreeWithContent -LiteralPath $script:FirstFilePath -MinDepth 10 -MaxDepth 10
 
         $result.Path | Should -Be $script:FirstFilePath
         $result.Content | Should -Be 'first'
@@ -112,12 +103,11 @@ Describe 'Get-WUFileTreeWithContent' {
 
     It 'expands wildcard Path values' {
         $result = @(
-            Get-WUFileTreeWithContent `
-                -Path (Join-Path -Path $script:RootPath -ChildPath '*.txt')
+            Get-WUFileTreeWithContent -Path (Join-Path -Path $script:RootPath -ChildPath '*.txt')
         )
 
         $result | Should -HaveCount 1
-        $result[0].Path | Should -Be $script:FirstFilePath
+        ($result | Select-Object -First 1).Path | Should -Be $script:FirstFilePath
     }
 
     It 'returns null content for a binary file' {
@@ -138,15 +128,12 @@ Describe 'Get-WUFileTreeWithContent' {
         [System.IO.File]::WriteAllText($escapedFile, $sourceContent)
 
         $result = @(
-            Get-WUFileTreeWithContent `
-                -LiteralPath $escapedDirectory `
-                -MinDepth 0 `
-                -AsXml
+            Get-WUFileTreeWithContent -LiteralPath $escapedDirectory -MinDepth 0 -AsXml
         )
         [xml]$xml = $result -join [Environment]::NewLine
 
         $result | Should -HaveCount 4
-        $result[0] | Should -Be '<documents>'
+        ($result | Select-Object -First 1) | Should -Be '<documents>'
         $result[-1] | Should -Be '</documents>'
         $result[1] | Should -Match 'type="directory"'
         $result[2] | Should -Match '&amp;'
@@ -188,10 +175,7 @@ Describe 'Get-WUFileTreeWithContent' {
 
     It 'rejects an invalid depth range' {
         {
-            Get-WUFileTreeWithContent `
-                -LiteralPath $script:RootPath `
-                -MinDepth 3 `
-                -MaxDepth 2
+            Get-WUFileTreeWithContent -LiteralPath $script:RootPath -MinDepth 3 -MaxDepth 2
         } | Should -Throw '*MinDepth*'
     }
 }

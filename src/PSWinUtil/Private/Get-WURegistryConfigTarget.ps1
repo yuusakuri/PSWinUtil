@@ -37,9 +37,9 @@ function Get-WURegistryConfigTarget {
     $targetScopes = if ($Scope -eq 'Auto') { @('User', 'Machine') } else { @($Scope) }
 
     foreach ($targetScope in $targetScopes) {
-        $target = @(
-            $Config.Targets | Where-Object { $_.Scope -ceq $targetScope }
-        )[0]
+        $target = (@(
+                $Config.Targets | Where-Object { $_.Scope -ceq $targetScope }
+            ) | Select-Object -First 1)
         if ($null -ne $target) {
             return $target
         }

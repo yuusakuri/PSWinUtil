@@ -86,18 +86,14 @@ Describe 'Resolve-WUPath' {
     }
 
     It 'returns one path when DenyMultiplePaths receives one result' {
-        $result = Resolve-WUPath `
-            -LiteralPath $script:FirstPath `
-            -DenyMultiplePaths
+        $result = Resolve-WUPath -LiteralPath $script:FirstPath -DenyMultiplePaths
 
         $result.ProviderPath | Should -Be $script:FirstPath
     }
 
     It 'rejects multiple wildcard results when DenyMultiplePaths is specified' {
         try {
-            $null = Resolve-WUPath `
-                -Path "$script:ResolvePathDirectory\*.txt" `
-                -DenyMultiplePaths
+            $null = Resolve-WUPath -Path "$script:ResolvePathDirectory\*.txt" -DenyMultiplePaths
             throw 'Expected Resolve-WUPath to report an error.'
         } catch {
             $_.Exception | Should -BeOfType ([System.ArgumentException])
@@ -114,9 +110,7 @@ Describe 'Resolve-WUPath' {
         $missingPath = Join-Path -Path $script:ResolvePathDirectory -ChildPath 'missing.txt'
 
         try {
-            $null = Resolve-WUPath `
-                -LiteralPath $missingPath `
-                -DenyMultiplePaths
+            $null = Resolve-WUPath -LiteralPath $missingPath -DenyMultiplePaths
             throw 'Expected Resolve-WUPath to report an error.'
         } catch {
             $_.Exception | Should -BeOfType (

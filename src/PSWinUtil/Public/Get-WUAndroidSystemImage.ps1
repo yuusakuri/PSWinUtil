@@ -49,13 +49,15 @@ function Get-WUAndroidSystemImage {
 
     Assert-WUCommand -Name 'android'
 
-    $result = Invoke-WUNativeCommand `
-        -Command 'android' `
-        -ArgumentList @('--no-metrics', 'sdk', 'list', 'system-images/*', '--all', '--all-versions') `
-        -CaptureOutput `
-        -ContinueExitCodes @(-1073740791) `
-        -WhatIf:$false `
-        -ErrorAction Stop
+    $commandParameters = @{
+        Command = 'android'
+        ArgumentList = @('--no-metrics', 'sdk', 'list', 'system-images/*', '--all', '--all-versions')
+        CaptureOutput = $true
+        ContinueExitCodes = @(-1073740791)
+        WhatIf = $false
+        ErrorAction = 'Stop'
+    }
+    $result = Invoke-WUNativeCommand @commandParameters
 
     foreach ($line in ($result.StandardOutput | Split-WUNewLine)) {
         if ($line -notmatch '^\s*system-images/android-([0-9]+)/([^/\s]+)/([^\s]+)\s+([0-9]+\.[0-9]+\.[0-9]+)\s+') {
