@@ -141,10 +141,6 @@ function Out-File {
             if ($NoClobber -and -not $Append -and $targetExists) {
                 throw "The file '$targetPath' already exists."
             }
-            if ($Append -and $targetExists) {
-                Convert-WUTextFileToUtf8Lf -Path $fullPath
-            }
-
             $originalAttributes = $null
             if ($targetExists) {
                 $originalAttributes = [System.IO.File]::GetAttributes($fullPath)
@@ -158,11 +154,14 @@ function Out-File {
                 }
             }
 
-            $fileMode = [System.IO.FileMode]::Create
-            if ($Append) {
-                $fileMode = [System.IO.FileMode]::Append
-            }
             try {
+                if ($Append -and $targetExists) {
+                    Convert-WUTextFileToUtf8Lf -Path $fullPath
+                }
+                $fileMode = [System.IO.FileMode]::Create
+                if ($Append) {
+                    $fileMode = [System.IO.FileMode]::Append
+                }
                 $fileStream = [System.IO.FileStream]::new(
                     $fullPath,
                     $fileMode,
@@ -208,7 +207,7 @@ function Out-File {
         if ($approved) {
             try {
                 if ($normalizeOutput) {
-                    Write-WUOutFileLine -StreamWriter $streamWriter -Line @($formatPipeline.Process($_)) -NoNewline:$NoNewline
+                    Write-WUOutFileLine -StreamWriter $streamWriter -Line @($formatPipeline.Process($InputObject)) -NoNewline:$NoNewline
                 } else {
                     $steppablePipeline.Process($_)
                 }

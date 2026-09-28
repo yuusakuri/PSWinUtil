@@ -52,20 +52,31 @@ Describe 'Windows auto logon commands' {
             $disabledState.UserName | Should -BeNullOrEmpty
             $disabledState.Domain | Should -BeNullOrEmpty
         } finally {
-            Set-WUAutoLogonPassword -Password $null
-            foreach ($propertyName in $propertyNames) {
-                $savedProperty = $savedProperties[$propertyName]
-                if ($null -eq $savedProperty) {
-                    Remove-WURegistryProperty -Path $script:WinlogonPath -Name $propertyName
-                    continue
+            $passwordCleanupError = $null
+            try {
+                InModuleScope -ModuleName PSWinUtil {
+                    Set-WUAutoLogonPassword -Password $null
                 }
-                $restoreParameters = @{
-                    Path = $script:WinlogonPath
-                    Name = $propertyName
-                    Value = $savedProperty.Value
-                    Type = $savedProperty.Type
+            } catch {
+                $passwordCleanupError = $_
+            } finally {
+                foreach ($propertyName in $propertyNames) {
+                    $savedProperty = $savedProperties[$propertyName]
+                    if ($null -eq $savedProperty) {
+                        Remove-WURegistryProperty -Path $script:WinlogonPath -Name $propertyName
+                        continue
+                    }
+                    $restoreParameters = @{
+                        Path = $script:WinlogonPath
+                        Name = $propertyName
+                        Value = $savedProperty.Value
+                        Type = $savedProperty.Type
+                    }
+                    Set-WURegistryProperty @restoreParameters
                 }
-                Set-WURegistryProperty @restoreParameters
+            }
+            if ($null -ne $passwordCleanupError) {
+                throw $passwordCleanupError
             }
         }
     }

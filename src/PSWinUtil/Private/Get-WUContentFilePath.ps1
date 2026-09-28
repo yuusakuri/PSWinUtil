@@ -32,12 +32,23 @@ function Get-WUContentFilePath {
     }
     $itemParameters += Select-WUBoundParameter -BoundParameters $BoundParameter -Name 'Filter', 'Include', 'Exclude', 'Force'
     if ($BoundParameter.ContainsKey('LiteralPath')) {
-        $itemParameters.LiteralPath = $BoundParameter.LiteralPath
+        $pathParameterName = 'LiteralPath'
     } else {
-        $itemParameters.Path = $BoundParameter.Path
+        $pathParameterName = 'Path'
     }
 
-    Microsoft.PowerShell.Management\Get-Item @itemParameters |
+    $items = @()
+    foreach ($pathValue in $BoundParameter[$pathParameterName]) {
+        $singlePathParameters = @{} + $itemParameters
+        $singlePathParameters[$pathParameterName] = $pathValue
+        try {
+            $items += Microsoft.PowerShell.Management\Get-Item @singlePathParameters
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            continue
+        }
+    }
+
+    $items |
         Where-Object {
             -not $_.PSIsContainer -and
             $_.PSProvider.Name -eq 'FileSystem'
