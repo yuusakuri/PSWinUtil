@@ -122,8 +122,12 @@ function Install-WUFlutterSdk {
             Assert-WUFlutterSdkInstallation
 
             if ($null -ne $backupPath -and (Test-Path -LiteralPath $backupPath)) {
-                Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
-                $backupPath = $null
+                try {
+                    Remove-Item -LiteralPath $backupPath -Recurse -Force -ErrorAction Stop
+                    $backupPath = $null
+                } catch {
+                    Write-Warning "Flutter SDK was installed, but the previous SDK backup could not be removed at '$backupPath'. $($_.Exception.Message)" -WarningAction Continue
+                }
             }
 
             Get-Item -LiteralPath $flutterPath -ErrorAction Stop

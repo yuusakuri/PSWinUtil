@@ -87,6 +87,8 @@ function New-WUSshKey {
         return
     }
 
+    Get-Command -Name 'ssh-keygen.exe' -CommandType Application -ErrorAction Stop | Out-Null
+
     $parentPath = Split-Path -Path $keyPath -Parent
     if (-not (Test-Path -LiteralPath $parentPath -PathType Container)) {
         New-Item -Path $parentPath -ItemType Directory -Force | Out-Null

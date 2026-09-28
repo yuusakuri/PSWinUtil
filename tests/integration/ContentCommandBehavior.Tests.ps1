@@ -108,6 +108,80 @@ Describe 'Set-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverrides
 }
 
 Describe 'Add-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAvailable) {
+    It 'creates a file that does not exist yet' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'add-new.txt'
+
+        Add-Content -LiteralPath $path -Value $script:UnicodeText
+
+        [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be "$($script:UnicodeText)`n"
+    }
+
+    It 'normalizes a new file selected by an escaped wildcard path' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'add[1].txt'
+        $escapedPath = [System.Management.Automation.WildcardPattern]::Escape($path)
+
+        Add-Content -Path $escapedPath -Value 'second'
+
+        Get-PSWinUtilUtf8LfContent -Path $path | Should -Be "second`n"
+    }
+
+    It 'converts existing targets when another target does not exist yet' {
+        $existingPath = Join-Path -Path $TestDrive -ChildPath 'add-existing-and-new.txt'
+        $newPath = Join-Path -Path $TestDrive -ChildPath 'add-new-target.txt'
+        [System.IO.File]::WriteAllText($existingPath, "first`r`n", [System.Text.Encoding]::Unicode)
+
+        Add-Content -LiteralPath $existingPath, $newPath -Value 'second'
+
+        [System.IO.File]::ReadAllText($existingPath, $script:Utf8NoBom) |
+            Should -Be "first`nsecond`n"
+        [System.IO.File]::ReadAllText($newPath, $script:Utf8NoBom) | Should -Be "second`n"
+    }
+
+    It 'converts a file path supplied through the pipeline before appending' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'add-pipeline-path.txt'
+        [System.IO.File]::WriteAllText($path, "first`r`n", [System.Text.Encoding]::Unicode)
+
+        Get-Item -LiteralPath $path | Add-Content -Value 'second'
+
+        [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be "first`nsecond`n"
+    }
+
+    It 'normalizes relative pipeline paths in different directories when ExistingTarget is <ExistingTarget>' -ForEach @(
+        @{ ExistingTarget = $true }
+        @{ ExistingTarget = $false }
+    ) {
+        $directories = @(
+            Join-Path -Path $TestDrive -ChildPath "first-directory-$ExistingTarget"
+            Join-Path -Path $TestDrive -ChildPath "second-directory-$ExistingTarget"
+        )
+        foreach ($directory in $directories) {
+            [System.IO.Directory]::CreateDirectory($directory) | Out-Null
+            if ($ExistingTarget) {
+                $filePath = Join-Path -Path $directory -ChildPath 'content.txt'
+                [System.IO.File]::WriteAllText($filePath, "first`r`n", [System.Text.Encoding]::Unicode)
+            }
+        }
+
+        $originalLocation = Get-Location
+        try {
+            $directories | ForEach-Object {
+                Set-Location -LiteralPath $_
+                [pscustomobject]@{ Path = 'content.txt' }
+            } | Add-Content -Value 'second'
+        } finally {
+            Set-Location -LiteralPath $originalLocation.Path
+        }
+
+        $expectedContent = "second`n"
+        if ($ExistingTarget) {
+            $expectedContent = "first`nsecond`n"
+        }
+        foreach ($directory in $directories) {
+            $filePath = Join-Path -Path $directory -ChildPath 'content.txt'
+            Get-PSWinUtilUtf8LfContent -Path $filePath | Should -Be $expectedContent
+        }
+    }
+
     It 'converts existing Unicode content and appends UTF-8 with LF' {
         $path = Join-Path -Path $TestDrive -ChildPath 'add.txt'
         [System.IO.File]::WriteAllText($path, "first`r`n", [System.Text.Encoding]::Unicode)
@@ -117,9 +191,105 @@ Describe 'Add-Content UTF-8 and LF default' -Skip:(-not $contentCommandOverrides
         $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "first`n$($script:UnicodeText)`n"
     }
+
+    It 'normalizes the written target after PassThru changes location when ExistingTarget is <ExistingTarget>' -ForEach @(
+        @{ ExistingTarget = $true }
+        @{ ExistingTarget = $false }
+    ) {
+        $sourceDirectory = Join-Path -Path $TestDrive -ChildPath "pass-through-source-$ExistingTarget"
+        $otherDirectory = Join-Path -Path $TestDrive -ChildPath "pass-through-other-$ExistingTarget"
+        [System.IO.Directory]::CreateDirectory($sourceDirectory) | Out-Null
+        [System.IO.Directory]::CreateDirectory($otherDirectory) | Out-Null
+        $path = Join-Path -Path $sourceDirectory -ChildPath 'content.txt'
+        if ($ExistingTarget) {
+            [System.IO.File]::WriteAllText($path, "first`r`n", [System.Text.Encoding]::Unicode)
+        }
+
+        $originalLocation = Get-Location
+        try {
+            Set-Location -LiteralPath $sourceDirectory
+            [pscustomobject]@{ Path = 'content.txt' } |
+                Add-Content -Value 'second' -PassThru |
+                ForEach-Object { Set-Location -LiteralPath $otherDirectory }
+        } finally {
+            Set-Location -LiteralPath $originalLocation.Path
+        }
+
+        $expectedContent = "second`n"
+        if ($ExistingTarget) {
+            $expectedContent = "first`nsecond`n"
+        }
+        Get-PSWinUtilUtf8LfContent -Path $path | Should -Be $expectedContent
+    }
+
+    It 'appends to a read-only file with Force and restores its attributes' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'add-readonly.txt'
+        [System.IO.File]::WriteAllText($path, "first`r`n", $script:Utf8NoBom)
+        [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::ReadOnly)
+
+        try {
+            Add-Content -LiteralPath $path -Value 'second' -Force
+
+            [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be "first`nsecond`n"
+            ([System.IO.File]::GetAttributes($path) -band [System.IO.FileAttributes]::ReadOnly) |
+                Should -Be ([System.IO.FileAttributes]::ReadOnly)
+        } finally {
+            [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::Normal)
+        }
+    }
+}
+
+Describe 'Content file attribute restoration' {
+    It 'restores ReadOnly without replacing other current attributes' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'restore-readonly.txt'
+        [System.IO.File]::WriteAllText($path, 'content', $script:Utf8NoBom)
+        [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::ReadOnly)
+        [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::Archive)
+
+        InModuleScope -ModuleName PSWinUtil -Parameters @{ FilePath = $path } {
+            Restore-WUContentFileAttribute -ReadOnlyPaths @{ $FilePath = $true }
+        }
+
+        try {
+            $attributes = [System.IO.File]::GetAttributes($path)
+            ($attributes -band [System.IO.FileAttributes]::ReadOnly) |
+                Should -Be ([System.IO.FileAttributes]::ReadOnly)
+            ($attributes -band [System.IO.FileAttributes]::Archive) |
+                Should -Be ([System.IO.FileAttributes]::Archive)
+        } finally {
+            [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::Normal)
+        }
+    }
 }
 
 Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAvailable) {
+    It 'closes the file and restores ReadOnly when formatting initialization fails' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'out-format-initialization-error.txt'
+        [System.IO.File]::WriteAllText($path, "first`r`n", $script:Utf8NoBom)
+        [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::ReadOnly)
+        try {
+            InModuleScope -ModuleName PSWinUtil -Parameters @{ FilePath = $path } {
+                $PSDefaultParameterValues = @{ 'Out-String:Width' = 1 }
+                $WarningPreference = 'Stop'
+                { 'second' | Out-File -LiteralPath $FilePath -Append -Force -ErrorAction Stop } |
+                    Should -Throw '*Width*'
+            }
+
+            ([System.IO.File]::GetAttributes($path) -band [System.IO.FileAttributes]::ReadOnly) |
+                Should -Be ([System.IO.FileAttributes]::ReadOnly)
+            [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::Normal)
+            $stream = [System.IO.File]::Open(
+                $path,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None
+            )
+            $stream.Dispose()
+        } finally {
+            [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::Normal)
+        }
+    }
+
     It 'writes formatted text as UTF-8 without BOM and LF' {
         $path = Join-Path -Path $TestDrive -ChildPath 'out.txt'
 
@@ -127,6 +297,14 @@ Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAva
 
         $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "$($script:UnicodeText)`nsecond`n"
+    }
+
+    It 'writes a directly supplied InputObject' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'out-input-object.txt'
+
+        Out-File -LiteralPath $path -InputObject $script:UnicodeText
+
+        [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be "$($script:UnicodeText)`n"
     }
 
     It 'appends to an existing Unicode file and converts it' {
@@ -137,6 +315,22 @@ Describe 'Out-File UTF-8 and LF default' -Skip:(-not $contentCommandOverridesAva
 
         $content = Get-PSWinUtilUtf8LfContent -Path $path
         $content | Should -Be "first`n$($script:UnicodeText)`n"
+    }
+
+    It 'appends to a read-only file with Force and restores its attributes' {
+        $path = Join-Path -Path $TestDrive -ChildPath 'out-readonly.txt'
+        [System.IO.File]::WriteAllText($path, "first`r`n", $script:Utf8NoBom)
+        [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::ReadOnly)
+
+        try {
+            'second' | Out-File -LiteralPath $path -Append -Force
+
+            [System.IO.File]::ReadAllText($path, $script:Utf8NoBom) | Should -Be "first`nsecond`n"
+            ([System.IO.File]::GetAttributes($path) -band [System.IO.FileAttributes]::ReadOnly) |
+                Should -Be ([System.IO.FileAttributes]::ReadOnly)
+        } finally {
+            [System.IO.File]::SetAttributes($path, [System.IO.FileAttributes]::Normal)
+        }
     }
 
     It 'does not write with WhatIf' {
