@@ -141,19 +141,23 @@ function Out-File {
             if ($NoClobber -and -not $Append -and $targetExists) {
                 throw "The file '$targetPath' already exists."
             }
-            $originalAttributes = $null
+            $restoreReadOnly = $false
             if ($targetExists) {
-                $originalAttributes = [System.IO.File]::GetAttributes($fullPath)
-                $isReadOnly = ($originalAttributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0
+                $attributes = [System.IO.File]::GetAttributes($fullPath)
+                $isReadOnly = ($attributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0
                 if ($isReadOnly -and -not $Force) {
                     throw "The file '$targetPath' is read-only. Use Force to write it."
                 }
                 if ($isReadOnly) {
-                    $writableAttributes = $originalAttributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
+                    $restoreReadOnly = $true
+                    $writableAttributes = $attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
                     [System.IO.File]::SetAttributes($fullPath, $writableAttributes)
                 }
             }
 
+            $fileStream = $null
+            $streamWriter = $null
+            $formatPipeline = $null
             try {
                 if ($Append -and $targetExists) {
                     Convert-WUTextFileToUtf8Lf -Path $fullPath
@@ -173,24 +177,22 @@ function Out-File {
                     [System.Text.UTF8Encoding]::new($false)
                 )
                 $streamWriter.NewLine = "`n"
-            } catch {
-                if ($null -ne $originalAttributes) {
-                    [System.IO.File]::SetAttributes($fullPath, $originalAttributes)
+
+                $formatParameters = @{ Stream = $true }
+                if ($PSBoundParameters.ContainsKey('Width')) {
+                    $formatParameters.Width = $Width
                 }
+                $outStringCommand = $ExecutionContext.InvokeCommand.GetCommand(
+                    'Microsoft.PowerShell.Utility\Out-String',
+                    [System.Management.Automation.CommandTypes]::Cmdlet
+                )
+                $formatScript = { & $outStringCommand @formatParameters }
+                $formatPipeline = $formatScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
+                $formatPipeline.Begin($true)
+            } catch {
+                Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FileStream $fileStream -FullPath $fullPath -RestoreReadOnly:$restoreReadOnly
                 throw
             }
-
-            $formatParameters = @{ Stream = $true }
-            if ($PSBoundParameters.ContainsKey('Width')) {
-                $formatParameters.Width = $Width
-            }
-            $outStringCommand = $ExecutionContext.InvokeCommand.GetCommand(
-                'Microsoft.PowerShell.Utility\Out-String',
-                [System.Management.Automation.CommandTypes]::Cmdlet
-            )
-            $formatScript = { & $outStringCommand @formatParameters }
-            $formatPipeline = $formatScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
-            $formatPipeline.Begin($true)
         } else {
             $PSBoundParameters.Remove('WhatIf') | Out-Null
             $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
@@ -213,7 +215,7 @@ function Out-File {
                 }
             } catch {
                 if ($normalizeOutput) {
-                    Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FullPath $fullPath -OriginalAttributes $originalAttributes
+                    Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FileStream $fileStream -FullPath $fullPath -RestoreReadOnly:$restoreReadOnly
                 } else {
                     $steppablePipeline.Dispose()
                 }
@@ -230,7 +232,7 @@ function Out-File {
             try {
                 Write-WUOutFileLine -StreamWriter $streamWriter -Line @($formatPipeline.End()) -NoNewline:$NoNewline
             } finally {
-                Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FullPath $fullPath -OriginalAttributes $originalAttributes
+                Close-WUOutFile -FormatPipeline $formatPipeline -StreamWriter $streamWriter -FileStream $fileStream -FullPath $fullPath -RestoreReadOnly:$restoreReadOnly
             }
         } else {
             try {

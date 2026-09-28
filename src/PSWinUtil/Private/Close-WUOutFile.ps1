@@ -9,21 +9,34 @@ function Close-WUOutFile {
         [AllowNull()]
         [System.IO.TextWriter]$StreamWriter,
 
+        [Parameter()]
+        [AllowNull()]
+        [System.IO.Stream]$FileStream,
+
         [Parameter(Mandatory = $true)]
         [string]$FullPath,
 
         [Parameter()]
-        [AllowNull()]
-        [object]$OriginalAttributes
+        [switch]$RestoreReadOnly
     )
 
-    if ($null -ne $FormatPipeline) {
-        $FormatPipeline.Dispose()
-    }
-    if ($null -ne $StreamWriter) {
-        $StreamWriter.Dispose()
-    }
-    if ($null -ne $OriginalAttributes) {
-        [System.IO.File]::SetAttributes($FullPath, $OriginalAttributes)
+    try {
+        if ($null -ne $FormatPipeline) {
+            $FormatPipeline.Dispose()
+        }
+    } finally {
+        try {
+            if ($null -ne $StreamWriter) {
+                $StreamWriter.Dispose()
+            }
+        } finally {
+            if ($null -ne $FileStream) {
+                $FileStream.Dispose()
+            }
+            if ($RestoreReadOnly) {
+                $attributes = [System.IO.File]::GetAttributes($FullPath)
+                [System.IO.File]::SetAttributes($FullPath, ($attributes -bor [System.IO.FileAttributes]::ReadOnly))
+            }
+        }
     }
 }

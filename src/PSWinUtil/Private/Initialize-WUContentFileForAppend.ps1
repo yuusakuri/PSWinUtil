@@ -5,7 +5,7 @@ function Initialize-WUContentFileForAppend {
         [System.Collections.IDictionary]$BoundParameter,
 
         [Parameter(Mandatory = $true)]
-        [System.Collections.IDictionary]$OriginalAttributesByPath,
+        [System.Collections.IDictionary]$ReadOnlyPaths,
 
         [Parameter(Mandatory = $true)]
         [System.Collections.IDictionary]$PreparedFilePaths
@@ -17,9 +17,10 @@ function Initialize-WUContentFileForAppend {
         }
 
         $attributes = [System.IO.File]::GetAttributes($filePath)
-        $OriginalAttributesByPath[$filePath] = $attributes
         $PreparedFilePaths[$filePath] = $true
-        if ($BoundParameter.Force) {
+        $isReadOnly = ($attributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0
+        if ($BoundParameter.Force -and $isReadOnly) {
+            $ReadOnlyPaths[$filePath] = $true
             $writableAttributes = $attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
             [System.IO.File]::SetAttributes($filePath, $writableAttributes)
         }

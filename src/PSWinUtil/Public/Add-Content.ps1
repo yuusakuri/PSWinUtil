@@ -151,19 +151,17 @@ function Add-Content {
         $normalizeOutput = $hasEncodingParameter -and
         $PSBoundParameters.Encoding.ToString() -ieq 'UTF8' -and
         -not $PSBoundParameters.ContainsKey('Stream')
-        $originalAttributesByPath = @{}
+        $readOnlyPaths = @{}
         $preparedFilePaths = @{}
-        $pathParameterName = 'Path'
-        if ($PSBoundParameters.ContainsKey('LiteralPath')) {
-            $pathParameterName = 'LiteralPath'
-        }
-        $pathsToNormalize = @($PSBoundParameters[$pathParameterName] | Where-Object { $null -ne $_ })
+        $hasExplicitPath = $PSBoundParameters.ContainsKey('Path') -or $PSBoundParameters.ContainsKey('LiteralPath')
+        $hasCollectedExplicitPaths = $false
+        $pathsToNormalize = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
         if ($normalizeOutput) {
             try {
-                Initialize-WUContentFileForAppend -BoundParameter $PSBoundParameters -OriginalAttributesByPath $originalAttributesByPath -PreparedFilePaths $preparedFilePaths
+                Initialize-WUContentFileForAppend -BoundParameter $PSBoundParameters -ReadOnlyPaths $readOnlyPaths -PreparedFilePaths $preparedFilePaths
             } catch {
-                Restore-WUContentFileAttribute -OriginalAttributesByPath $originalAttributesByPath
+                Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
                 throw
             }
         }
@@ -184,7 +182,7 @@ function Add-Content {
                     $steppablePipeline.Dispose()
                 }
             } finally {
-                Restore-WUContentFileAttribute -OriginalAttributesByPath $originalAttributesByPath
+                Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
             }
             throw
         }
@@ -193,16 +191,24 @@ function Add-Content {
     process {
         if ($approved) {
             try {
-                if ($normalizeOutput -and $PSBoundParameters.ContainsKey($pathParameterName)) {
-                    $pathsToNormalize += $PSBoundParameters[$pathParameterName]
-                    Initialize-WUContentFileForAppend -BoundParameter $PSBoundParameters -OriginalAttributesByPath $originalAttributesByPath -PreparedFilePaths $preparedFilePaths
+                if ($normalizeOutput -and -not $hasExplicitPath) {
+                    Initialize-WUContentFileForAppend -BoundParameter $PSBoundParameters -ReadOnlyPaths $readOnlyPaths -PreparedFilePaths $preparedFilePaths
+                }
+                if ($normalizeOutput -and (-not $hasExplicitPath -or -not $hasCollectedExplicitPaths)) {
+                    $normalizationParameters = @{} + $PSBoundParameters
+                    $normalizationParameters.Remove('Path') | Out-Null
+                    $normalizationParameters.LiteralPath = [string[]]@(Get-WUContentFilePath -BoundParameter $PSBoundParameters -AllowNonExisting)
                 }
                 $steppablePipeline.Process($_)
+                if ($normalizeOutput -and (-not $hasExplicitPath -or -not $hasCollectedExplicitPaths)) {
+                    $pathsToNormalize.UnionWith([string[]]@(Get-WUContentFilePath -BoundParameter $normalizationParameters))
+                    $hasCollectedExplicitPaths = $true
+                }
             } catch {
                 try {
                     $steppablePipeline.Dispose()
                 } finally {
-                    Restore-WUContentFileAttribute -OriginalAttributesByPath $originalAttributesByPath
+                    Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
                 }
                 throw
             }
@@ -216,9 +222,7 @@ function Add-Content {
         try {
             $steppablePipeline.End()
             if ($normalizeOutput) {
-                $normalizationParameters = @{} + $PSBoundParameters
-                $normalizationParameters[$pathParameterName] = $pathsToNormalize
-                foreach ($filePath in @(Get-WUContentFilePath -BoundParameter $normalizationParameters)) {
+                foreach ($filePath in $pathsToNormalize) {
                     Convert-WUTextFileToUtf8Lf -Path $filePath
                 }
             }
@@ -226,7 +230,7 @@ function Add-Content {
             try {
                 $steppablePipeline.Dispose()
             } finally {
-                Restore-WUContentFileAttribute -OriginalAttributesByPath $originalAttributesByPath
+                Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
             }
         }
     }
