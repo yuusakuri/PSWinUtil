@@ -296,6 +296,26 @@ Describe 'Install-WUFlutterSdk' {
             Should -HaveCount 0
     }
 
+    It 'keeps the new installation when removing the old SDK backup fails' {
+        $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
+        New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null
+        [IO.File]::WriteAllText((Join-Path -Path $existingFlutterPath -ChildPath 'old.txt'), 'old')
+        Mock -CommandName Remove-Item -ModuleName PSWinUtil -MockWith {}
+        Mock -CommandName Remove-Item -ModuleName PSWinUtil -MockWith {
+            throw 'backup cleanup failure'
+        } -ParameterFilter { $LiteralPath -like '*.flutter-backup-*' }
+
+        $result = Install-WUFlutterSdk -DestinationPath $script:DestinationPath 3>&1
+        $flutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
+
+        $result | Where-Object { $_ -is [System.Management.Automation.WarningRecord] } |
+            Should -Not -BeNullOrEmpty
+        Test-Path -LiteralPath (Join-Path -Path $flutterPath -ChildPath 'bin\flutter.bat') -PathType Leaf |
+            Should -BeTrue
+        Get-ChildItem -LiteralPath $script:DestinationPath -Directory -Filter '.flutter-backup-*' |
+            Should -HaveCount 1
+    }
+
     It 'keeps an existing installation when the extracted SDK cannot be placed' {
         $existingFlutterPath = Join-Path -Path $script:DestinationPath -ChildPath 'flutter'
         New-Item -Path $existingFlutterPath -ItemType Directory -Force | Out-Null

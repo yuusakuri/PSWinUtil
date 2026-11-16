@@ -31,6 +31,21 @@ Describe 'New-WUSshKey' {
         { New-WUSshKey -Path $keyPath -WhatIf } | Should -Throw '*Use Force*'
     }
 
+    It 'preserves existing keys when ssh-keygen is unavailable' {
+        $keyPath = Join-Path -Path $TestDrive -ChildPath 'existing-key'
+        [System.IO.File]::WriteAllText($keyPath, 'private key')
+        [System.IO.File]::WriteAllText("$keyPath.pub", 'public key')
+        Mock -CommandName Get-Command -ModuleName PSWinUtil -MockWith {
+            throw 'ssh-keygen.exe was not found.'
+        } -ParameterFilter { $Name -eq 'ssh-keygen.exe' }
+
+        { New-WUSshKey -Path $keyPath -Force } | Should -Throw '*ssh-keygen.exe was not found*'
+
+        [System.IO.File]::ReadAllText($keyPath) | Should -Be 'private key'
+        [System.IO.File]::ReadAllText("$keyPath.pub") | Should -Be 'public key'
+        Should -Invoke -CommandName Invoke-WUNativeCommand -ModuleName PSWinUtil -Times 0 -Exactly
+    }
+
     It 'passes the selected arguments to ssh-keygen' {
         $keyPath = Join-Path -Path $TestDrive -ChildPath 'generated-key'
 

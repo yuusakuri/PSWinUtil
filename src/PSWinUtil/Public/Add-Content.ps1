@@ -151,29 +151,65 @@ function Add-Content {
         $normalizeOutput = $hasEncodingParameter -and
         $PSBoundParameters.Encoding.ToString() -ieq 'UTF8' -and
         -not $PSBoundParameters.ContainsKey('Stream')
+        $readOnlyPaths = @{}
+        $preparedFilePaths = @{}
+        $hasExplicitPath = $PSBoundParameters.ContainsKey('Path') -or $PSBoundParameters.ContainsKey('LiteralPath')
+        $hasCollectedExplicitPaths = $false
+        $pathsToNormalize = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
         if ($normalizeOutput) {
-            foreach ($filePath in @(Get-WUContentFilePath -BoundParameter $PSBoundParameters)) {
-                Convert-WUTextFileToUtf8Lf -Path $filePath
+            try {
+                Initialize-WUContentFileForAppend -BoundParameter $PSBoundParameters -ReadOnlyPaths $readOnlyPaths -PreparedFilePaths $preparedFilePaths
+            } catch {
+                Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
+                throw
             }
         }
 
-        $PSBoundParameters.Remove('WhatIf') | Out-Null
-        $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
-            'Microsoft.PowerShell.Management\Add-Content',
-            [System.Management.Automation.CommandTypes]::Cmdlet
-        )
-        $commandScript = { & $wrappedCommand @PSBoundParameters }
-        $steppablePipeline = $commandScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
-        $steppablePipeline.Begin($PSCmdlet)
+        $steppablePipeline = $null
+        try {
+            $PSBoundParameters.Remove('WhatIf') | Out-Null
+            $wrappedCommand = $ExecutionContext.InvokeCommand.GetCommand(
+                'Microsoft.PowerShell.Management\Add-Content',
+                [System.Management.Automation.CommandTypes]::Cmdlet
+            )
+            $commandScript = { & $wrappedCommand @PSBoundParameters }
+            $steppablePipeline = $commandScript.GetSteppablePipeline($MyInvocation.CommandOrigin)
+            $steppablePipeline.Begin($PSCmdlet)
+        } catch {
+            try {
+                if ($null -ne $steppablePipeline) {
+                    $steppablePipeline.Dispose()
+                }
+            } finally {
+                Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
+            }
+            throw
+        }
     }
 
     process {
         if ($approved) {
             try {
+                if ($normalizeOutput -and -not $hasExplicitPath) {
+                    Initialize-WUContentFileForAppend -BoundParameter $PSBoundParameters -ReadOnlyPaths $readOnlyPaths -PreparedFilePaths $preparedFilePaths
+                }
+                if ($normalizeOutput -and (-not $hasExplicitPath -or -not $hasCollectedExplicitPaths)) {
+                    $normalizationParameters = @{} + $PSBoundParameters
+                    $normalizationParameters.Remove('Path') | Out-Null
+                    $normalizationParameters.LiteralPath = [string[]]@(Get-WUContentFilePath -BoundParameter $PSBoundParameters -AllowNonExisting)
+                }
                 $steppablePipeline.Process($_)
+                if ($normalizeOutput -and (-not $hasExplicitPath -or -not $hasCollectedExplicitPaths)) {
+                    $pathsToNormalize.UnionWith([string[]]@(Get-WUContentFilePath -BoundParameter $normalizationParameters))
+                    $hasCollectedExplicitPaths = $true
+                }
             } catch {
-                $steppablePipeline.Dispose()
+                try {
+                    $steppablePipeline.Dispose()
+                } finally {
+                    Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
+                }
                 throw
             }
         }
@@ -185,12 +221,16 @@ function Add-Content {
         }
         try {
             $steppablePipeline.End()
+            if ($normalizeOutput) {
+                foreach ($filePath in $pathsToNormalize) {
+                    Convert-WUTextFileToUtf8Lf -Path $filePath
+                }
+            }
         } finally {
-            $steppablePipeline.Dispose()
-        }
-        if ($normalizeOutput) {
-            foreach ($filePath in @(Get-WUContentFilePath -BoundParameter $PSBoundParameters)) {
-                Convert-WUTextFileToUtf8Lf -Path $filePath
+            try {
+                $steppablePipeline.Dispose()
+            } finally {
+                Restore-WUContentFileAttribute -ReadOnlyPaths $readOnlyPaths
             }
         }
     }
