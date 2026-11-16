@@ -7,6 +7,7 @@ It provides commands to:
 - Configure Windows interface, security, sign-in, and notification settings.
 - Manage environment variables, `PATH` entries, registry properties, startup entries, keyboard remapping, and automatic sign-in.
 - Work with UTF-8 text files, paths, URIs, SSH keys, downloads, and development tools.
+- Repair and format USB disks, and write ISO images to them as UEFI boot media.
 
 ## Requirements
 

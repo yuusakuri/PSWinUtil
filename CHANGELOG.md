@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `Repair-WUUsbDisk` brings offline or read-only USB disks online and assigns missing drive letters.
+- `Format-WUUsbDisk` erases a USB disk and formats it as one volume.
+- `New-WUBootableUsbDisk` writes an ISO image to a USB disk to create UEFI boot media.
 - `Get-WUAndroidEmulator` lists local Android virtual device names.
 - `Get-WUAndroidEmulatorPort` and `Test-WUAndroidEmulatorPort` find and test available emulator console ports.
 - `Install-WUAndroidSdk` uses Android CLI to install missing stable Android SDK packages and configures the SDK environment.

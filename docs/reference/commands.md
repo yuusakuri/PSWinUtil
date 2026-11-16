@@ -60,6 +60,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Enable-WUWindowsMediaPlayerFirstUseDialogBoxes` | Enables Windows Media Player first-use dialog boxes. |
 | `Enable-WUWindowsSecurityAllNotifications` | Enables all Windows Security notifications. |
 | `Enable-WUWindowsSecurityNonCriticalNotifications` | Enables non-critical Windows Security notifications. |
+| `Format-WUUsbDisk` | Erases a USB disk and formats it as one volume. |
 | `Get-SystemArchitecture` | Gets the Windows system architecture. |
 | `Get-WUAndroidDevice` | Gets Android hardware profile IDs that can be used to create virtual devices. |
 | `Get-WUAndroidEmulator` | Lists Android virtual device names that the emulator can start. |
@@ -88,6 +89,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Invoke-WUNativeCommand` | Runs a native executable or batch command and returns its exit status. |
 | `Join-WUUri` | Resolves a relative URI against a base URI. |
 | `New-WUAndroidEmulator` | Creates an Android virtual device using the latest available Pixel by default. |
+| `New-WUBootableUsbDisk` | Writes an ISO image to a USB disk to create UEFI boot media. |
 | `New-WUCmdArgument` | Creates a cmd.exe argument string for a Windows batch command. |
 | `New-WURandomString` | Creates a cryptographically random string. |
 | `New-WUSshKey` | Creates an SSH key with Windows OpenSSH. |
@@ -96,6 +98,7 @@ The following table is generated from the exported commands and their comment-ba
 | `Remove-WUKeyboardRemapping` | Removes Windows keyboard scan code mappings. |
 | `Remove-WUPathEnvironmentVariable` | Removes selected entries from Process, User, or Machine PATH values. |
 | `Remove-WURegistryProperty` | Removes a registry property. |
+| `Repair-WUUsbDisk` | Makes offline or read-only USB disks accessible again. |
 | `Resolve-WUPath` | Resolves PowerShell paths with optional single-result enforcement. |
 | `Resolve-WUPathFromParameterSet` | Resolves paths selected by a parameter set. |
 | `Select-WUBoundParameter` | Selects named entries from a bound parameter dictionary. |
